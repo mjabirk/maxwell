@@ -1,6 +1,56 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
+
+
+class ContractorEstimationLineLockMixin(models.AbstractModel):
+    _name = 'contractor.estimation.line.lock.mixin'
+    _description = 'Parent SO / Estimation Lock Mixin'
+
+    def _check_so_estimation_lock(self, orders, action_label):
+        ctx = self.env.context
+        if ctx.get('from_convert_to_project'):
+            return
+        for order in orders:
+            if not order:
+                continue
+            if order._is_post_conversion_locked():
+                raise UserError(_(
+                    "Cannot %s cost estimation lines on Sales Order %s because it is confirmed or linked to an "
+                    "active Project / Master Budget. Use an authorized Variation Order (VO) instead."
+                ) % (action_label, order.display_name))
+            if order._is_post_approval_locked():
+                if ctx.get('from_negotiation_wizard') or ctx.get('from_revision_action'):
+                    continue
+                raise UserError(_(
+                    "Cannot %s cost estimation lines on Quotation %s after approval/dispatch (%s). "
+                    "Use 'Revise Quotation (New Version)' or 'Log Client Negotiation' with a mandatory reason."
+                ) % (action_label, order.display_name, order.contractor_quote_state))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        order_ids = {
+            v['order_id'] for v in vals_list
+            if v.get('order_id') and not v.get('variation_order_id')
+        }
+        if order_ids:
+            self._check_so_estimation_lock(self.env['sale.order'].browse(list(order_ids)), _("add"))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        so_lines = self.filtered(lambda l: not l.variation_order_id and not vals.get('variation_order_id'))
+        if so_lines:
+            orders = so_lines.mapped('order_id')
+            if vals.get('order_id'):
+                orders |= self.env['sale.order'].browse(vals['order_id'])
+            so_lines._check_so_estimation_lock(orders, _("modify"))
+        return super().write(vals)
+
+    def unlink(self):
+        so_lines = self.filtered(lambda l: not l.variation_order_id)
+        if so_lines:
+            so_lines._check_so_estimation_lock(so_lines.mapped('order_id'), _("delete"))
+        return super().unlink()
 
 
 # =========================================================================
@@ -8,6 +58,7 @@ from odoo.exceptions import ValidationError
 # =========================================================================
 class ContractorCostLabourLine(models.Model):
     _name = 'contractor.cost.labour.line'
+    _inherit = ['contractor.estimation.line.lock.mixin']
     _description = 'Contractor Labor Cost Estimation Line (Block 1)'
 
     order_id = fields.Many2one(
@@ -142,6 +193,7 @@ class ContractorCostLabourLine(models.Model):
 # =========================================================================
 class ContractorCostMaterialLine(models.Model):
     _name = 'contractor.cost.material.line'
+    _inherit = ['contractor.estimation.line.lock.mixin']
     _description = 'Contractor Material Cost Estimation Line (Block 2)'
 
     order_id = fields.Many2one(
@@ -333,6 +385,7 @@ class ContractorCostMaterialLine(models.Model):
 # =========================================================================
 class ContractorCostLegalLine(models.Model):
     _name = 'contractor.cost.legal.line'
+    _inherit = ['contractor.estimation.line.lock.mixin']
     _description = 'Contractor Legal, Statutory & Permits Cost Line (Block 3)'
 
     order_id = fields.Many2one(
@@ -389,6 +442,7 @@ class ContractorCostLegalLine(models.Model):
 # =========================================================================
 class ContractorCostMiscLine(models.Model):
     _name = 'contractor.cost.misc.line'
+    _inherit = ['contractor.estimation.line.lock.mixin']
     _description = 'Contractor Miscellaneous & Site Indirects Cost Line (Block 4)'
 
     order_id = fields.Many2one(

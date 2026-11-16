@@ -30,12 +30,21 @@
                         class="btn-outline-success"
                         invisible="not is_emergency_purchase or md_post_event_review_state != 'pending'"
                         groups="contractor_core.group_contractor_md"/>
+                <button name="action_revise_po"
+                        string="Revise PO (New Version)"
+                        type="object"
+                        class="btn-warning"
+                        invisible="state not in ('purchase', 'to approve', 'sent')"/>
                 <button name="action_md_flag_emergency_exception"
                         string="Flag Audit Exception"
                         type="object"
                         class="btn-outline-danger"
                         invisible="not is_emergency_purchase or md_post_event_review_state != 'pending'"
                         groups="contractor_core.group_contractor_md"/>
+            </xpath>
+
+            <xpath expr="//page[@name='products']//field[@name='order_line']" position="attributes">
+                <attribute name="readonly">state in ('purchase', 'done', 'cancel') or locked</attribute>
             </xpath>
 
             <!-- Alert Banners -->

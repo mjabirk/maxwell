@@ -67,15 +67,23 @@ class ContractorNegotiationWizard(models.TransientModel):
 
         order = self.order_id
 
+        if order._is_post_conversion_locked():
+            raise UserError(_(
+                "Sales Order %s is already confirmed or linked to an active Project / Master Budget. "
+                "Client negotiation revisions are not permitted post-conversion; please create a Variation Order (VO)."
+            ) % order.display_name)
+
         # Update margins if requested in the wizard
         if self.update_margin:
-            order.margin_type = self.revised_margin_type
+            margin_vals = {'margin_type': self.revised_margin_type}
             if self.revised_margin_type == 'percentage':
-                order.margin_percent = self.revised_margin_percent
+                margin_vals['margin_percent'] = self.revised_margin_percent
             else:
-                order.margin_amount = self.revised_margin_amount
-            order._compute_margin_values()
-            order._sync_order_lines_from_estimation()
+                margin_vals['margin_amount'] = self.revised_margin_amount
+            wizard_order = order.with_context(from_negotiation_wizard=True)
+            wizard_order.with_context(skip_estimation_sync=True, from_negotiation_wizard=True).write(margin_vals)
+            wizard_order._compute_margin_values()
+            wizard_order._sync_order_lines_from_estimation()
 
         # Archive new version snapshot (e.g. v2, v3...)
         snapshot_reason = _("Client Negotiation: %s") % notes

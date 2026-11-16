@@ -337,21 +337,29 @@ class SaleOrder(models.Model):
 
     @api.depends('total_estimated_cost', 'margin_type', 'margin_percent', 'margin_amount')
     def _compute_margin_values(self):
+        ctx = self.env.context
+        allow_input_sync = ctx.get('from_negotiation_wizard') or ctx.get('from_revision_action')
         for order in self:
             cost = order.total_estimated_cost or 0.0
+            is_locked = isinstance(order.id, int) and (
+                order._is_post_conversion_locked() or order._is_post_approval_locked()
+            )
             if order.margin_type == 'percentage':
                 pct = order.margin_percent or 0.0
                 m_amt = cost * (pct / 100.0)
-                order.margin_amount = m_amt
+                if (not is_locked or allow_input_sync) and abs((order.margin_amount or 0.0) - m_amt) > 1e-6:
+                    order.margin_amount = m_amt
                 proposed = cost + m_amt
                 order.proposed_quotation_value = proposed
                 order.effective_margin_pct = (m_amt / proposed * 100.0) if proposed > 0 else 0.0
             else:
                 m_amt = order.margin_amount or 0.0
                 proposed = cost + m_amt
+                eff_pct = (m_amt / proposed * 100.0) if proposed > 0 else 0.0
                 order.proposed_quotation_value = proposed
-                order.effective_margin_pct = (m_amt / proposed * 100.0) if proposed > 0 else 0.0
-                order.margin_percent = order.effective_margin_pct
+                order.effective_margin_pct = eff_pct
+                if (not is_locked or allow_input_sync) and abs((order.margin_percent or 0.0) - eff_pct) > 1e-6:
+                    order.margin_percent = eff_pct
 
     @api.onchange('margin_type', 'margin_percent', 'margin_amount', 'total_estimated_cost')
     def _onchange_margin_sync_lines(self):
@@ -394,7 +402,113 @@ class SaleOrder(models.Model):
                     rec.with_context(skip_estimation_sync=True)._sync_order_lines_from_estimation()
         return records
 
+    revision_reason = fields.Text(
+        string='Last Revision Reason',
+        tracking=True,
+        copy=False,
+    )
+
+    _COMMERCIAL_LOCKED_FIELDS = {
+        'order_line',
+        'est_labour_line_ids',
+        'est_material_line_ids',
+        'est_legal_line_ids',
+        'est_misc_line_ids',
+        'margin_type',
+        'margin_percent',
+        'margin_amount',
+        'pricelist_id',
+        'currency_id',
+        'fiscal_position_id',
+        'payment_term_id',
+        'partner_id',
+        'partner_invoice_id',
+        'partner_shipping_id',
+        'company_id',
+    }
+
+    def _is_post_conversion_locked(self):
+        """Returns True once SO is confirmed/converted or linked to an execution project/budget."""
+        self.ensure_one()
+        if self.state in ('sale', 'done') or self.contractor_quote_state == 'converted' or self.project_budget_id:
+            return True
+        if getattr(self, 'project_ids', False):
+            return True
+        if isinstance(self.id, int) and self.id:
+            if self.env['project.project'].sudo().search_count([('sale_order_id', '=', self.id)], limit=1):
+                return True
+        return False
+
+    def _is_post_approval_locked(self):
+        """Returns True after Manager Approval or closure, before project conversion."""
+        self.ensure_one()
+        return (
+            self.contractor_quote_state in (
+                'approved_pending_release', 'sent_to_client', 'accepted',
+                'declined', 'lost', 'cancelled',
+            )
+            or self.state == 'cancel'
+        )
+
+    def _has_authorized_vo_context(self, lines=None):
+        """Validates active Variation Order context during approved VO integration."""
+        self.ensure_one()
+        ctx = self.env.context
+        if not ctx.get('from_vo_integration'):
+            return False
+        active_vo_id = ctx.get('active_vo_id')
+        vo_model = self.env['contractor.variation.order'].sudo()
+        if active_vo_id:
+            vo = vo_model.browse(active_vo_id).exists()
+            if not vo or vo.state not in ('manager_approved', 'md_approved', 'client_accepted', 'integrated'):
+                return False
+            matches_order = (vo.order_id.id == self.id) or (
+                vo.project_id and (vo.project_id.id == self.project_id.id or vo.project_id.sale_order_id.id == self.id)
+            )
+            if not matches_order:
+                return False
+            if lines:
+                if not vo.vo_sale_line_id or any(line.id != vo.vo_sale_line_id.id for line in lines):
+                    return False
+            return True
+        return bool(vo_model.search_count([
+            ('order_id', '=', self.id),
+            ('state', 'in', ('manager_approved', 'md_approved', 'client_accepted', 'integrated')),
+        ]))
+
+    def _check_commercial_edit_lock(self, vals):
+        changed_commercial = self._COMMERCIAL_LOCKED_FIELDS & set(vals.keys())
+        if not changed_commercial:
+            return
+        ctx = self.env.context
+        if ctx.get('from_convert_to_project'):
+            return
+        for rec in self:
+            if rec._is_post_conversion_locked():
+                if set(vals.keys()) <= {'order_line'} and rec._has_authorized_vo_context():
+                    continue
+                raise UserError(_(
+                    "Sales Order %s is confirmed or linked to an active Project / Master Budget and is strictly locked. "
+                    "Direct inline edits to lines, quantities, pricing, margins, or cost blocks are prohibited. "
+                    "Use an authorized Variation Order (VO) for scope or commercial changes."
+                ) % rec.display_name)
+            if rec._is_post_approval_locked():
+                if ctx.get('from_negotiation_wizard') or ctx.get('from_revision_action'):
+                    continue
+                if set(vals.keys()) <= {'order_line'} and rec._has_authorized_vo_context():
+                    continue
+                if rec.contractor_quote_state in ('declined', 'lost', 'cancelled') or rec.state == 'cancel':
+                    raise UserError(_(
+                        "Quotation %s is closed or cancelled. Direct edits are blocked; use 'Generate New Quotation (New Revision)' "
+                        "to create a tracked revision."
+                    ) % rec.display_name)
+                raise UserError(_(
+                    "Quotation %s is already approved/dispatched (%s). Direct edits to lines, pricing, margins, or cost blocks are blocked. "
+                    "Use 'Revise Quotation (New Version)' or 'Log Client Negotiation' with a mandatory reason."
+                ) % (rec.display_name, rec.contractor_quote_state))
+
     def write(self, vals):
+        self._check_commercial_edit_lock(vals)
         res = super().write(vals)
         sync_triggers = {
             'est_labour_line_ids', 'est_material_line_ids',
@@ -406,6 +520,71 @@ class SaleOrder(models.Model):
                 if rec.contractor_quote_state in ('draft', 'submitted', 'under_negotiation') and rec.total_estimated_cost > 0:
                     rec.with_context(skip_estimation_sync=True)._sync_order_lines_from_estimation()
         return res
+
+    def unlink(self):
+        for rec in self:
+            if rec._is_post_conversion_locked():
+                raise UserError(_(
+                    "Cannot delete Sales Order %s because it is confirmed or linked to an active Project / Master Budget."
+                ) % rec.display_name)
+            if rec._is_post_approval_locked() or rec.contractor_quote_state == 'under_negotiation' or rec.version_history_ids:
+                raise UserError(_(
+                    "Cannot delete Quotation %s after approval, dispatch, negotiation, or version archival. "
+                    "Cancel and issue a new revision instead."
+                ) % rec.display_name)
+        return super().unlink()
+
+    def action_revise_quotation(self):
+        """Opens Reason Wizard to capture a mandatory revision reason before reopening an approved/dispatched quotation."""
+        self.ensure_one()
+        if self._is_post_conversion_locked():
+            raise UserError(_(
+                "Sales Order %s is already confirmed/converted to an active Project and cannot be revised. "
+                "Please use a formal Variation Order (VO)."
+            ) % self.display_name)
+        if self.contractor_quote_state not in ('approved_pending_release', 'sent_to_client', 'under_negotiation', 'accepted'):
+            raise UserError(_(
+                "Only Approved, Dispatched, Under Negotiation, or Accepted pre-conversion quotations can be formally revised."
+            ))
+        return self.action_open_reason_wizard(
+            action_type='return',
+            target_state=None,
+            callback_method='_callback_revise_quotation',
+        )
+
+    def _callback_revise_quotation(self, reason=None):
+        """Snapshots immutable version and reopens pre-conversion quotation to draft for formal re-estimation."""
+        self.ensure_one()
+        if self._is_post_conversion_locked():
+            raise UserError(_(
+                "Sales Order %s is already confirmed/converted to an active Project and cannot be revised."
+            ) % self.display_name)
+        clean_reason = (reason or self.env.context.get('revision_reason') or '').strip()
+        if not clean_reason or len(clean_reason) < 5:
+            raise UserError(_(
+                "A mandatory revision reason (minimum 5 characters) is required to revise an approved/sent quotation."
+            ))
+        self._create_version_snapshot(
+            reason=_("Quotation Formal Revision: %s") % clean_reason,
+            editor_user=self.env.user,
+        )
+        self.with_context(from_revision_action=True).write({
+            'contractor_quote_state': 'draft',
+            'state': 'draft',
+            'revision_reason': clean_reason,
+            'last_action_reason': clean_reason,
+            'last_action_by_id': self.env.user.id,
+            'last_action_date': fields.Datetime.now(),
+        })
+        self.message_post(
+            body=Markup(_(
+                "<p><strong>Quotation Formally Reopened for Revision (v%s):</strong></p>"
+                "<p><strong>Reason:</strong> %s</p>"
+            )) % (self.version_number, clean_reason),
+            message_type='notification',
+            subtype_xmlid='mail.mt_note',
+        )
+        return True
 
     def action_view_revisions(self):
         self.ensure_one()
@@ -421,6 +600,8 @@ class SaleOrder(models.Model):
     def _sync_order_lines_from_estimation(self):
         """Ensures sales order line reflects the total proposed quotation value."""
         for order in self:
+            if order._is_post_conversion_locked() and not self.env.context.get('from_convert_to_project'):
+                continue
             if order.proposed_quotation_value <= 0:
                 continue
             if not order.order_line:
@@ -659,6 +840,11 @@ class SaleOrder(models.Model):
     def action_log_client_negotiation(self):
         """Opens negotiation wizard to capture client requested modifications."""
         self.ensure_one()
+        if self._is_post_conversion_locked():
+            raise UserError(_(
+                "Sales Order %s is already confirmed or linked to an active Project / Master Budget. "
+                "Pre-conversion negotiation revisions are locked; please create a formal Variation Order (VO)."
+            ) % self.display_name)
         return {
             'type': 'ir.actions.act_window',
             'name': _('Log Client Negotiation'),
@@ -934,7 +1120,7 @@ class SaleOrder(models.Model):
 
         # 0. Ensure sales order lines are synchronized with 4-block proposed quotation value
         if self.total_estimated_cost > 0:
-            self.with_context(skip_estimation_sync=True)._sync_order_lines_from_estimation()
+            self.with_context(skip_estimation_sync=True, from_convert_to_project=True)._sync_order_lines_from_estimation()
 
         # 1. Generate unique project code
         project_code = self.env['ir.sequence'].next_by_code('contractor.project.code') or f"PRJ-{self.name}"
@@ -1008,7 +1194,7 @@ class SaleOrder(models.Model):
         budget = self.env['contractor.project.budget'].create(budget_vals)
 
         # 4. Link & Update Sale Order, and confirm via standard Odoo Sales workflow
-        self.write({
+        self.with_context(from_convert_to_project=True).write({
             'project_id': project.id,
             'project_budget_id': budget.id,
             'contractor_quote_state': 'converted',

@@ -452,15 +452,16 @@ class ContractorVariationOrder(models.Model):
         # Update linked Sale Order billing schedule with accepted VO line
         if self.order_id and self.total_vo_value > 0.0:
             line_desc = f"[{vo_tag}] {self.name}: {self.scope_description[:120]}"
+            vo_ctx = {'skip_estimation_sync': True, 'from_vo_integration': True, 'active_vo_id': self.id}
             if self.vo_sale_line_id and self.vo_sale_line_id.exists():
-                self.vo_sale_line_id.with_context(skip_estimation_sync=True).write({
+                self.vo_sale_line_id.with_context(**vo_ctx).write({
                     'name': line_desc,
                     'price_unit': self.total_vo_value,
                 })
             else:
                 product = self.env['product.product'].search([('type', '=', 'service')], limit=1) or self.env['product.product'].search([], limit=1)
                 if product:
-                    sol = self.env['sale.order.line'].with_context(skip_estimation_sync=True).create({
+                    sol = self.env['sale.order.line'].with_context(**vo_ctx).create({
                         'order_id': self.order_id.id,
                         'product_id': product.id,
                         'name': line_desc,

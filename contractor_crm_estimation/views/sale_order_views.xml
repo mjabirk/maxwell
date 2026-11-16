@@ -58,6 +58,11 @@
                         string="Log Client Negotiation"
                         class="btn-secondary"
                         invisible="contractor_quote_state not in ('sent_to_client', 'under_negotiation')"/>
+                <button name="action_revise_quotation"
+                        type="object"
+                        string="Revise Quotation (New Version)"
+                        class="btn-warning"
+                        invisible="contractor_quote_state not in ('approved_pending_release', 'sent_to_client', 'under_negotiation', 'accepted')"/>
 
                 <button name="action_log_non_conversion_status"
                         type="object"
@@ -186,6 +191,11 @@
                 <field name="parent_quote_id" readonly="1" invisible="not parent_quote_id"/>
             </xpath>
 
+            <!-- Lock native SO order_line UI once confirmed, converted, or post-approval -->
+            <xpath expr="//page[@name='order_lines']//field[@name='order_line']" position="attributes">
+                <attribute name="readonly">state in ('sale', 'done', 'cancel') or locked or contractor_quote_state in ('approved_pending_release', 'sent_to_client', 'accepted', 'converted', 'declined', 'lost', 'cancelled')</attribute>
+            </xpath>
+
             <!-- Dedicated 4-Block Cost Estimation Notebook Page -->
             <xpath expr="//page[@name='order_lines']" position="before">
                 <page string="4-Block Cost Estimation &amp; Margins" name="page_cost_estimation">
@@ -265,10 +275,10 @@
                                 Subtotal: <field name="total_material_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             </span>
                         </div>
+                        <div class="alert alert-warning py-2 mb-2" role="alert" invisible="not has_missing_new_sku_cost_basis">
+                            <strong>New-SKU Cost Basis Notice:</strong> One or more non-catalog New SKU items have an empty Cost Basis Justification. Manager review will be flagged upon submission.
+                        </div>
                         <field name="est_material_line_ids" readonly="contractor_quote_state not in ('draft', 'submitted')">
-                            <div class="alert alert-warning py-2 mb-2" role="alert" invisible="not has_missing_new_sku_cost_basis">
-                                <strong>New-SKU Cost Basis Notice:</strong> One or more non-catalog New SKU items have an empty Cost Basis Justification. Manager review will be flagged upon submission.
-                            </div>
                             <list editable="bottom" string="Material Estimation Lines" decoration-warning="missing_cost_basis">
                                 <field name="missing_cost_basis" column_invisible="1"/>
                                 <field name="is_new_sku"/>

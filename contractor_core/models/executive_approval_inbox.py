@@ -47,7 +47,6 @@ class ContractorApprovalInbox(models.Model):
             return 'warning'
         return 'on_track'
 
-    @api.model
     def action_refresh_inbox(self):
         """Rebuilds executive approval inbox entries across all Contractor ERP workflow queues."""
         self.sudo().search([]).unlink()
@@ -218,7 +217,7 @@ class ContractorApprovalInbox(models.Model):
 
         if vals_list:
             self.sudo().create(vals_list)
-        return True
+        return {'type': 'ir.actions.client', 'tag': 'soft_reload'}
 
     @api.model
     def action_open_inbox(self):
@@ -289,7 +288,7 @@ class ContractorApprovalInbox(models.Model):
         if isinstance(result, dict):
             return result
         self.action_refresh_inbox()
-        return True
+        return {'type': 'ir.actions.client', 'tag': 'soft_reload'}
 
     def action_quick_decline_or_return(self):
         """Opens the source model's mandatory reason wizard for decline/return/cancel."""

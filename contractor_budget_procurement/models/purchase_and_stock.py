@@ -207,23 +207,156 @@ class PurchaseOrder(models.Model):
             res['project_id'] = self.requisition_id.project_id.id
         return res
 
+    revision_reason = fields.Text(
+        string='Last Revision Reason',
+        tracking=True,
+        copy=False,
+    )
+
+    _PO_COMMERCIAL_LOCKED_FIELDS = {
+        'order_line',
+        'partner_id',
+        'partner_ref',
+        'currency_id',
+        'fiscal_position_id',
+        'payment_term_id',
+        'project_id',
+        'company_id',
+    }
+
+    def _has_active_grns(self):
+        self.ensure_one()
+        return bool(self.picking_ids.filtered(lambda p: p.state != 'cancel'))
+
+    def _has_done_grns(self):
+        self.ensure_one()
+        return bool(self.picking_ids.filtered(lambda p: p.state == 'done'))
+
+    def _is_po_commercially_locked(self):
+        self.ensure_one()
+        return self.state in ('purchase', 'done', 'cancel') or self._has_active_grns()
+
     def write(self, vals):
-        # Version snapshotting for post-confirmation modifications
-        for po in self:
-            if po.state in ('purchase', 'done') and ('order_line' in vals or 'partner_id' in vals):
-                po._create_version_snapshot(
-                    reason=_("Post-confirmation modification of Purchase Order terms or lines."),
-                    editor_user=self.env.user,
-                )
+        ctx = self.env.context
+        if not ctx.get('from_po_revision'):
+            if self._PO_COMMERCIAL_LOCKED_FIELDS & set(vals.keys()):
+                for po in self:
+                    if po._is_po_commercially_locked():
+                        raise UserError(_(
+                            "Purchase Order %s is confirmed or has linked Goods Receipt Notes (GRNs) and is strictly locked. "
+                            "Direct inline modifications to vendor, project, terms, quantities, or pricing are prohibited. "
+                            "Use 'Revise PO (New Version)' before delivery or 'Cancel' with a mandatory reason."
+                        ) % po.display_name)
         return super().write(vals)
 
-    def button_cancel(self):
+    def unlink(self):
         for po in self:
-            if po.state in ('purchase', 'done') and not self.env.context.get('skip_reason_check'):
-                if not getattr(po, 'last_action_reason', None):
-                    return po.action_open_reason_wizard(
+            if po.state in ('purchase', 'done') or po.picking_ids or po.version_history_ids:
+                raise UserError(_(
+                    "Purchase Order %s cannot be deleted after confirmation, GRN linkage, or version archival. "
+                    "Use Cancellation with a mandatory documented reason to preserve the audit trail."
+                ) % po.display_name)
+        return super().unlink()
+
+    def action_revise_po(self):
+        """Opens mandatory Reason Wizard to formally revise an un-delivered PO into a new editable draft version."""
+        self.ensure_one()
+        if self._has_done_grns():
+            raise UserError(_(
+                "Purchase Order %s already has validated (Done) Goods Receipt Notes and cannot be revised. "
+                "Please cancel remaining open quantities or issue a separate Purchase Order."
+            ) % self.display_name)
+        if any(inv.state not in ('cancel', 'draft') for inv in self.invoice_ids):
+            raise UserError(_(
+                "Purchase Order %s has posted Vendor Bills and cannot be revised."
+            ) % self.display_name)
+        if self.state not in ('purchase', 'to approve', 'sent'):
+            raise UserError(_(
+                "Only Sent, Pending Approval, or Confirmed Purchase Orders can be formally revised via PO Revision."
+            ))
+        return self.action_open_reason_wizard(
+            action_type='return',
+            target_state=None,
+            callback_method='_callback_revise_po',
+        )
+
+    def _callback_revise_po(self, reason=None):
+        """Archives immutable PO version snapshot, cancels open pre-delivery pickings, and reopens PO to draft."""
+        self.ensure_one()
+        if self._has_done_grns():
+            raise UserError(_(
+                "Purchase Order %s already has validated (Done) Goods Receipt Notes and cannot be revised."
+            ) % self.display_name)
+        if any(inv.state not in ('cancel', 'draft') for inv in self.invoice_ids):
+            raise UserError(_(
+                "Purchase Order %s has posted Vendor Bills and cannot be revised."
+            ) % self.display_name)
+        clean_reason = (reason or self.env.context.get('revision_reason') or '').strip()
+        if not clean_reason or len(clean_reason) < 5:
+            raise UserError(_(
+                "A mandatory revision reason (minimum 5 characters) is required for formal PO Revision."
+            ))
+
+        self._create_version_snapshot(
+            reason=_("Formal PO Revision: %s") % clean_reason,
+            editor_user=self.env.user,
+        )
+        if self.locked:
+            self.with_context(from_po_revision=True).write({'locked': False})
+        self.with_context(skip_reason_check=True, from_po_revision=True).button_cancel()
+        self.with_context(skip_reason_check=True, from_po_revision=True).button_draft()
+
+        rev_vals = {
+            'revision_reason': clean_reason,
+            'last_action_reason': clean_reason,
+            'last_action_by_id': self.env.user.id,
+            'last_action_date': fields.Datetime.now(),
+            'md_approver_id': False,
+            'md_approval_date': False,
+            'md_approval_state': 'pending' if self.requires_md_approval else 'not_required',
+        }
+        self.with_context(from_po_revision=True).write(rev_vals)
+        if self.project_id:
+            self.env['contractor.project.budget']._refresh_project_consumption([self.project_id.id])
+        self.message_post(
+            body=Markup(_(
+                "<p><strong>Purchase Order Formally Revised (v%s):</strong> Reopened to Draft before delivery.</p>"
+                "<p><strong>Revision Reason:</strong> %s</p>"
+            )) % (self.version_number, clean_reason),
+            message_type='notification',
+            subtype_xmlid='mail.mt_note',
+        )
+        return True
+
+    def button_cancel(self):
+        ctx = self.env.context
+        if not ctx.get('skip_reason_check'):
+            ctx_reason = (ctx.get('cancel_reason') or '').strip()
+            if ctx_reason:
+                if len(ctx_reason) < 5:
+                    raise UserError(_("A mandatory cancellation reason (minimum 5 characters) is required."))
+                for po in self:
+                    if po.state in ('purchase', 'done'):
+                        po._create_version_snapshot(
+                            reason=_("PO Cancelled: %s") % ctx_reason,
+                            editor_user=self.env.user,
+                        )
+                    po.with_context(from_po_revision=True).write({
+                        'last_action_reason': ctx_reason,
+                        'last_action_by_id': self.env.user.id,
+                        'last_action_date': fields.Datetime.now(),
+                    })
+            else:
+                active_pos = self.filtered(lambda p: p.state != 'cancel')
+                if active_pos:
+                    if len(active_pos) > 1:
+                        raise UserError(_(
+                            "A mandatory cancellation reason is required to cancel Purchase Orders. "
+                            "Please cancel Purchase Orders individually to document the reason."
+                        ))
+                    return active_pos.action_open_reason_wizard(
                         action_type='cancel',
-                        target_state='cancel',
+                        target_state=None,
                         callback_method='_callback_cancel_po',
                     )
         res = super().button_cancel()
@@ -231,11 +364,63 @@ class PurchaseOrder(models.Model):
         return res
 
     def _callback_cancel_po(self, reason=None):
+        clean_reason = (reason or '').strip()
+        if not clean_reason or len(clean_reason) < 5:
+            raise UserError(_("A mandatory cancellation reason (minimum 5 characters) is required."))
+        for po in self:
+            if po.state in ('purchase', 'done'):
+                po._create_version_snapshot(
+                    reason=_("PO Cancelled: %s") % clean_reason,
+                    editor_user=self.env.user,
+                )
         return self.with_context(skip_reason_check=True).button_cancel()
 
 
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
+
+    _PO_LINE_COMMERCIAL_FIELDS = {
+        'order_id',
+        'product_id',
+        'name',
+        'product_qty',
+        'product_uom_id',
+        'product_uom',
+        'price_unit',
+        'discount',
+        'tax_ids',
+        'taxes_id',
+        'display_type',
+    }
+
+    def _check_parent_po_lock(self, orders, action_label):
+        if self.env.context.get('from_po_revision'):
+            return
+        for po in orders:
+            if po and po._is_po_commercially_locked():
+                raise UserError(_(
+                    "Cannot %s lines on Purchase Order %s because it is confirmed or has linked GRNs. "
+                    "Use 'Revise PO (New Version)' before delivery or 'Cancel' with a mandatory reason."
+                ) % (action_label, po.display_name))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        order_ids = {v['order_id'] for v in vals_list if v.get('order_id')}
+        if order_ids:
+            self._check_parent_po_lock(self.env['purchase.order'].browse(list(order_ids)), _("add"))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if self._PO_LINE_COMMERCIAL_FIELDS & set(vals.keys()):
+            target_orders = self.mapped('order_id')
+            if vals.get('order_id'):
+                target_orders |= self.env['purchase.order'].browse(vals['order_id'])
+            self._check_parent_po_lock(target_orders, _("modify"))
+        return super().write(vals)
+
+    def unlink(self):
+        self._check_parent_po_lock(self.mapped('order_id'), _("delete"))
+        return super().unlink()
 
     def _prepare_stock_move_vals(self, picking, price_unit, product_uom_qty, product_uom):
         vals = super()._prepare_stock_move_vals(picking, price_unit, product_uom_qty, product_uom)
