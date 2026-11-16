@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_maxwell_inherit" model="ir.ui.view">
+        <field name="name">account.move.form.maxwell.inherit</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Maxwell Print Details" name="maxwell_print_details" invisible="move_type == 'entry'">
+                    <group>
+                        <group string="LPO &amp; Supplier Details">
+                            <field name="supplier_vendor_id"/>
+                            <field name="lpo_reference"/>
+                            <field name="lpo_received_date"/>
+                        </group>
+                        <group string="Customer &amp; Execution Details">
+                            <field name="maxwell_customer_id"/>
+                            <field name="quote_reference_no"/>
+                            <field name="work_completed_date"/>
+                            <field name="prepared_by_designation"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

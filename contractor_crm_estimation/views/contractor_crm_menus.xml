@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Submenu: Inquiries & Estimation -->
+    <menuitem id="menu_contractor_crm_inquiries"
+              name="Inquiries &amp; Estimation"
+              parent="contractor_core.menu_contractor_root"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_leads"
+              name="Contracting Leads &amp; Inquiries"
+              parent="menu_contractor_crm_inquiries"
+              action="crm.crm_lead_action_pipeline"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_site_visits"
+              name="Site Inspections &amp; Visits"
+              parent="menu_contractor_crm_inquiries"
+              action="action_contractor_site_visit"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_quotations"
+              name="Cost Estimates &amp; Quotations"
+              parent="menu_contractor_crm_inquiries"
+              action="action_contractor_quotations_all"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_quotation_approvals"
+              name="Quotation Approvals"
+              parent="menu_contractor_crm_inquiries"
+              action="action_contractor_quotation_approvals"
+              sequence="35"/>
+
+    <menuitem id="menu_contractor_quotation_followups"
+              name="Quotation Follow-ups"
+              parent="menu_contractor_crm_inquiries"
+              action="action_contractor_quotation_followups"
+              sequence="40"/>
+
+    <!-- Mirror Approval & Follow-up queues under standard Sales -> Orders -->
+    <menuitem id="menu_sale_contractor_quotation_approvals"
+              name="Quotation Approvals"
+              parent="sale.sale_order_menu"
+              action="action_contractor_quotation_approvals"
+              sequence="15"/>
+
+    <menuitem id="menu_sale_contractor_quotation_followups"
+              name="Quotation Follow-ups"
+              parent="sale.sale_order_menu"
+              action="action_contractor_quotation_followups"
+              sequence="18"/>
+
+    <!-- Submenu: Projects & Variations -->
+    <menuitem id="menu_contractor_project_control"
+              name="Projects &amp; Variations"
+              parent="contractor_core.menu_contractor_root"
+              sequence="15"/>
+
+    <menuitem id="menu_contractor_project_list"
+              name="Active Contractor Projects"
+              parent="menu_contractor_project_control"
+              action="project.open_view_project_all"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_project_budgets"
+              name="Project Master Budgets"
+              parent="menu_contractor_project_control"
+              action="action_contractor_project_budget"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_variation_orders"
+              name="Variation Orders (VO)"
+              parent="menu_contractor_project_control"
+              action="action_contractor_variation_order"
+              sequence="30"/>
+</odoo>
+

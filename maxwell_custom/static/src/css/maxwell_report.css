@@ -1,0 +1,41 @@
+.maxwell-report-wrapper,
+.maxwell-report-wrapper table,
+.maxwell-report-wrapper thead,
+.maxwell-report-wrapper tbody,
+.maxwell-report-wrapper tfoot,
+.maxwell-report-wrapper tr,
+.maxwell-report-wrapper th,
+.maxwell-report-wrapper td,
+.maxwell-report-wrapper div,
+.maxwell-report-wrapper span {
+    font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif !important;
+    color: #000000 !important;
+}
+
+.maxwell-report-wrapper thead,
+.maxwell-report-wrapper tbody,
+.maxwell-report-wrapper tfoot,
+.maxwell-report-wrapper tr {
+    border: 0 none !important;
+    border-style: none !important;
+    border-width: 0 !important;
+}
+
+.maxwell-report-wrapper table.maxwell-items-table tbody tr,
+.maxwell-report-wrapper table.maxwell-items-table tbody td {
+    border-top: 0 none !important;
+    border-top-style: none !important;
+    border-top-width: 0 !important;
+    border-bottom: 0 none !important;
+    border-bottom-style: none !important;
+    border-bottom-width: 0 !important;
+    border-left: 1px solid #000000 !important;
+    border-right: 1px solid #000000 !important;
+}
+
+.maxwell-report-wrapper table.maxwell-items-table tbody tr.maxwell-items-bottom-row td {
+    border-bottom: 1px solid #000000 !important;
+    border-bottom-style: solid !important;
+    border-bottom-width: 1px !important;
+}
+

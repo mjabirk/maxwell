@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="edit_project_inherit_contractor_crm" model="ir.ui.view">
+        <field name="name">project.project.form.inherit.contractor.crm</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <!-- Stat Buttons -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object" name="action_view_budgets" icon="fa-money">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Master Budget</span>
+                    </div>
+                </button>
+                <button class="oe_stat_button" type="object" name="action_view_variation_orders" icon="fa-exchange">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Variation Orders</span>
+                    </div>
+                </button>
+            </xpath>
+
+            <!-- Project Code in Title -->
+            <xpath expr="//field[@name='name']" position="before">
+                <div class="oe_edit_only">
+                    <label for="project_code" string="Project Code"/>
+                </div>
+                <h3>
+                    <field name="project_code" readonly="1" class="text-primary"/>
+                </h3>
+            </xpath>
+
+            <!-- Financial Position & Contractual Values -->
+            <xpath expr="//group" position="inside">
+                <group string="Contractual Scope &amp; VO Values">
+                    <field name="sale_order_id" readonly="1"/>
+                    <field name="baseline_contract_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    <field name="total_approved_vo_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    <field name="revised_contract_value" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                    <field name="total_schedule_extension_days"/>
+                </group>
+            </xpath>
+
+            <!-- Notebook Page for Variation Orders -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Variation Orders (VO)" name="page_variation_orders">
+                    <field name="variation_order_ids">
+                        <list string="Variation Orders" default_order="create_date desc" decoration-success="state == 'integrated'" decoration-info="state in ('manager_approved', 'md_approved', 'client_accepted')" decoration-warning="state == 'submitted'">
+                            <field name="name"/>
+                            <field name="reason_type"/>
+                            <field name="total_estimated_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="total_vo_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="timeline_impact_days"/>
+                            <field name="state" widget="badge" decoration-success="state == 'integrated'" decoration-info="state in ('manager_approved', 'md_approved', 'client_accepted')" decoration-warning="state == 'submitted'" decoration-danger="state == 'declined'"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

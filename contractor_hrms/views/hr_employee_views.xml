@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Inherit Employee Form for Contractor Workforce Governance -->
+    <record id="view_employee_form_contractor_hrms" model="ir.ui.view">
+        <field name="name">hr.employee.form.contractor.hrms</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <!-- Header Buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_reclassify_worker"
+                        string="Reclassify Workforce Category"
+                        type="object"
+                        class="btn btn-secondary"
+                        groups="contractor_core.group_contractor_manager"/>
+                <button name="action_approve_rate_override"
+                        string="Approve Hourly Rate Override"
+                        type="object"
+                        class="btn btn-outline-warning"
+                        invisible="not manual_override_hourly_rate or manual_override_approved"
+                        groups="contractor_core.group_contractor_manager"/>
+            </xpath>
+
+            <!-- Notebook Tabs -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Contractor Governance &amp; Rates" name="contractor_governance">
+                    <group>
+                        <group string="Workforce Classification &amp; Agency">
+                            <field name="workforce_category" widget="radio" readonly="id"/>
+                            <field name="pending_reclassification_category" invisible="not id" groups="contractor_core.group_contractor_manager"/>
+                            <field name="agency_partner_id"
+                                   invisible="workforce_category != 'manpower_supply'"
+                                   required="workforce_category == 'manpower_supply'"/>
+                            <field name="agency_agreement_id"
+                                   invisible="workforce_category != 'manpower_supply'"
+                                   required="workforce_category == 'manpower_supply'"/>
+                        </group>
+                        <group string="Remuneration &amp; Wage Basis">
+                            <field name="monthly_basic_salary" invisible="workforce_category != 'permanent'"/>
+                            <field name="monthly_total_salary" invisible="workforce_category != 'permanent'"/>
+                            <field name="daily_wage" invisible="workforce_category != 'temporary'"/>
+                            <field name="agency_billing_rate" invisible="workforce_category != 'manpower_supply'"/>
+                        </group>
+                    </group>
+
+                    <group string="Effective Hourly Costing Engine">
+                        <group>
+                            <field name="system_calculated_hourly_rate" readonly="1"/>
+                            <field name="effective_hourly_rate" readonly="1" class="fw-bold"/>
+                        </group>
+                        <group>
+                            <field name="manual_override_hourly_rate"/>
+                            <field name="manual_override_approved" readonly="1"/>
+                            <field name="manual_override_approver_id" invisible="not manual_override_approved" readonly="1"/>
+                            <field name="manual_override_date" invisible="not manual_override_approved" readonly="1"/>
+                            <field name="manual_override_reason" invisible="not manual_override_approved" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+
+                <page string="Tool Custody &amp; Travel" name="contractor_tools_travel">
+                    <group>
+                        <group string="Field Tool Custody Summary">
+                            <field name="assigned_tool_count" readonly="1"/>
+                            <field name="pending_tool_deduction_amount" readonly="1"/>
+                        </group>
+                        <group string="Air Ticket Entitlement (Permanent)" invisible="workforce_category != 'permanent'">
+                            <field name="ticket_frequency"/>
+                            <field name="ticket_route_class"/>
+                            <field name="ticket_allowance_amount"/>
+                            <field name="last_ticket_date"/>
+                            <field name="next_ticket_due_date" readonly="1"/>
+                            <field name="ticket_due_flag" readonly="1" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+
+                    <separator string="Assigned Tools Currently in Operative Custody"/>
+                    <field name="assigned_tool_ids" readonly="1">
+                        <list string="Active Tool Custody" decoration-warning="condition == 'damaged'" decoration-danger="condition == 'lost'">
+                            <field name="tool_code"/>
+                            <field name="name"/>
+                            <field name="tool_type"/>
+                            <field name="serial_number"/>
+                            <field name="condition"/>
+                            <field name="status"/>
+                            <field name="current_project_id"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Contractor Workforce Custom List View -->
+    <record id="view_employee_list_contractor" model="ir.ui.view">
+        <field name="name">hr.employee.list.contractor</field>
+        <field name="model">hr.employee</field>
+        <field name="arch" type="xml">
+            <list string="Contractor Workforce" decoration-info="workforce_category == 'permanent'" decoration-warning="workforce_category == 'temporary'" decoration-muted="workforce_category == 'manpower_supply'">
+                <field name="name"/>
+                <field name="workforce_category"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="agency_partner_id" optional="show"/>
+                <field name="system_calculated_hourly_rate" optional="show"/>
+                <field name="effective_hourly_rate"/>
+                <field name="assigned_tool_count"/>
+                <field name="pending_tool_deduction_amount" optional="hide"/>
+                <field name="ticket_due_flag" widget="boolean_toggle" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action for Contractor Workforce -->
+    <record id="action_contractor_workforce" model="ir.actions.act_window">
+        <field name="name">Workforce Master</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_employee_list_contractor"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register a new operative under the 3-category Contractor Workforce master.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

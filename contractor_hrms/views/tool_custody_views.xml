@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Tool Custody Action Wizard Form View -->
+    <record id="view_contractor_tool_action_wizard_form" model="ir.ui.view">
+        <field name="name">contractor.tool.action.wizard.form</field>
+        <field name="model">contractor.tool.action.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tool Custody Operation">
+                <group>
+                    <field name="tool_id" readonly="1"/>
+                    <field name="action_type" invisible="1"/>
+                    <field name="employee_id"
+                           invisible="action_type in ('return', 'deduct')"
+                           required="action_type in ('issue', 'transfer')"/>
+                    <field name="project_id"
+                           invisible="action_type in ('return', 'deduct')"
+                           required="action_type in ('issue', 'transfer')"/>
+                    <field name="return_condition"
+                           invisible="action_type != 'return'"
+                           required="action_type == 'return'"/>
+                    <field name="notes"
+                           invisible="action_type != 'return'"/>
+                    <field name="amount"
+                           invisible="action_type != 'deduct'"
+                           required="action_type == 'deduct'"/>
+                    <field name="reason"
+                           invisible="action_type != 'deduct'"
+                           required="action_type == 'deduct'"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Confirm" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tool Asset Form View -->
+    <record id="view_contractor_tool_asset_form" model="ir.ui.view">
+        <field name="name">contractor.tool.asset.form</field>
+        <field name="model">contractor.tool.asset</field>
+        <field name="arch" type="xml">
+            <form string="Tool Asset Custody Record">
+                <header>
+                    <button name="action_open_issue_wizard"
+                            string="Issue to Field Operative"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="status != 'in_store'"
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager"/>
+                    <button name="action_open_transfer_wizard"
+                            string="Transfer Custody"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="status != 'assigned'"
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager"/>
+                    <button name="action_open_return_wizard"
+                            string="Acknowledge Return to Store"
+                            type="object"
+                            class="btn btn-outline-primary"
+                            invisible="status != 'assigned'"
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager"/>
+                    <button name="action_open_deduct_wizard"
+                            string="Book Damage / Loss Deduction"
+                            type="object"
+                            class="btn btn-outline-danger"
+                            invisible="condition not in ('damaged', 'lost') or deduction_status in ('pending_recovery', 'recovered')"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="status" widget="statusbar" statusbar_visible="in_store,assigned,under_repair,written_off"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="tool_code" string="Tool Serial / Asset Tag"/>
+                        <h1>
+                            <field name="tool_code" readonly="1"/>
+                        </h1>
+                        <label for="name" string="Tool Model / Description"/>
+                        <h2>
+                            <field name="name"/>
+                        </h2>
+                    </div>
+                    <group>
+                        <group string="Equipment Specifications">
+                            <field name="tool_type"/>
+                            <field name="serial_number"/>
+                            <field name="purchase_date"/>
+                            <field name="purchase_value"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Current Field Custody">
+                            <field name="condition" widget="badge" decoration-success="condition == 'good'" decoration-warning="condition == 'damaged'" decoration-danger="condition == 'lost'"/>
+                            <field name="current_employee_id" readonly="1"/>
+                            <field name="current_project_id" readonly="1"/>
+                            <field name="deduction_amount" invisible="deduction_status == 'none'"/>
+                            <field name="deduction_status" invisible="deduction_status == 'none'"/>
+                            <field name="deduction_reason" invisible="deduction_status == 'none'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Immutable Custody &amp; Transfer Trail" name="custody_history">
+                            <field name="assignment_history_ids" readonly="1">
+                                <list string="Custody History">
+                                    <field name="assigned_date"/>
+                                    <field name="employee_id"/>
+                                    <field name="project_id"/>
+                                    <field name="issued_by_id"/>
+                                    <field name="returned_date"/>
+                                    <field name="received_by_id"/>
+                                    <field name="return_condition"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tool Asset List View -->
+    <record id="view_contractor_tool_asset_list" model="ir.ui.view">
+        <field name="name">contractor.tool.asset.list</field>
+        <field name="model">contractor.tool.asset</field>
+        <field name="arch" type="xml">
+            <list string="Tool Assets" decoration-info="status == 'assigned'" decoration-warning="condition == 'damaged'" decoration-danger="condition == 'lost'">
+                <field name="tool_code"/>
+                <field name="name"/>
+                <field name="tool_type"/>
+                <field name="serial_number"/>
+                <field name="condition" widget="badge" decoration-success="condition == 'good'" decoration-warning="condition == 'damaged'" decoration-danger="condition == 'lost'"/>
+                <field name="status" widget="badge" decoration-info="status == 'assigned'" decoration-success="status == 'in_store'"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <field name="purchase_value" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_tool_asset_search" model="ir.ui.view">
+        <field name="name">contractor.tool.asset.search</field>
+        <field name="model">contractor.tool.asset</field>
+        <field name="arch" type="xml">
+            <search string="Search Hand &amp; Power Tools">
+                <field name="name"/>
+                <field name="tool_code"/>
+                <field name="serial_number"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <filter string="In Store" name="in_store" domain="[('status', '=', 'in_store')]"/>
+                <filter string="Assigned" name="assigned" domain="[('status', '=', 'assigned')]"/>
+                <filter string="Under Repair" name="under_repair" domain="[('status', '=', 'under_repair')]"/>
+                <filter string="Written Off" name="written_off" domain="[('status', '=', 'written_off')]"/>
+                <separator/>
+                <filter string="Damaged / Lost" name="damaged_or_lost" domain="[('condition', 'in', ('damaged', 'lost'))]"/>
+                <filter string="Pending Recovery" name="pending_recovery" domain="[('deduction_status', '=', 'pending_recovery')]"/>
+                <group>
+                    <filter string="Tool Type" name="group_by_tool_type" context="{'group_by': 'tool_type'}"/>
+                    <filter string="Status" name="group_by_status" context="{'group_by': 'status'}"/>
+                    <filter string="Condition" name="group_by_condition" context="{'group_by': 'condition'}"/>
+                    <filter string="Assigned Employee" name="group_by_employee" context="{'group_by': 'current_employee_id'}"/>
+                    <filter string="Assigned Project" name="group_by_project" context="{'group_by': 'current_project_id'}"/>
+                    <filter string="Deduction Status" name="group_by_deduction" context="{'group_by': 'deduction_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Tool Assets -->
+    <record id="action_contractor_tool_asset" model="ir.actions.act_window">
+        <field name="name">Hand &amp; Power Tool Custody Register</field>
+        <field name="res_model">contractor.tool.asset</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_tool_asset_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register a personal hand or power tool asset and monitor operative custody.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

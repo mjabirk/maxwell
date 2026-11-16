@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Main Finance & Accounting Governance Category -->
+    <menuitem id="menu_contractor_finance_root"
+              name="Finance &amp; Accounting Governance"
+              parent="contractor_core.menu_contractor_root"
+              sequence="40"/>
+
+    <!-- 1. Fixed Assets & Plant -->
+    <menuitem id="menu_contractor_fixed_assets"
+              name="Fixed Asset Register (NCA)"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_fixed_asset"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_asset_verifications"
+              name="Physical Asset Verifications"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_asset_verification"
+              sequence="20"/>
+
+    <!-- 2. Retention Register & DLP -->
+    <menuitem id="menu_contractor_retention"
+              name="Retention Register &amp; DLP Gate"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_retention_register"
+              sequence="30"/>
+
+    <!-- 3. Treasury, Banking & Loans -->
+    <menuitem id="menu_contractor_bank_reconciliation"
+              name="Bank Reconciliations (Maker-Checker)"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_bank_reconciliation"
+              sequence="40"/>
+
+    <menuitem id="menu_contractor_petty_cash_floats"
+              name="Site Petty Cash Floats"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_petty_cash_float"
+              sequence="50"/>
+
+    <menuitem id="menu_contractor_petty_cash_vouchers"
+              name="Petty Cash Vouchers"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_petty_cash_voucher"
+              sequence="60"/>
+
+    <menuitem id="menu_contractor_loans"
+              name="Financing &amp; Loan Facilities"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_loan_facility"
+              sequence="70"/>
+
+    <menuitem id="menu_contractor_employee_advances"
+              name="Employee Advances &amp; Loans"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_employee_advance"
+              sequence="75"/>
+
+    <!-- 4. RPT & Partner Accounts -->
+    <menuitem id="menu_contractor_rpt_register"
+              name="Related Party (RPT) Register"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_related_party"
+              sequence="80"/>
+
+    <menuitem id="menu_contractor_partner_accounts"
+              name="Partner Current Accounts"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_partner_current_account"
+              sequence="90"/>
+
+    <!-- 5. Revenue WIP & Provisions -->
+    <menuitem id="menu_contractor_revenue_wip"
+              name="Project PoC WIP Schedules"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_project_wip_schedule"
+              sequence="100"/>
+
+    <menuitem id="menu_contractor_provisions"
+              name="Monthly Accounting Provisions"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_accounting_provision"
+              sequence="110"/>
+
+    <!-- 6. Period Close & Audit -->
+    <menuitem id="menu_contractor_period_closing"
+              name="Month-End / Year-End Close"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_period_close"
+              sequence="120"/>
+
+    <menuitem id="menu_contractor_audit_queries"
+              name="External Audit Queries"
+              parent="menu_contractor_finance_root"
+              action="action_contractor_audit_query"
+              sequence="130"/>
+
+</odoo>
+

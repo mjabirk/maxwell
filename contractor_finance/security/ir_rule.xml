@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_contractor_fixed_asset_multi_company" model="ir.rule">
+        <field name="name">Fixed Asset Multi-Company</field>
+        <field name="model_id" ref="model_contractor_fixed_asset"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_asset_verification_multi_company" model="ir.rule">
+        <field name="name">Asset Verification Multi-Company</field>
+        <field name="model_id" ref="model_contractor_asset_verification"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_project_wip_schedule_multi_company" model="ir.rule">
+        <field name="name">Project WIP Schedule Multi-Company</field>
+        <field name="model_id" ref="model_contractor_project_wip_schedule"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_retention_register_multi_company" model="ir.rule">
+        <field name="name">Retention Register Multi-Company</field>
+        <field name="model_id" ref="model_contractor_retention_register"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_bank_reconciliation_multi_company" model="ir.rule">
+        <field name="name">Bank Reconciliation Multi-Company</field>
+        <field name="model_id" ref="model_contractor_bank_reconciliation"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_related_party_multi_company" model="ir.rule">
+        <field name="name">Related Party Multi-Company</field>
+        <field name="model_id" ref="model_contractor_related_party"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_partner_current_account_multi_company" model="ir.rule">
+        <field name="name">Partner Current Account Multi-Company</field>
+        <field name="model_id" ref="model_contractor_partner_current_account"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_petty_cash_float_multi_company" model="ir.rule">
+        <field name="name">Petty Cash Float Multi-Company</field>
+        <field name="model_id" ref="model_contractor_petty_cash_float"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_petty_cash_voucher_multi_company" model="ir.rule">
+        <field name="name">Petty Cash Voucher Multi-Company</field>
+        <field name="model_id" ref="model_contractor_petty_cash_voucher"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_loan_facility_multi_company" model="ir.rule">
+        <field name="name">Loan Facility Multi-Company</field>
+        <field name="model_id" ref="model_contractor_loan_facility"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_accounting_provision_multi_company" model="ir.rule">
+        <field name="name">Accounting Provision Multi-Company</field>
+        <field name="model_id" ref="model_contractor_accounting_provision"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_period_close_multi_company" model="ir.rule">
+        <field name="name">Period Close Multi-Company</field>
+        <field name="model_id" ref="model_contractor_period_close"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_audit_query_multi_company" model="ir.rule">
+        <field name="name">Audit Query Multi-Company</field>
+        <field name="model_id" ref="model_contractor_audit_query"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_employee_advance_multi_company" model="ir.rule">
+        <field name="name">Employee Advance Multi-Company</field>
+        <field name="model_id" ref="model_contractor_employee_advance"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

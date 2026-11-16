@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Site Operations & Cost Control Category -->
+    <menuitem id="menu_contractor_site_ops"
+              name="Site Operations &amp; Daily Costs"
+              parent="contractor_core.menu_contractor_root"
+              sequence="25"/>
+
+    <menuitem id="menu_contractor_site_schedules"
+              name="Site Staff Schedules"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_site_schedule"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_daily_progress_reports"
+              name="Daily Progress Reports (DPR)"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_daily_progress_report"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_site_attendance"
+              name="Daily Site Attendance &amp; OT"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_site_attendance"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_site_consumption"
+              name="Site Material Consumption"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_site_consumption"
+              sequence="40"/>
+
+    <menuitem id="menu_contractor_site_work_logs"
+              name="Subcontractor Daily Work Logs"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_site_work_log"
+              sequence="50"/>
+
+    <menuitem id="menu_contractor_site_issues"
+              name="Site Obstructions &amp; Incidents"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_site_issue"
+              sequence="60"/>
+
+    <menuitem id="menu_contractor_daily_cost_postings"
+              name="Daily Project Cost Postings"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_daily_cost_posting"
+              sequence="70"/>
+
+    <menuitem id="menu_contractor_cost_corrections"
+              name="Accounting Cost Corrections"
+              parent="menu_contractor_site_ops"
+              action="action_contractor_cost_correction_request"
+              sequence="80"/>
+</odoo>
+

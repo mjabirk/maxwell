@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Site Visit Form View -->
+    <record id="view_contractor_site_visit_form" model="ir.ui.view">
+        <field name="name">contractor.site.visit.form</field>
+        <field name="model">contractor.site.visit</field>
+        <field name="arch" type="xml">
+            <form string="Site Inspection &amp; Visit">
+                <header>
+                    <button name="action_complete"
+                            type="object"
+                            string="Complete Inspection (Upload Gate)"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+
+                    <button name="action_cancel"
+                            type="object"
+                            string="Cancel Visit"
+                            class="btn-secondary"
+                            invisible="state != 'draft'"/>
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Site Visit Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Inquiry &amp; Client Context">
+                            <field name="lead_id" readonly="state != 'draft'"/>
+                            <field name="partner_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Engineer Assignment &amp; Timers">
+                            <field name="assigned_engineer_id" readonly="state != 'draft'" widget="many2one_avatar_employee"/>
+                            <field name="scheduled_date" readonly="state != 'draft'"/>
+                            <field name="completion_date" readonly="1" invisible="state != 'completed'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Observations &amp; Measurements" name="page_survey">
+                            <group string="Field Conditions &amp; Structural Notes">
+                                <field name="observations"
+                                       placeholder="Document terrain, accessibility, utility connections, structural condition, safety hazards..."
+                                       nolabel="1"
+                                       colspan="2"
+                                       readonly="state == 'completed'"/>
+                            </group>
+                            <group string="Dimensional Survey &amp; Measurements">
+                                <field name="measurements"
+                                       placeholder="Document lengths, widths, heights, square meters, cubic volume, boundary clearances..."
+                                       nolabel="1"
+                                       colspan="2"
+                                       readonly="state == 'completed'"/>
+                            </group>
+                        </page>
+                        <page string="Mandatory Site Uploads (Gate)" name="page_uploads">
+                            <div class="alert alert-info py-2" role="alert">
+                                <strong>Platform Upload Gate Requirement:</strong>
+                                Both site photographs and CAD/sketches are mandatory before completing the inspection to unlock cost estimation.
+                            </div>
+                            <group>
+                                <field name="photo_ids" widget="many2many_binary" string="Site Photographs" readonly="state == 'completed'"/>
+                            </group>
+                            <group>
+                                <field name="drawing_ids" widget="many2many_binary" string="As-Built / Site Sketches &amp; CAD Plans" readonly="state == 'completed'"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Site Visit List View -->
+    <record id="view_contractor_site_visit_list" model="ir.ui.view">
+        <field name="name">contractor.site.visit.list</field>
+        <field name="model">contractor.site.visit</field>
+        <field name="arch" type="xml">
+            <list string="Site Visits" default_order="scheduled_date desc, id desc" decoration-success="state == 'completed'" decoration-warning="state == 'draft'">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="assigned_engineer_id" widget="many2one_avatar_employee"/>
+                <field name="scheduled_date"/>
+                <field name="completion_date"/>
+                <field name="state" widget="badge" decoration-success="state == 'completed'" decoration-warning="state == 'draft'" decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Site Visit Search View -->
+    <record id="view_contractor_site_visit_search" model="ir.ui.view">
+        <field name="name">contractor.site.visit.search</field>
+        <field name="model">contractor.site.visit</field>
+        <field name="arch" type="xml">
+            <search string="Search Site Visits">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="assigned_engineer_id"/>
+                <filter string="Scheduled" name="filter_scheduled" domain="[('state', '=', 'draft')]"/>
+                <filter string="Completed" name="filter_completed" domain="[('state', '=', 'completed')]"/>
+                <group>
+                    <filter string="Assigned Engineer" name="group_engineer" domain="[]" context="{'group_by': 'assigned_engineer_id'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="Scheduled Month" name="group_month" domain="[]" context="{'group_by': 'scheduled_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Site Visit Calendar View -->
+    <record id="view_contractor_site_visit_calendar" model="ir.ui.view">
+        <field name="name">contractor.site.visit.calendar</field>
+        <field name="model">contractor.site.visit</field>
+        <field name="arch" type="xml">
+            <calendar string="Site Visits Calendar" date_start="scheduled_date" color="assigned_engineer_id" mode="month">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="assigned_engineer_id" filters="1"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Action: All Site Visits -->
+    <record id="action_contractor_site_visit" model="ir.actions.act_window">
+        <field name="name">Site Visits &amp; Inspections</field>
+        <field name="res_model">contractor.site.visit</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="search_view_id" ref="view_contractor_site_visit_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No site visits recorded yet.
+            </p>
+            <p>
+                Schedule site visits from CRM inquiries. Capture field measurements, photos, and drawings to unlock the cost estimation gate.
+            </p>
+        </field>
+    </record>
+
+    <!-- Action: New Site Visit -->
+    <record id="action_contractor_site_visit_new" model="ir.actions.act_window">
+        <field name="name">Schedule Site Visit</field>
+        <field name="res_model">contractor.site.visit</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>
+

@@ -1,0 +1,1169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Lead Pipeline Funnel Analysis List View -->
+    <record id="view_contractor_report_lead_funnel_list" model="ir.ui.view">
+        <field name="name">contractor.report.lead.funnel.list</field>
+        <field name="model">contractor.report.lead.funnel</field>
+        <field name="arch" type="xml">
+            <list string="Lead Pipeline Funnel Analysis" create="false" edit="false" delete="false">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="assigned_manager_id"/>
+                <field name="source_id"/>
+                <field name="contractor_state"/>
+                <field name="enquiry_date"/>
+                <field name="has_completed_site_visit"/>
+                <field name="expected_revenue"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Lead Pipeline Funnel Analysis Pivot View -->
+    <record id="view_contractor_report_lead_funnel_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.lead.funnel.pivot</field>
+        <field name="model">contractor.report.lead.funnel</field>
+        <field name="arch" type="xml">
+            <pivot string="Lead Pipeline Funnel Analysis">
+                <field name="lead_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="expected_revenue" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Lead Pipeline Funnel Analysis Graph View -->
+    <record id="view_contractor_report_lead_funnel_graph" model="ir.ui.view">
+        <field name="name">contractor.report.lead.funnel.graph</field>
+        <field name="model">contractor.report.lead.funnel</field>
+        <field name="arch" type="xml">
+            <graph string="Lead Pipeline Funnel Analysis" type="bar">
+                <field name="lead_id"/>
+                <field name="expected_revenue" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Lead Pipeline Funnel Analysis Search View -->
+    <record id="view_contractor_report_lead_funnel_search" model="ir.ui.view">
+        <field name="name">contractor.report.lead.funnel.search</field>
+        <field name="model">contractor.report.lead.funnel</field>
+        <field name="arch" type="xml">
+            <search string="Lead Pipeline Funnel Analysis">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="assigned_manager_id"/>
+                <field name="source_id"/>
+                <group>
+                    <filter string="Lead / Enquiry" name="group_by_lead_id" context="{'group_by': 'lead_id'}"/>
+                    <filter string="Client / Prospect" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Assigned Manager" name="group_by_assigned_manager_id" context="{'group_by': 'assigned_manager_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Lead Pipeline Funnel Analysis Action -->
+    <record id="action_contractor_report_lead_funnel" model="ir.actions.act_window">
+        <field name="name">Lead Pipeline Funnel Analysis</field>
+        <field name="res_model">contractor.report.lead.funnel</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_lead_funnel_search"/>
+    </record>
+
+    <!-- Lead-to-Project Win Rate Analysis List View -->
+    <record id="view_contractor_report_win_rate_list" model="ir.ui.view">
+        <field name="name">contractor.report.win.rate.list</field>
+        <field name="model">contractor.report.win.rate</field>
+        <field name="arch" type="xml">
+            <list string="Lead-to-Project Win Rate Analysis" create="false" edit="false" delete="false">
+                <field name="user_id"/>
+                <field name="period_month"/>
+                <field name="value_band"/>
+                <field name="total_leads"/>
+                <field name="won_leads"/>
+                <field name="lost_leads"/>
+                <field name="win_rate_pct"/>
+                <field name="total_won_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Lead-to-Project Win Rate Analysis Pivot View -->
+    <record id="view_contractor_report_win_rate_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.win.rate.pivot</field>
+        <field name="model">contractor.report.win.rate</field>
+        <field name="arch" type="xml">
+            <pivot string="Lead-to-Project Win Rate Analysis">
+                <field name="user_id" type="row"/>
+                <field name="period_month" type="col"/>
+                <field name="total_leads" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Lead-to-Project Win Rate Analysis Graph View -->
+    <record id="view_contractor_report_win_rate_graph" model="ir.ui.view">
+        <field name="name">contractor.report.win.rate.graph</field>
+        <field name="model">contractor.report.win.rate</field>
+        <field name="arch" type="xml">
+            <graph string="Lead-to-Project Win Rate Analysis" type="bar">
+                <field name="user_id"/>
+                <field name="total_leads" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Lead-to-Project Win Rate Analysis Search View -->
+    <record id="view_contractor_report_win_rate_search" model="ir.ui.view">
+        <field name="name">contractor.report.win.rate.search</field>
+        <field name="model">contractor.report.win.rate</field>
+        <field name="arch" type="xml">
+            <search string="Lead-to-Project Win Rate Analysis">
+                <field name="user_id"/>
+                <field name="period_month"/>
+                <field name="value_band"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Enquiry Month" name="group_by_period_month" context="{'group_by': 'period_month'}"/>
+                    <filter string="Project Value Band" name="group_by_value_band" context="{'group_by': 'value_band'}"/>
+                    <filter string="Company" name="group_by_company_id" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Lead-to-Project Win Rate Analysis Action -->
+    <record id="action_contractor_report_win_rate" model="ir.actions.act_window">
+        <field name="name">Lead-to-Project Win Rate Analysis</field>
+        <field name="res_model">contractor.report.win.rate</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_win_rate_search"/>
+    </record>
+
+    <!-- Loss and Decline Reason Analysis List View -->
+    <record id="view_contractor_report_loss_decline_reason_list" model="ir.ui.view">
+        <field name="name">contractor.report.loss.decline.reason.list</field>
+        <field name="model">contractor.report.loss.decline.reason</field>
+        <field name="arch" type="xml">
+            <list string="Loss and Decline Reason Analysis" create="false" edit="false" delete="false">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="assigned_manager_id"/>
+                <field name="contractor_state"/>
+                <field name="lost_reason"/>
+                <field name="expected_revenue"/>
+                <field name="lost_date"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Loss and Decline Reason Analysis Pivot View -->
+    <record id="view_contractor_report_loss_decline_reason_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.loss.decline.reason.pivot</field>
+        <field name="model">contractor.report.loss.decline.reason</field>
+        <field name="arch" type="xml">
+            <pivot string="Loss and Decline Reason Analysis">
+                <field name="lead_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="expected_revenue" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Loss and Decline Reason Analysis Graph View -->
+    <record id="view_contractor_report_loss_decline_reason_graph" model="ir.ui.view">
+        <field name="name">contractor.report.loss.decline.reason.graph</field>
+        <field name="model">contractor.report.loss.decline.reason</field>
+        <field name="arch" type="xml">
+            <graph string="Loss and Decline Reason Analysis" type="bar">
+                <field name="lead_id"/>
+                <field name="expected_revenue" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Loss and Decline Reason Analysis Search View -->
+    <record id="view_contractor_report_loss_decline_reason_search" model="ir.ui.view">
+        <field name="name">contractor.report.loss.decline.reason.search</field>
+        <field name="model">contractor.report.loss.decline.reason</field>
+        <field name="arch" type="xml">
+            <search string="Loss and Decline Reason Analysis">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="assigned_manager_id"/>
+                <field name="contractor_state"/>
+                <group>
+                    <filter string="Lead Reference" name="group_by_lead_id" context="{'group_by': 'lead_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Assigned Manager" name="group_by_assigned_manager_id" context="{'group_by': 'assigned_manager_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Loss and Decline Reason Analysis Action -->
+    <record id="action_contractor_report_loss_decline_reason" model="ir.actions.act_window">
+        <field name="name">Loss and Decline Reason Analysis</field>
+        <field name="res_model">contractor.report.loss.decline.reason</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_loss_decline_reason_search"/>
+    </record>
+
+    <!-- Quotation Approval vs 48h SLA List View -->
+    <record id="view_contractor_report_quote_approval_sla_list" model="ir.ui.view">
+        <field name="name">contractor.report.quote.approval.sla.list</field>
+        <field name="model">contractor.report.quote.approval.sla</field>
+        <field name="arch" type="xml">
+            <list string="Quotation Approval vs 48h SLA" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="original_engineer_id"/>
+                <field name="submitted_date"/>
+                <field name="approved_date"/>
+                <field name="approval_hours"/>
+                <field name="is_sla_breached"/>
+                <field name="contractor_quote_state"/>
+                <field name="proposed_quotation_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Quotation Approval vs 48h SLA Pivot View -->
+    <record id="view_contractor_report_quote_approval_sla_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.quote.approval.sla.pivot</field>
+        <field name="model">contractor.report.quote.approval.sla</field>
+        <field name="arch" type="xml">
+            <pivot string="Quotation Approval vs 48h SLA">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="approval_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Quotation Approval vs 48h SLA Graph View -->
+    <record id="view_contractor_report_quote_approval_sla_graph" model="ir.ui.view">
+        <field name="name">contractor.report.quote.approval.sla.graph</field>
+        <field name="model">contractor.report.quote.approval.sla</field>
+        <field name="arch" type="xml">
+            <graph string="Quotation Approval vs 48h SLA" type="bar">
+                <field name="order_id"/>
+                <field name="approval_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Quotation Approval vs 48h SLA Search View -->
+    <record id="view_contractor_report_quote_approval_sla_search" model="ir.ui.view">
+        <field name="name">contractor.report.quote.approval.sla.search</field>
+        <field name="model">contractor.report.quote.approval.sla</field>
+        <field name="arch" type="xml">
+            <search string="Quotation Approval vs 48h SLA">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="original_engineer_id"/>
+                <field name="is_sla_breached"/>
+                <group>
+                    <filter string="Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Original Engineer" name="group_by_original_engineer_id" context="{'group_by': 'original_engineer_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Quotation Approval vs 48h SLA Action -->
+    <record id="action_contractor_report_quote_approval_sla" model="ir.actions.act_window">
+        <field name="name">Quotation Approval vs 48h SLA</field>
+        <field name="res_model">contractor.report.quote.approval.sla</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_quote_approval_sla_search"/>
+    </record>
+
+    <!-- Sent Quotations Client Response Ageing List View -->
+    <record id="view_contractor_report_quote_ageing_list" model="ir.ui.view">
+        <field name="name">contractor.report.quote.ageing.list</field>
+        <field name="model">contractor.report.quote.ageing</field>
+        <field name="arch" type="xml">
+            <list string="Sent Quotations Client Response Ageing" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="client_dispatch_datetime"/>
+                <field name="days_outstanding"/>
+                <field name="ageing_bucket"/>
+                <field name="proposed_quotation_value"/>
+                <field name="contractor_quote_state"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Sent Quotations Client Response Ageing Pivot View -->
+    <record id="view_contractor_report_quote_ageing_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.quote.ageing.pivot</field>
+        <field name="model">contractor.report.quote.ageing</field>
+        <field name="arch" type="xml">
+            <pivot string="Sent Quotations Client Response Ageing">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="days_outstanding" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Sent Quotations Client Response Ageing Graph View -->
+    <record id="view_contractor_report_quote_ageing_graph" model="ir.ui.view">
+        <field name="name">contractor.report.quote.ageing.graph</field>
+        <field name="model">contractor.report.quote.ageing</field>
+        <field name="arch" type="xml">
+            <graph string="Sent Quotations Client Response Ageing" type="bar">
+                <field name="order_id"/>
+                <field name="days_outstanding" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Sent Quotations Client Response Ageing Search View -->
+    <record id="view_contractor_report_quote_ageing_search" model="ir.ui.view">
+        <field name="name">contractor.report.quote.ageing.search</field>
+        <field name="model">contractor.report.quote.ageing</field>
+        <field name="arch" type="xml">
+            <search string="Sent Quotations Client Response Ageing">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="ageing_bucket"/>
+                <field name="contractor_quote_state"/>
+                <group>
+                    <filter string="Quotation Reference" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Ageing Bracket" name="group_by_ageing_bucket" context="{'group_by': 'ageing_bucket'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Sent Quotations Client Response Ageing Action -->
+    <record id="action_contractor_report_quote_ageing" model="ir.actions.act_window">
+        <field name="name">Sent Quotations Client Response Ageing</field>
+        <field name="res_model">contractor.report.quote.ageing</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_quote_ageing_search"/>
+    </record>
+
+    <!-- Quotation-to-Project Conversion Time Analysis List View -->
+    <record id="view_contractor_report_quote_conversion_time_list" model="ir.ui.view">
+        <field name="name">contractor.report.quote.conversion.time.list</field>
+        <field name="model">contractor.report.quote.conversion.time</field>
+        <field name="arch" type="xml">
+            <list string="Quotation-to-Project Conversion Time Analysis" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="create_date"/>
+                <field name="acceptance_date"/>
+                <field name="conversion_days"/>
+                <field name="is_benchmark_exceeded"/>
+                <field name="proposed_quotation_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Quotation-to-Project Conversion Time Analysis Pivot View -->
+    <record id="view_contractor_report_quote_conversion_time_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.quote.conversion.time.pivot</field>
+        <field name="model">contractor.report.quote.conversion.time</field>
+        <field name="arch" type="xml">
+            <pivot string="Quotation-to-Project Conversion Time Analysis">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="conversion_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Quotation-to-Project Conversion Time Analysis Graph View -->
+    <record id="view_contractor_report_quote_conversion_time_graph" model="ir.ui.view">
+        <field name="name">contractor.report.quote.conversion.time.graph</field>
+        <field name="model">contractor.report.quote.conversion.time</field>
+        <field name="arch" type="xml">
+            <graph string="Quotation-to-Project Conversion Time Analysis" type="bar">
+                <field name="order_id"/>
+                <field name="conversion_days" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Quotation-to-Project Conversion Time Analysis Search View -->
+    <record id="view_contractor_report_quote_conversion_time_search" model="ir.ui.view">
+        <field name="name">contractor.report.quote.conversion.time.search</field>
+        <field name="model">contractor.report.quote.conversion.time</field>
+        <field name="arch" type="xml">
+            <search string="Quotation-to-Project Conversion Time Analysis">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="is_benchmark_exceeded"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Converted Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Exceeded 45-Day Benchmark" name="group_by_is_benchmark_exceeded" context="{'group_by': 'is_benchmark_exceeded'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Quotation-to-Project Conversion Time Analysis Action -->
+    <record id="action_contractor_report_quote_conversion_time" model="ir.actions.act_window">
+        <field name="name">Quotation-to-Project Conversion Time Analysis</field>
+        <field name="res_model">contractor.report.quote.conversion.time</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_quote_conversion_time_search"/>
+    </record>
+
+    <!-- Non-Converted Approved Quotations List View -->
+    <record id="view_contractor_report_non_converted_quotes_list" model="ir.ui.view">
+        <field name="name">contractor.report.non.converted.quotes.list</field>
+        <field name="model">contractor.report.non.converted.quotes</field>
+        <field name="arch" type="xml">
+            <list string="Non-Converted Approved Quotations" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="approved_date"/>
+                <field name="days_since_approval"/>
+                <field name="contractor_quote_state"/>
+                <field name="proposed_quotation_value"/>
+                <field name="margin_percent"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Non-Converted Approved Quotations Pivot View -->
+    <record id="view_contractor_report_non_converted_quotes_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.non.converted.quotes.pivot</field>
+        <field name="model">contractor.report.non.converted.quotes</field>
+        <field name="arch" type="xml">
+            <pivot string="Non-Converted Approved Quotations">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="days_since_approval" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Non-Converted Approved Quotations Graph View -->
+    <record id="view_contractor_report_non_converted_quotes_graph" model="ir.ui.view">
+        <field name="name">contractor.report.non.converted.quotes.graph</field>
+        <field name="model">contractor.report.non.converted.quotes</field>
+        <field name="arch" type="xml">
+            <graph string="Non-Converted Approved Quotations" type="bar">
+                <field name="order_id"/>
+                <field name="days_since_approval" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Non-Converted Approved Quotations Search View -->
+    <record id="view_contractor_report_non_converted_quotes_search" model="ir.ui.view">
+        <field name="name">contractor.report.non.converted.quotes.search</field>
+        <field name="model">contractor.report.non.converted.quotes</field>
+        <field name="arch" type="xml">
+            <search string="Non-Converted Approved Quotations">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="contractor_quote_state"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Current Status" name="group_by_contractor_quote_state" context="{'group_by': 'contractor_quote_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Non-Converted Approved Quotations Action -->
+    <record id="action_contractor_report_non_converted_quotes" model="ir.actions.act_window">
+        <field name="name">Non-Converted Approved Quotations</field>
+        <field name="res_model">contractor.report.non.converted.quotes</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_non_converted_quotes_search"/>
+    </record>
+
+    <!-- Quotation Revision History & Negotiation Log List View -->
+    <record id="view_contractor_report_quote_revision_log_list" model="ir.ui.view">
+        <field name="name">contractor.report.quote.revision.log.list</field>
+        <field name="model">contractor.report.quote.revision.log</field>
+        <field name="arch" type="xml">
+            <list string="Quotation Revision History &amp; Negotiation Log" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="version_number"/>
+                <field name="total_estimated_cost"/>
+                <field name="margin_amount"/>
+                <field name="proposed_quotation_value"/>
+                <field name="effective_margin_pct"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Quotation Revision History & Negotiation Log Pivot View -->
+    <record id="view_contractor_report_quote_revision_log_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.quote.revision.log.pivot</field>
+        <field name="model">contractor.report.quote.revision.log</field>
+        <field name="arch" type="xml">
+            <pivot string="Quotation Revision History &amp; Negotiation Log">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="total_estimated_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Quotation Revision History & Negotiation Log Graph View -->
+    <record id="view_contractor_report_quote_revision_log_graph" model="ir.ui.view">
+        <field name="name">contractor.report.quote.revision.log.graph</field>
+        <field name="model">contractor.report.quote.revision.log</field>
+        <field name="arch" type="xml">
+            <graph string="Quotation Revision History &amp; Negotiation Log" type="bar">
+                <field name="order_id"/>
+                <field name="total_estimated_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Quotation Revision History & Negotiation Log Search View -->
+    <record id="view_contractor_report_quote_revision_log_search" model="ir.ui.view">
+        <field name="name">contractor.report.quote.revision.log.search</field>
+        <field name="model">contractor.report.quote.revision.log</field>
+        <field name="arch" type="xml">
+            <search string="Quotation Revision History &amp; Negotiation Log">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Base Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Company" name="group_by_company_id" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Quotation Revision History & Negotiation Log Action -->
+    <record id="action_contractor_report_quote_revision_log" model="ir.actions.act_window">
+        <field name="name">Quotation Revision History &amp; Negotiation Log</field>
+        <field name="res_model">contractor.report.quote.revision.log</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_quote_revision_log_search"/>
+    </record>
+
+    <!-- Draft Quotation Stagnation Beyond SLA List View -->
+    <record id="view_contractor_report_draft_stagnation_list" model="ir.ui.view">
+        <field name="name">contractor.report.draft.stagnation.list</field>
+        <field name="model">contractor.report.draft.stagnation</field>
+        <field name="arch" type="xml">
+            <list string="Draft Quotation Stagnation Beyond SLA" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="create_date"/>
+                <field name="stagnation_days"/>
+                <field name="is_stagnant_alert"/>
+                <field name="total_estimated_cost"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Draft Quotation Stagnation Beyond SLA Pivot View -->
+    <record id="view_contractor_report_draft_stagnation_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.draft.stagnation.pivot</field>
+        <field name="model">contractor.report.draft.stagnation</field>
+        <field name="arch" type="xml">
+            <pivot string="Draft Quotation Stagnation Beyond SLA">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="stagnation_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Draft Quotation Stagnation Beyond SLA Graph View -->
+    <record id="view_contractor_report_draft_stagnation_graph" model="ir.ui.view">
+        <field name="name">contractor.report.draft.stagnation.graph</field>
+        <field name="model">contractor.report.draft.stagnation</field>
+        <field name="arch" type="xml">
+            <graph string="Draft Quotation Stagnation Beyond SLA" type="bar">
+                <field name="order_id"/>
+                <field name="stagnation_days" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Draft Quotation Stagnation Beyond SLA Search View -->
+    <record id="view_contractor_report_draft_stagnation_search" model="ir.ui.view">
+        <field name="name">contractor.report.draft.stagnation.search</field>
+        <field name="model">contractor.report.draft.stagnation</field>
+        <field name="arch" type="xml">
+            <search string="Draft Quotation Stagnation Beyond SLA">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="is_stagnant_alert"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Draft Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Stagnant (&gt; 7 Days)" name="group_by_is_stagnant_alert" context="{'group_by': 'is_stagnant_alert'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Draft Quotation Stagnation Beyond SLA Action -->
+    <record id="action_contractor_report_draft_stagnation" model="ir.actions.act_window">
+        <field name="name">Draft Quotation Stagnation Beyond SLA</field>
+        <field name="res_model">contractor.report.draft.stagnation</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_draft_stagnation_search"/>
+    </record>
+
+    <!-- Estimated Cost vs Margin Analysis List View -->
+    <record id="view_contractor_report_margin_analysis_list" model="ir.ui.view">
+        <field name="name">contractor.report.margin.analysis.list</field>
+        <field name="model">contractor.report.margin.analysis</field>
+        <field name="arch" type="xml">
+            <list string="Estimated Cost vs Margin Analysis" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="total_labour_cost"/>
+                <field name="total_material_cost"/>
+                <field name="total_legal_cost"/>
+                <field name="total_misc_cost"/>
+                <field name="total_estimated_cost"/>
+                <field name="margin_amount"/>
+                <field name="effective_margin_pct"/>
+                <field name="proposed_quotation_value"/>
+                <field name="contractor_quote_state"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Estimated Cost vs Margin Analysis Pivot View -->
+    <record id="view_contractor_report_margin_analysis_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.margin.analysis.pivot</field>
+        <field name="model">contractor.report.margin.analysis</field>
+        <field name="arch" type="xml">
+            <pivot string="Estimated Cost vs Margin Analysis">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="total_labour_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Estimated Cost vs Margin Analysis Graph View -->
+    <record id="view_contractor_report_margin_analysis_graph" model="ir.ui.view">
+        <field name="name">contractor.report.margin.analysis.graph</field>
+        <field name="model">contractor.report.margin.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Estimated Cost vs Margin Analysis" type="bar">
+                <field name="order_id"/>
+                <field name="total_labour_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Estimated Cost vs Margin Analysis Search View -->
+    <record id="view_contractor_report_margin_analysis_search" model="ir.ui.view">
+        <field name="name">contractor.report.margin.analysis.search</field>
+        <field name="model">contractor.report.margin.analysis</field>
+        <field name="arch" type="xml">
+            <search string="Estimated Cost vs Margin Analysis">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="contractor_quote_state"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Status" name="group_by_contractor_quote_state" context="{'group_by': 'contractor_quote_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Estimated Cost vs Margin Analysis Action -->
+    <record id="action_contractor_report_margin_analysis" model="ir.actions.act_window">
+        <field name="name">Estimated Cost vs Margin Analysis</field>
+        <field name="res_model">contractor.report.margin.analysis</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_margin_analysis_search"/>
+    </record>
+
+    <!-- Sales Admin Release vs 24h SLA List View -->
+    <record id="view_contractor_report_sales_release_sla_list" model="ir.ui.view">
+        <field name="name">contractor.report.sales.release.sla.list</field>
+        <field name="model">contractor.report.sales.release.sla</field>
+        <field name="arch" type="xml">
+            <list string="Sales Admin Release vs 24h SLA" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="approved_date"/>
+                <field name="client_dispatch_datetime"/>
+                <field name="release_hours"/>
+                <field name="is_sla_breached"/>
+                <field name="proposed_quotation_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Sales Admin Release vs 24h SLA Pivot View -->
+    <record id="view_contractor_report_sales_release_sla_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.sales.release.sla.pivot</field>
+        <field name="model">contractor.report.sales.release.sla</field>
+        <field name="arch" type="xml">
+            <pivot string="Sales Admin Release vs 24h SLA">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="release_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Sales Admin Release vs 24h SLA Graph View -->
+    <record id="view_contractor_report_sales_release_sla_graph" model="ir.ui.view">
+        <field name="name">contractor.report.sales.release.sla.graph</field>
+        <field name="model">contractor.report.sales.release.sla</field>
+        <field name="arch" type="xml">
+            <graph string="Sales Admin Release vs 24h SLA" type="bar">
+                <field name="order_id"/>
+                <field name="release_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Sales Admin Release vs 24h SLA Search View -->
+    <record id="view_contractor_report_sales_release_sla_search" model="ir.ui.view">
+        <field name="name">contractor.report.sales.release.sla.search</field>
+        <field name="model">contractor.report.sales.release.sla</field>
+        <field name="arch" type="xml">
+            <search string="Sales Admin Release vs 24h SLA">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="is_sla_breached"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Approved Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Breached 24h Dispatch SLA" name="group_by_is_sla_breached" context="{'group_by': 'is_sla_breached'}"/>
+                    <filter string="Company" name="group_by_company_id" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Sales Admin Release vs 24h SLA Action -->
+    <record id="action_contractor_report_sales_release_sla" model="ir.actions.act_window">
+        <field name="name">Sales Admin Release vs 24h SLA</field>
+        <field name="res_model">contractor.report.sales.release.sla</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_sales_release_sla_search"/>
+    </record>
+
+    <!-- Approved Quotations Pending Client Dispatch List View -->
+    <record id="view_contractor_report_pending_client_release_list" model="ir.ui.view">
+        <field name="name">contractor.report.pending.client.release.list</field>
+        <field name="model">contractor.report.pending.client.release</field>
+        <field name="arch" type="xml">
+            <list string="Approved Quotations Pending Client Dispatch" create="false" edit="false" delete="false">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="approved_date"/>
+                <field name="hours_pending"/>
+                <field name="is_overdue"/>
+                <field name="proposed_quotation_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Approved Quotations Pending Client Dispatch Pivot View -->
+    <record id="view_contractor_report_pending_client_release_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.pending.client.release.pivot</field>
+        <field name="model">contractor.report.pending.client.release</field>
+        <field name="arch" type="xml">
+            <pivot string="Approved Quotations Pending Client Dispatch">
+                <field name="order_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="hours_pending" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Approved Quotations Pending Client Dispatch Graph View -->
+    <record id="view_contractor_report_pending_client_release_graph" model="ir.ui.view">
+        <field name="name">contractor.report.pending.client.release.graph</field>
+        <field name="model">contractor.report.pending.client.release</field>
+        <field name="arch" type="xml">
+            <graph string="Approved Quotations Pending Client Dispatch" type="bar">
+                <field name="order_id"/>
+                <field name="hours_pending" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Approved Quotations Pending Client Dispatch Search View -->
+    <record id="view_contractor_report_pending_client_release_search" model="ir.ui.view">
+        <field name="name">contractor.report.pending.client.release.search</field>
+        <field name="model">contractor.report.pending.client.release</field>
+        <field name="arch" type="xml">
+            <search string="Approved Quotations Pending Client Dispatch">
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="is_overdue"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Quotation" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estimating Engineer" name="group_by_user_id" context="{'group_by': 'user_id'}"/>
+                    <filter string="Exceeds 24h Gate" name="group_by_is_overdue" context="{'group_by': 'is_overdue'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Approved Quotations Pending Client Dispatch Action -->
+    <record id="action_contractor_report_pending_client_release" model="ir.actions.act_window">
+        <field name="name">Approved Quotations Pending Client Dispatch</field>
+        <field name="res_model">contractor.report.pending.client.release</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_pending_client_release_search"/>
+    </record>
+
+    <!-- Scope Variation Order Register List View -->
+    <record id="view_contractor_report_vo_register_list" model="ir.ui.view">
+        <field name="name">contractor.report.vo.register.list</field>
+        <field name="model">contractor.report.vo.register</field>
+        <field name="arch" type="xml">
+            <list string="Scope Variation Order Register" create="false" edit="false" delete="false">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="order_id"/>
+                <field name="reason_type"/>
+                <field name="total_estimated_cost"/>
+                <field name="margin_amount"/>
+                <field name="total_vo_value"/>
+                <field name="timeline_impact_days"/>
+                <field name="state"/>
+                <field name="create_date"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Scope Variation Order Register Pivot View -->
+    <record id="view_contractor_report_vo_register_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.vo.register.pivot</field>
+        <field name="model">contractor.report.vo.register</field>
+        <field name="arch" type="xml">
+            <pivot string="Scope Variation Order Register">
+                <field name="vo_id" type="row"/>
+                <field name="project_id" type="col"/>
+                <field name="total_estimated_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Scope Variation Order Register Graph View -->
+    <record id="view_contractor_report_vo_register_graph" model="ir.ui.view">
+        <field name="name">contractor.report.vo.register.graph</field>
+        <field name="model">contractor.report.vo.register</field>
+        <field name="arch" type="xml">
+            <graph string="Scope Variation Order Register" type="bar">
+                <field name="vo_id"/>
+                <field name="total_estimated_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Scope Variation Order Register Search View -->
+    <record id="view_contractor_report_vo_register_search" model="ir.ui.view">
+        <field name="name">contractor.report.vo.register.search</field>
+        <field name="model">contractor.report.vo.register</field>
+        <field name="arch" type="xml">
+            <search string="Scope Variation Order Register">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="order_id"/>
+                <field name="reason_type"/>
+                <field name="state"/>
+                <group>
+                    <filter string="VO Reference" name="group_by_vo_id" context="{'group_by': 'vo_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Base Contract" name="group_by_order_id" context="{'group_by': 'order_id'}"/>
+                    <filter string="Variation Driver" name="group_by_reason_type" context="{'group_by': 'reason_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Scope Variation Order Register Action -->
+    <record id="action_contractor_report_vo_register" model="ir.actions.act_window">
+        <field name="name">Scope Variation Order Register</field>
+        <field name="res_model">contractor.report.vo.register</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_vo_register_search"/>
+    </record>
+
+    <!-- VO Approval Timeframe by Manager and MD List View -->
+    <record id="view_contractor_report_vo_approval_sla_list" model="ir.ui.view">
+        <field name="name">contractor.report.vo.approval.sla.list</field>
+        <field name="model">contractor.report.vo.approval.sla</field>
+        <field name="arch" type="xml">
+            <list string="VO Approval Timeframe by Manager and MD" create="false" edit="false" delete="false">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="create_date"/>
+                <field name="approval_date"/>
+                <field name="approval_hours"/>
+                <field name="requires_md_approval"/>
+                <field name="state"/>
+                <field name="total_vo_value"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- VO Approval Timeframe by Manager and MD Pivot View -->
+    <record id="view_contractor_report_vo_approval_sla_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.vo.approval.sla.pivot</field>
+        <field name="model">contractor.report.vo.approval.sla</field>
+        <field name="arch" type="xml">
+            <pivot string="VO Approval Timeframe by Manager and MD">
+                <field name="vo_id" type="row"/>
+                <field name="project_id" type="col"/>
+                <field name="approval_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- VO Approval Timeframe by Manager and MD Graph View -->
+    <record id="view_contractor_report_vo_approval_sla_graph" model="ir.ui.view">
+        <field name="name">contractor.report.vo.approval.sla.graph</field>
+        <field name="model">contractor.report.vo.approval.sla</field>
+        <field name="arch" type="xml">
+            <graph string="VO Approval Timeframe by Manager and MD" type="bar">
+                <field name="vo_id"/>
+                <field name="approval_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- VO Approval Timeframe by Manager and MD Search View -->
+    <record id="view_contractor_report_vo_approval_sla_search" model="ir.ui.view">
+        <field name="name">contractor.report.vo.approval.sla.search</field>
+        <field name="model">contractor.report.vo.approval.sla</field>
+        <field name="arch" type="xml">
+            <search string="VO Approval Timeframe by Manager and MD">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="requires_md_approval"/>
+                <field name="state"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="VO Reference" name="group_by_vo_id" context="{'group_by': 'vo_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Required MD Approval" name="group_by_requires_md_approval" context="{'group_by': 'requires_md_approval'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- VO Approval Timeframe by Manager and MD Action -->
+    <record id="action_contractor_report_vo_approval_sla" model="ir.actions.act_window">
+        <field name="name">VO Approval Timeframe by Manager and MD</field>
+        <field name="res_model">contractor.report.vo.approval.sla</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_vo_approval_sla_search"/>
+    </record>
+
+    <!-- Cumulative VO-to-Contract Value Ratio List View -->
+    <record id="view_contractor_report_vo_contract_ratio_list" model="ir.ui.view">
+        <field name="name">contractor.report.vo.contract.ratio.list</field>
+        <field name="model">contractor.report.vo.contract.ratio</field>
+        <field name="arch" type="xml">
+            <list string="Cumulative VO-to-Contract Value Ratio" create="false" edit="false" delete="false">
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="original_contract_value"/>
+                <field name="total_vo_value"/>
+                <field name="cumulative_vo_ratio"/>
+                <field name="is_critical_expansion"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Cumulative VO-to-Contract Value Ratio Pivot View -->
+    <record id="view_contractor_report_vo_contract_ratio_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.vo.contract.ratio.pivot</field>
+        <field name="model">contractor.report.vo.contract.ratio</field>
+        <field name="arch" type="xml">
+            <pivot string="Cumulative VO-to-Contract Value Ratio">
+                <field name="project_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="original_contract_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Cumulative VO-to-Contract Value Ratio Graph View -->
+    <record id="view_contractor_report_vo_contract_ratio_graph" model="ir.ui.view">
+        <field name="name">contractor.report.vo.contract.ratio.graph</field>
+        <field name="model">contractor.report.vo.contract.ratio</field>
+        <field name="arch" type="xml">
+            <graph string="Cumulative VO-to-Contract Value Ratio" type="bar">
+                <field name="project_id"/>
+                <field name="original_contract_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Cumulative VO-to-Contract Value Ratio Search View -->
+    <record id="view_contractor_report_vo_contract_ratio_search" model="ir.ui.view">
+        <field name="name">contractor.report.vo.contract.ratio.search</field>
+        <field name="model">contractor.report.vo.contract.ratio</field>
+        <field name="arch" type="xml">
+            <search string="Cumulative VO-to-Contract Value Ratio">
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="is_critical_expansion"/>
+                <field name="company_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Critical Scope Expansion (&gt; 20%)" name="group_by_is_critical_expansion" context="{'group_by': 'is_critical_expansion'}"/>
+                    <filter string="Company" name="group_by_company_id" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Cumulative VO-to-Contract Value Ratio Action -->
+    <record id="action_contractor_report_vo_contract_ratio" model="ir.actions.act_window">
+        <field name="name">Cumulative VO-to-Contract Value Ratio</field>
+        <field name="res_model">contractor.report.vo.contract.ratio</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_vo_contract_ratio_search"/>
+    </record>
+
+    <!-- Declined and Withdrawn Variation Orders List View -->
+    <record id="view_contractor_report_vo_declined_list" model="ir.ui.view">
+        <field name="name">contractor.report.vo.declined.list</field>
+        <field name="model">contractor.report.vo.declined</field>
+        <field name="arch" type="xml">
+            <list string="Declined and Withdrawn Variation Orders" create="false" edit="false" delete="false">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="reason_type"/>
+                <field name="scope_description"/>
+                <field name="total_vo_value"/>
+                <field name="state"/>
+                <field name="write_date"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Declined and Withdrawn Variation Orders Pivot View -->
+    <record id="view_contractor_report_vo_declined_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.vo.declined.pivot</field>
+        <field name="model">contractor.report.vo.declined</field>
+        <field name="arch" type="xml">
+            <pivot string="Declined and Withdrawn Variation Orders">
+                <field name="vo_id" type="row"/>
+                <field name="project_id" type="col"/>
+                <field name="total_vo_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Declined and Withdrawn Variation Orders Graph View -->
+    <record id="view_contractor_report_vo_declined_graph" model="ir.ui.view">
+        <field name="name">contractor.report.vo.declined.graph</field>
+        <field name="model">contractor.report.vo.declined</field>
+        <field name="arch" type="xml">
+            <graph string="Declined and Withdrawn Variation Orders" type="bar">
+                <field name="vo_id"/>
+                <field name="total_vo_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Declined and Withdrawn Variation Orders Search View -->
+    <record id="view_contractor_report_vo_declined_search" model="ir.ui.view">
+        <field name="name">contractor.report.vo.declined.search</field>
+        <field name="model">contractor.report.vo.declined</field>
+        <field name="arch" type="xml">
+            <search string="Declined and Withdrawn Variation Orders">
+                <field name="vo_id"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="reason_type"/>
+                <field name="state"/>
+                <group>
+                    <filter string="VO Reference" name="group_by_vo_id" context="{'group_by': 'vo_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Variation Driver" name="group_by_reason_type" context="{'group_by': 'reason_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Declined and Withdrawn Variation Orders Action -->
+    <record id="action_contractor_report_vo_declined" model="ir.actions.act_window">
+        <field name="name">Declined and Withdrawn Variation Orders</field>
+        <field name="res_model">contractor.report.vo.declined</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_vo_declined_search"/>
+    </record>
+
+</odoo>

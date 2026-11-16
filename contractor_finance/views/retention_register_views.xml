@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Retention Register Form View -->
+    <record id="view_contractor_retention_register_form" model="ir.ui.view">
+        <field name="name">contractor.retention.register.form</field>
+        <field name="model">contractor.retention.register</field>
+        <field name="arch" type="xml">
+            <form string="Retention Register Entry">
+                <header>
+                    <button name="action_confirm_snags_rectified"
+                            string="PM Certify Snags Cleared"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="snags_rectified_confirmed or state == 'released'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_approve_retention_release"
+                            string="Approve Retention Release"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="not snags_rectified_confirmed or state not in ('held', 'dlp_expired_flagged', 'snag_cleared')"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_release_retention"
+                            string="Execute Release &amp; Post GL"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'approved_for_release'"
+                            confirm="Are you sure you want to release this retention and post the accounting journal entry? This action cannot be undone."
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="held,dlp_expired_flagged,snag_cleared,approved_for_release,released"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert" invisible="state != 'dlp_expired_flagged'">
+                        <strong>Defect Liability Period (DLP) Expired:</strong> Time limit reached.
+                        Release is held pending Project Manager certification of the completed snag list.
+                    </div>
+                    <div class="alert alert-success" role="alert" invisible="not snags_rectified_confirmed">
+                        <strong>Snag List Cleared:</strong> Project Manager certified that all defect items are 100% rectified. Ready for release approval.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Retention Record Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Contract &amp; Party">
+                            <field name="retention_type" widget="radio" readonly="state != 'held'"/>
+                            <field name="project_id" readonly="state != 'held'"/>
+                            <field name="partner_id" readonly="state != 'held'"/>
+                            <field name="invoice_id" readonly="state != 'held'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Withholding Valuation">
+                            <field name="contract_amount" readonly="state != 'held'"/>
+                            <field name="retention_pct" readonly="state != 'held'"/>
+                            <field name="retention_amount" class="fw-bold fs-4 text-primary" readonly="state != 'held'"/>
+                            <field name="retention_account_id" readonly="state != 'held'"/>
+                            <field name="withholding_move_id" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Defect Liability Period (DLP)">
+                            <field name="dlp_start_date" readonly="state != 'held'"/>
+                            <field name="dlp_duration_days" readonly="state != 'held'"/>
+                            <field name="dlp_expiry_date" readonly="1"/>
+                            <field name="is_current_classification" widget="boolean_toggle" readonly="1"/>
+                        </group>
+                        <group string="Release &amp; Settlement Audit">
+                            <field name="approver_id" readonly="1"/>
+                            <field name="approval_date" readonly="1"/>
+                            <field name="released_by_id" readonly="1"/>
+                            <field name="release_date" readonly="1"/>
+                            <field name="release_move_id" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Snag List Clearance Hard-Stop Gate" name="snag_gate">
+                            <group>
+                                <group string="PM Certification">
+                                    <field name="snags_rectified_confirmed" readonly="1"/>
+                                    <field name="snag_confirmed_by_id" readonly="1"/>
+                                    <field name="snag_confirmation_date" readonly="1"/>
+                                </group>
+                                <group string="Handover Certificates &amp; Snag Files">
+                                    <field name="snag_attachment_ids" widget="many2many_binary" readonly="state == 'released'"/>
+                                </group>
+                            </group>
+                            <separator string="PM Snag Rectification Audit Notes"/>
+                            <field name="snag_notes" readonly="state == 'released'" placeholder="Enter details of inspected snag items, Taking Over Certificate (TOC), and consultant sign-off..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Retention Register List View -->
+    <record id="view_contractor_retention_register_list" model="ir.ui.view">
+        <field name="name">contractor.retention.register.list</field>
+        <field name="model">contractor.retention.register</field>
+        <field name="arch" type="xml">
+            <list string="Retention Register" decoration-success="state == 'released'" decoration-warning="state == 'dlp_expired_flagged'" decoration-info="state == 'snag_cleared'">
+                <field name="name"/>
+                <field name="retention_type"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="retention_pct"/>
+                <field name="retention_amount" sum="Total Retention Held"/>
+                <field name="dlp_expiry_date"/>
+                <field name="is_current_classification" widget="boolean_toggle" optional="show"/>
+                <field name="snags_rectified_confirmed" widget="boolean_toggle"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'dlp_expired_flagged'" decoration-info="state == 'approved_for_release'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action for Retention Register -->
+    <record id="view_contractor_retention_register_search" model="ir.ui.view">
+        <field name="name">contractor.retention.register.search</field>
+        <field name="model">contractor.retention.register</field>
+        <field name="arch" type="xml">
+            <search string="Search Retention Register">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="invoice_id"/>
+                <filter string="Client Receivable" name="client_receivable" domain="[('retention_type', '=', 'client_receivable')]"/>
+                <filter string="Subcontractor Payable" name="subcontractor_payable" domain="[('retention_type', '=', 'subcontractor_payable')]"/>
+                <separator/>
+                <filter string="Held" name="held" domain="[('state', '=', 'held')]"/>
+                <filter string="DLP Expired" name="dlp_expired" domain="[('state', '=', 'dlp_expired_flagged')]"/>
+                <filter string="Snag Cleared" name="snag_cleared" domain="[('state', '=', 'snag_cleared')]"/>
+                <filter string="Approved for Release" name="approved_for_release" domain="[('state', '=', 'approved_for_release')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <separator/>
+                <filter string="Current Classification" name="current_classification" domain="[('is_current_classification', '=', True)]"/>
+                <filter string="Snags Rectified" name="snags_rectified" domain="[('snags_rectified_confirmed', '=', True)]"/>
+                <group>
+                    <filter string="Retention Type" name="group_by_type" context="{'group_by': 'retention_type'}"/>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Partner" name="group_by_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="DLP Expiry Date" name="group_by_dlp_expiry" context="{'group_by': 'dlp_expiry_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_contractor_retention_register_calendar" model="ir.ui.view">
+        <field name="name">contractor.retention.register.calendar</field>
+        <field name="model">contractor.retention.register</field>
+        <field name="arch" type="xml">
+            <calendar string="Retention DLP Expiry Calendar" date_start="dlp_expiry_date" color="state" mode="month">
+                <field name="name"/>
+                <field name="retention_type"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="retention_amount"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_contractor_retention_register_pivot" model="ir.ui.view">
+        <field name="name">contractor.retention.register.pivot</field>
+        <field name="model">contractor.retention.register</field>
+        <field name="arch" type="xml">
+            <pivot string="Retention Register Analysis">
+                <field name="project_id" type="row"/>
+                <field name="retention_type" type="col"/>
+                <field name="contract_amount" type="measure"/>
+                <field name="retention_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_contractor_retention_register" model="ir.actions.act_window">
+        <field name="name">Client &amp; Subcontractor Retention Register</field>
+        <field name="res_model">contractor.retention.register</field>
+        <field name="view_mode">list,form,calendar,pivot</field>
+        <field name="search_view_id" ref="view_contractor_retention_register_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage client and subcontractor DLP retention withholdings and snag rectification clearance gates.
+            </p>
+        </field>
+    </record>
+
+    <!-- Inherit account.move form to show retention withholding section -->
+    <record id="view_move_form_retention_contractor" model="ir.ui.view">
+        <field name="name">account.move.form.retention.contractor</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@id='header_right_group']" position="inside">
+                <field name="has_retention" invisible="move_type not in ('out_invoice', 'in_invoice')"/>
+                <field name="retention_pct" invisible="not has_retention"/>
+                <field name="retention_amount" invisible="not has_retention" readonly="1"/>
+                <field name="retention_account_id" invisible="not has_retention"/>
+                <field name="retention_register_id" invisible="not retention_register_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
+

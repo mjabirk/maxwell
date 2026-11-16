@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main HR & Payroll Operations Category -->
+    <menuitem id="menu_contractor_hrms_root"
+              name="HR, Payroll &amp; Workforce"
+              parent="contractor_core.menu_contractor_root"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_workforce"
+              name="Workforce Master"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_workforce"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_agency_agreements"
+              name="Manpower Supply SLAs"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_agency_agreement"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_payroll_track1"
+              name="Monthly Payroll Runs (Permanent)"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_payroll_run"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_payroll_track2"
+              name="Temporary Wage Settlements (Daily)"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_temp_wage_settlement"
+              sequence="40"/>
+
+    <menuitem id="menu_contractor_payroll_track3"
+              name="Agency Invoice Reconciliations"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_agency_reconciliation"
+              sequence="50"/>
+
+    <menuitem id="menu_contractor_labour_adjustments"
+              name="Labour Cost Adjustments"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_labour_cost_adjustment"
+              sequence="60"/>
+
+    <menuitem id="menu_contractor_tool_custody"
+              name="Hand &amp; Power Tool Custody"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_tool_asset"
+              sequence="70"/>
+
+    <menuitem id="menu_contractor_leave_salary"
+              name="Leave Salary Requests"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_leave_salary_request"
+              sequence="80"/>
+
+    <menuitem id="menu_contractor_ticket_allowance"
+              name="Air Ticket Allowance Requests"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_ticket_allowance_request"
+              sequence="90"/>
+
+    <menuitem id="menu_contractor_employee_exit"
+              name="Employee Exit &amp; EOSB Settlements"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_employee_exit"
+              sequence="100"/>
+</odoo>
+

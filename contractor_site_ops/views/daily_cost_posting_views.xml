@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Daily Cost Posting Form -->
+    <record id="view_contractor_daily_cost_posting_form" model="ir.ui.view">
+        <field name="name">contractor.daily.cost.posting.form</field>
+        <field name="model">contractor.daily.cost.posting</field>
+        <field name="arch" type="xml">
+            <form string="Daily Project Cost Posting &amp; Accounting Handoff">
+                <header>
+                    <button name="action_post_to_budget_and_accounts"
+                            string="Post to Budget &amp; Accounts"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"
+                            confirm="Are you sure you want to post this Daily Cost Posting to the project budget and General Ledger? This action cannot be undone."
+                            groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                    <button name="action_flag_correction_to_pm"
+                            string="Flag Correction to PM"
+                            type="object"
+                            class="btn-outline-danger"
+                            invisible="state == 'posted'"
+                            groups="contractor_core.group_contractor_accountant"/>
+                    <button name="action_check_daily_completeness"
+                            string="Run Daily Completeness Check"
+                            type="object"
+                            class="btn-secondary"
+                            groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_corrections"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-exclamation-triangle"
+                                invisible="correction_count == 0">
+                            <field name="correction_count" widget="statinfo" string="Discrepancies"/>
+                        </button>
+                    </div>
+
+                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="state != 'correction_requested'">
+                        <strong>Accountant Correction Requested:</strong>
+                        Discrepancies have been formally flagged to the Project Manager for operational rectification.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Posting Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Project &amp; Date">
+                            <field name="project_id"/>
+                            <field name="cost_date"/>
+                            <field name="zero_activity_explanation"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Operational Supporting Documentation">
+                            <field name="dpr_id"/>
+                            <field name="attendance_id"/>
+                            <field name="consumption_id"/>
+                            <field name="account_move_id" readonly="1" invisible="not account_move_id"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Cost Category Breakdown">
+                            <field name="labour_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="material_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="subcontractor_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                        <group string="Daily Grand Total">
+                            <field name="grand_total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Calculated Site Cost Line Items" name="page_lines">
+                            <field name="line_ids">
+                                <list string="Cost Lines" create="0" delete="0" edit="0">
+                                    <field name="cost_category" widget="badge"
+                                           decoration-info="cost_category == 'labour'"
+                                           decoration-warning="cost_category == 'material'"
+                                           decoration-success="cost_category == 'subcontractor'"/>
+                                    <field name="description"/>
+                                    <field name="source_ref"/>
+                                    <field name="quantity"/>
+                                    <field name="uom_id"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Grand Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Certified Subcontractor Logs" name="page_work_logs" invisible="not work_log_ids">
+                            <field name="work_log_ids" readonly="1">
+                                <list string="Work Logs">
+                                    <field name="name"/>
+                                    <field name="subcontractor_id"/>
+                                    <field name="work_package"/>
+                                    <field name="site_verified_qty"/>
+                                    <field name="uom_id"/>
+                                    <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Subcon"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_cost_posting_list" model="ir.ui.view">
+        <field name="name">contractor.daily.cost.posting.list</field>
+        <field name="model">contractor.daily.cost.posting</field>
+        <field name="arch" type="xml">
+            <list string="Daily Cost Postings" default_order="cost_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="cost_date"/>
+                <field name="labour_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="material_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="subcontractor_cost_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="grand_total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Posted Cost"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'posted'"
+                       decoration-danger="state == 'correction_requested'"/>
+                <field name="account_move_id"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Accountant Cost Correction Request Views -->
+    <record id="view_contractor_cost_correction_request_form" model="ir.ui.view">
+        <field name="name">contractor.cost.correction.request.form</field>
+        <field name="model">contractor.cost.correction.request</field>
+        <field name="arch" type="xml">
+            <form string="Cost Correction Request to PM">
+                <header>
+                    <button name="action_pm_acknowledge"
+                            string="PM Acknowledge"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'requested'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_pm_rectify"
+                            string="PM Rectify &amp; Re-Sync"
+                            type="object"
+                            class="btn-success"
+                            invisible="state not in ('requested', 'acknowledged')"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_pm_reject"
+                            string="PM Reject Request"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('requested', 'acknowledged')"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="requested,acknowledged,rectified"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Request Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Source Posting &amp; Site">
+                            <field name="cost_posting_id" readonly="state != 'requested'"/>
+                            <field name="project_id"/>
+                            <field name="cost_date"/>
+                        </group>
+                        <group string="Stakeholders">
+                            <field name="accountant_id"/>
+                            <field name="pm_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Discrepancy Details &amp; Proposed Correction">
+                        <field name="discrepancy_details" placeholder="Describe incorrect cost head, unrecorded hours, wrong product rate, or project misallocation..." readonly="state != 'requested'"/>
+                        <field name="proposed_correction" placeholder="Detail the exact rectification requested from the site team..." readonly="state != 'requested'"/>
+                    </group>
+
+                    <group string="Project Manager Response &amp; Rectification" invisible="state == 'requested' and not pm_response">
+                        <field name="pm_response" placeholder="State operational justification or corrections applied to site source records..." readonly="state in ('rectified', 'rejected')"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_cost_correction_request_list" model="ir.ui.view">
+        <field name="name">contractor.cost.correction.request.list</field>
+        <field name="model">contractor.cost.correction.request</field>
+        <field name="arch" type="xml">
+            <list string="Cost Correction Requests" default_order="create_date desc">
+                <field name="name"/>
+                <field name="cost_posting_id"/>
+                <field name="project_id"/>
+                <field name="cost_date"/>
+                <field name="accountant_id"/>
+                <field name="pm_id"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state in ('requested', 'acknowledged')"
+                       decoration-success="state == 'rectified'"
+                       decoration-danger="state == 'rejected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_cost_posting_search" model="ir.ui.view">
+        <field name="name">contractor.daily.cost.posting.search</field>
+        <field name="model">contractor.daily.cost.posting</field>
+        <field name="arch" type="xml">
+            <search string="Search Daily Cost Postings">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="dpr_id"/>
+                <field name="attendance_id"/>
+                <field name="consumption_id"/>
+                <field name="cost_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Posted" name="posted" domain="[('state', '=', 'posted')]"/>
+                <filter string="Correction Requested" name="correction_requested" domain="[('state', '=', 'correction_requested')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Cost Date" name="group_by_date" context="{'group_by': 'cost_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_cost_posting_pivot" model="ir.ui.view">
+        <field name="name">contractor.daily.cost.posting.pivot</field>
+        <field name="model">contractor.daily.cost.posting</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Project Cost Analysis">
+                <field name="project_id" type="row"/>
+                <field name="cost_date" interval="month" type="col"/>
+                <field name="labour_cost_total" type="measure"/>
+                <field name="material_cost_total" type="measure"/>
+                <field name="subcontractor_cost_total" type="measure"/>
+                <field name="grand_total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_cost_posting_graph" model="ir.ui.view">
+        <field name="name">contractor.daily.cost.posting.graph</field>
+        <field name="model">contractor.daily.cost.posting</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Project Cost Breakdown" type="bar">
+                <field name="project_id"/>
+                <field name="grand_total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_contractor_daily_cost_posting" model="ir.actions.act_window">
+        <field name="name">Daily Project Cost Postings</field>
+        <field name="res_model">contractor.daily.cost.posting</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_daily_cost_posting_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Daily Project Cost Postings generated automatically from site attendance, material consumption, and certified work logs.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_contractor_cost_correction_request_search" model="ir.ui.view">
+        <field name="name">contractor.cost.correction.request.search</field>
+        <field name="model">contractor.cost.correction.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Cost Correction Requests">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="cost_posting_id"/>
+                <field name="accountant_id"/>
+                <field name="pm_id"/>
+                <field name="cost_date"/>
+                <filter string="Requested" name="requested" domain="[('state', '=', 'requested')]"/>
+                <filter string="Acknowledged" name="acknowledged" domain="[('state', '=', 'acknowledged')]"/>
+                <filter string="Rectified" name="rectified" domain="[('state', '=', 'rectified')]"/>
+                <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Accountant" name="group_by_accountant" context="{'group_by': 'accountant_id'}"/>
+                    <filter string="Project Manager" name="group_by_pm" context="{'group_by': 'pm_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Cost Date" name="group_by_date" context="{'group_by': 'cost_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_cost_correction_request" model="ir.actions.act_window">
+        <field name="name">Accountant Cost Correction Requests</field>
+        <field name="res_model">contractor.cost.correction.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_cost_correction_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Flag accounting misclassifications or discrepancies back to Project Managers for site-side amendment.
+            </p>
+        </field>
+    </record>
+</odoo>
+

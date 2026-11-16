@@ -1,0 +1,35 @@
+# -*- coding: utf-8 -*-
+{
+    'name': 'Contractor Budget & Procurement Governance',
+    'version': '19.0.1.0.0',
+    'category': 'Contractor ERP',
+    'summary': 'Project Budget Real-Time Tracking, 3-Vendor RFQ Rule, Inter-Project Stock Transfers, Material Requisitions, GRN Controls, and Emergency Procurement',
+    'author': 'Antigravity DeepMind',
+    'license': 'LGPL-3',
+    'depends': [
+        'contractor_crm_estimation',
+        'purchase',
+        'purchase_stock',
+        'stock_account',
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+        'security/ir_rule.xml',
+        'data/ir_sequence.xml',
+        'data/ir_cron.xml',
+        'views/project_budget_views.xml',
+        'views/stock_transfer_note_views.xml',
+        'views/material_requisition_views.xml',
+        'views/comparative_statement_views.xml',
+        'views/purchase_order_views.xml',
+        'views/stock_picking_views.xml',
+        'views/account_payment_views.xml',
+        'views/leftover_disposition_views.xml',
+        'views/stock_adjustment_views.xml',
+        'views/contractor_procurement_menus.xml',
+    ],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+}
+

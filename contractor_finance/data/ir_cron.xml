@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Monthly Fixed Asset Depreciation Posting Cron -->
+    <record id="ir_cron_contractor_asset_depreciation" model="ir.cron">
+        <field name="name">Contractor ERP: Monthly Asset Depreciation Schedule Posting</field>
+        <field name="model_id" ref="model_contractor_fixed_asset"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_post_monthly_depreciation()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Daily DLP Retention Expiry Check Cron -->
+    <record id="ir_cron_contractor_retention_dlp_check" model="ir.cron">
+        <field name="name">Contractor ERP: Defect Liability Period (DLP) Expiry Check</field>
+        <field name="model_id" ref="model_contractor_retention_register"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_dlp_expiry()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Daily Bank Reconciliation Unmatched Escalation Cron -->
+    <record id="ir_cron_contractor_bank_unmatched_escalation" model="ir.cron">
+        <field name="name">Contractor ERP: Bank Unmatched Items Escalation Check</field>
+        <field name="model_id" ref="model_contractor_bank_reconciliation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_unmatched_bank_items()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Monthly Loan Interest Accrual Cron -->
+    <record id="ir_cron_contractor_loan_interest_accrual" model="ir.cron">
+        <field name="name">Contractor ERP: Monthly Loan Facility Interest Accrual</field>
+        <field name="model_id" ref="model_contractor_loan_facility"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_accrue_loan_interest()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Daily AR Overdue 90-Day Escalation Cron -->
+    <record id="ir_cron_contractor_ar_overdue_escalation" model="ir.cron">
+        <field name="name">Contractor ERP: AR Overdue Escalation Check</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_escalate_overdue_receivables()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>
+

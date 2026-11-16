@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Sequence for Internal Budget Revision -->
+    <record id="seq_contractor_budget_revision" model="ir.sequence">
+        <field name="name">Internal Budget Revision Sequence</field>
+        <field name="code">contractor.budget.revision</field>
+        <field name="prefix">IBR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Stock Transfer Note (STN) -->
+    <record id="seq_contractor_stock_transfer_note" model="ir.sequence">
+        <field name="name">Stock Transfer Note Sequence</field>
+        <field name="code">contractor.stock.transfer.note</field>
+        <field name="prefix">STN-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Material Requisition (MR) -->
+    <record id="seq_contractor_material_requisition" model="ir.sequence">
+        <field name="name">Material Requisition Sequence</field>
+        <field name="code">contractor.material.requisition</field>
+        <field name="prefix">MR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Comparative Statement (CS) -->
+    <record id="seq_contractor_comparative_statement" model="ir.sequence">
+        <field name="name">Comparative Statement Sequence</field>
+        <field name="code">contractor.comparative.statement</field>
+        <field name="prefix">CS-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Leftover Stock Disposition -->
+    <record id="seq_contractor_leftover_disposition" model="ir.sequence">
+        <field name="name">Leftover Stock Disposition Sequence</field>
+        <field name="code">contractor.leftover.disposition</field>
+        <field name="prefix">LOD-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Stock Adjustment Note -->
+    <record id="seq_contractor_stock_adjustment_note" model="ir.sequence">
+        <field name="name">Stock Adjustment Note Sequence</field>
+        <field name="code">contractor.stock.adjustment.note</field>
+        <field name="prefix">SAN-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>
+

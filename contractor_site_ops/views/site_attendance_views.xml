@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_site_attendance_form" model="ir.ui.view">
+        <field name="name">contractor.site.attendance.form</field>
+        <field name="model">contractor.site.attendance</field>
+        <field name="arch" type="xml">
+            <form string="Daily Site Attendance &amp; Overtime Sheet">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to PM"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_pm_approve"
+                            string="PM Approve Attendance &amp; OT"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_mark_all_present"
+                            string="Mark All Present"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <button name="action_verify_all_ot"
+                            string="Verify All OT"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <button name="action_request_late_amendment"
+                            string="Request Late Amendment"
+                            type="object"
+                            class="btn-warning"
+                            invisible="not is_entry_locked or late_amendment_approved or late_amendment_requested"/>
+                    <button name="action_approve_late_amendment"
+                            string="Authorize Late Amendment"
+                            type="object"
+                            class="btn-outline-warning"
+                            invisible="not is_entry_locked or late_amendment_approved"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,pm_approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_entry_locked">
+                        <strong>48-Hour Site Entry Lock:</strong> This attendance sheet is locked past operational cutoff.
+                        <span invisible="not late_amendment_requested or late_amendment_approved">
+                            | Amendment Requested by <field name="late_amendment_requester_id" readonly="1" class="oe_inline"/>: <field name="late_amendment_request_reason" readonly="1" class="oe_inline"/>
+                        </span>
+                        <button name="action_mark_all_present"
+                            string="Mark All Present"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <button name="action_verify_all_ot"
+                            string="Verify All OT"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <button name="action_request_late_amendment"
+                                string="Request Late Amendment"
+                                type="object"
+                                class="btn btn-warning btn-sm ms-2"
+                                invisible="late_amendment_approved or late_amendment_requested"/>
+                        <span invisible="not late_amendment_approved">
+                            (Late Amendment Authorized by <field name="late_amendment_approver_id" readonly="1" class="oe_inline"/> - Reason: <field name="late_amendment_reason" readonly="1" class="oe_inline"/>)
+                        </span>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Sheet Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Site &amp; Work Date">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="attendance_date" readonly="state != 'draft'"/>
+                            <field name="site_engineer_id" readonly="state != 'draft'"/>
+                            <field name="schedule_id" readonly="1" invisible="not schedule_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="is_entry_locked" invisible="1"/>
+                            <field name="is_locked" invisible="1"/>
+                            <field name="late_amendment_approved" invisible="1"/>
+                            <field name="late_amendment_requested" invisible="1"/>
+                            <field name="late_amendment_requester_id" invisible="1"/>
+                            <field name="late_amendment_request_reason" invisible="1"/>
+                        </group>
+                        <group string="Headcount &amp; Shift Hours">
+                            <field name="total_workers" readonly="1"/>
+                            <field name="total_present" readonly="1"/>
+                            <field name="total_no_shows" readonly="1"/>
+                            <field name="total_regular_hours" widget="float_time" readonly="1"/>
+                            <field name="total_overtime_hours" widget="float_time" readonly="1"/>
+                            <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Operative Attendance &amp; Overtime Breakdown" name="page_lines">
+                            <field name="line_ids" mode="list,kanban" readonly="state != 'draft'">
+                                <kanban class="o_kanban_mobile">
+                                    <field name="employee_id"/>
+                                    <field name="worker_category"/>
+                                    <field name="attendance_status"/>
+                                    <field name="regular_hours"/>
+                                    <field name="overtime_hours"/>
+                                    <field name="se_ot_verified"/>
+                                    <templates>
+                                        <t t-name="card">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <field name="employee_id" class="fw-bold"/>
+                                                <field name="worker_category" widget="badge"/>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center small mb-2">
+                                                <field name="attendance_status" widget="badge"
+                                                       decoration-success="attendance_status in ('present', 'unscheduled_addition')"
+                                                       decoration-danger="attendance_status == 'no_show'"/>
+                                                <span>Reg: <strong><field name="regular_hours"/>h</strong> | OT: <strong><field name="overtime_hours"/>h</strong></span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <button name="action_toggle_attendance_status" type="object" class="btn btn-sm btn-outline-secondary">
+                                                    Toggle Present/Absent
+                                                </button>
+                                                <button name="action_toggle_ot_verified" type="object" class="btn btn-sm btn-outline-info">
+                                                    <span invisible="se_ot_verified">Verify OT</span>
+                                                    <span invisible="not se_ot_verified">OT Verified ✓</span>
+                                                </button>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                                <list string="Operatives" editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="worker_category" widget="badge"/>
+                                    <field name="job_title_id"/>
+                                    <field name="work_zone"/>
+                                    <field name="scheduled_hours" widget="float_time"/>
+                                    <field name="attendance_status" widget="badge"
+                                           decoration-success="attendance_status in ('present', 'unscheduled_addition')"
+                                           decoration-danger="attendance_status == 'no_show'"
+                                           decoration-warning="attendance_status == 'on_leave'"/>
+                                    <field name="regular_hours" widget="float_time" sum="Total Regular"/>
+                                    <field name="overtime_hours" widget="float_time" sum="Total OT"/>
+                                    <field name="ot_reason" optional="show"/>
+                                    <field name="se_ot_verified" widget="boolean" optional="hide"/>
+                                    <field name="ot_approved" widget="boolean" readonly="1"/>
+                                    <field name="hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="ot_multiplier"/>
+                                    <field name="calculated_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour Cost"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_attendance_list" model="ir.ui.view">
+        <field name="name">contractor.site.attendance.list</field>
+        <field name="model">contractor.site.attendance</field>
+        <field name="arch" type="xml">
+            <list string="Site Attendance Sheets" default_order="attendance_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="attendance_date"/>
+                <field name="total_present"/>
+                <field name="total_no_shows"/>
+                <field name="total_regular_hours" widget="float_time"/>
+                <field name="total_overtime_hours" widget="float_time"/>
+                <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'pm_approved'"
+                       decoration-danger="state == 'declined'"/>
+                <field name="is_entry_locked" widget="boolean" invisible="not is_entry_locked"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_attendance_search" model="ir.ui.view">
+        <field name="name">contractor.site.attendance.search</field>
+        <field name="model">contractor.site.attendance</field>
+        <field name="arch" type="xml">
+            <search string="Search Daily Site Attendance">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="site_engineer_id"/>
+                <field name="schedule_id"/>
+                <field name="attendance_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="PM Approved" name="pm_approved" domain="[('state', '=', 'pm_approved')]"/>
+                <filter string="Declined" name="declined" domain="[('state', '=', 'declined')]"/>
+                <separator/>
+                <filter string="Late Amendment Approved" name="late_amendment" domain="[('late_amendment_approved', '=', True)]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Site Engineer" name="group_by_engineer" context="{'group_by': 'site_engineer_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Attendance Date" name="group_by_date" context="{'group_by': 'attendance_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_attendance_kanban" model="ir.ui.view">
+        <field name="name">contractor.site.attendance.kanban</field>
+        <field name="model">contractor.site.attendance</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="attendance_date"/>
+                <field name="total_workers"/>
+                <field name="total_present"/>
+                <field name="total_labour_cost"/>
+                <field name="currency_id"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <field name="name" class="fw-bold fs-6"/>
+                            <field name="state" widget="badge"
+                                   decoration-info="state == 'submitted'"
+                                   decoration-success="state == 'pm_approved'"
+                                   decoration-danger="state == 'declined'"/>
+                        </div>
+                        <div class="text-muted small mb-1">
+                            <field name="project_id"/> · <field name="attendance_date"/>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span>Present: <strong><field name="total_present"/>/<field name="total_workers"/></strong></span>
+                            <field name="total_labour_cost" widget="monetary" class="fw-bold"/>
+                        </div>
+                        <div class="d-flex gap-1" invisible="state not in ('draft', 'submitted')">
+                            <button name="action_mark_all_present" type="object" class="btn btn-sm btn-outline-success">All Present</button>
+                            <button name="action_verify_all_ot" type="object" class="btn btn-sm btn-outline-primary">Verify OT</button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_attendance_line_kanban" model="ir.ui.view">
+        <field name="name">contractor.site.attendance.line.kanban</field>
+        <field name="model">contractor.site.attendance.line</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="employee_id"/>
+                <field name="worker_category"/>
+                <field name="attendance_status"/>
+                <field name="regular_hours"/>
+                <field name="overtime_hours"/>
+                <field name="se_ot_verified"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <field name="employee_id" class="fw-bold"/>
+                            <field name="worker_category" widget="badge"/>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small mb-2">
+                            <field name="attendance_status" widget="badge"
+                                   decoration-success="attendance_status in ('present', 'unscheduled_addition')"
+                                   decoration-danger="attendance_status == 'no_show'"/>
+                            <span>Reg: <strong><field name="regular_hours"/>h</strong> | OT: <strong><field name="overtime_hours"/>h</strong></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button name="action_toggle_attendance_status" type="object" class="btn btn-sm btn-outline-secondary">
+                                Toggle Present/Absent
+                            </button>
+                            <button name="action_toggle_ot_verified" type="object" class="btn btn-sm btn-outline-info">
+                                <span invisible="se_ot_verified">Verify OT</span>
+                                <span invisible="not se_ot_verified">OT Verified ✓</span>
+                            </button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_contractor_site_attendance" model="ir.actions.act_window">
+        <field name="name">Daily Site Attendance</field>
+        <field name="res_model">contractor.site.attendance</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_contractor_site_attendance_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record daily operative attendance, verify present headcount, and submit overtime for Project Manager sign-off.
+            </p>
+        </field>
+    </record>
+</odoo>
+

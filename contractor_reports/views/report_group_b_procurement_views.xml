@@ -1,0 +1,1306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Real-Time Consolidated Stock Analysis List View -->
+    <record id="view_contractor_report_consolidated_stock_list" model="ir.ui.view">
+        <field name="name">contractor.report.consolidated.stock.list</field>
+        <field name="model">contractor.report.consolidated.stock</field>
+        <field name="arch" type="xml">
+            <list string="Real-Time Consolidated Stock Analysis" create="false" edit="false" delete="false">
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="location_id"/>
+                <field name="warehouse_id"/>
+                <field name="project_id"/>
+                <field name="quantity"/>
+                <field name="reserved_quantity"/>
+                <field name="available_quantity"/>
+                <field name="standard_price"/>
+                <field name="inventory_value"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Real-Time Consolidated Stock Analysis Pivot View -->
+    <record id="view_contractor_report_consolidated_stock_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.consolidated.stock.pivot</field>
+        <field name="model">contractor.report.consolidated.stock</field>
+        <field name="arch" type="xml">
+            <pivot string="Real-Time Consolidated Stock Analysis">
+                <field name="categ_id" type="row"/>
+                <field name="location_id" type="col"/>
+                <field name="inventory_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Real-Time Consolidated Stock Analysis Graph View -->
+    <record id="view_contractor_report_consolidated_stock_graph" model="ir.ui.view">
+        <field name="name">contractor.report.consolidated.stock.graph</field>
+        <field name="model">contractor.report.consolidated.stock</field>
+        <field name="arch" type="xml">
+            <graph string="Real-Time Consolidated Stock Analysis" type="bar">
+                <field name="categ_id"/>
+                <field name="inventory_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Real-Time Consolidated Stock Analysis Search View -->
+    <record id="view_contractor_report_consolidated_stock_search" model="ir.ui.view">
+        <field name="name">contractor.report.consolidated.stock.search</field>
+        <field name="model">contractor.report.consolidated.stock</field>
+        <field name="arch" type="xml">
+            <search string="Real-Time Consolidated Stock Analysis">
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="location_id"/>
+                <field name="warehouse_id"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Category" name="group_by_categ_id" context="{'group_by': 'categ_id'}"/>
+                    <filter string="Location" name="group_by_location_id" context="{'group_by': 'location_id'}"/>
+                    <filter string="Warehouse" name="group_by_warehouse_id" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Real-Time Consolidated Stock Analysis Action -->
+    <record id="action_contractor_report_consolidated_stock" model="ir.actions.act_window">
+        <field name="name">Real-Time Consolidated Stock Analysis</field>
+        <field name="res_model">contractor.report.consolidated.stock</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_consolidated_stock_search"/>
+    </record>
+
+    <!-- Inter-Project STN Register and Cost Neutrality List View -->
+    <record id="view_contractor_report_interproject_stn_list" model="ir.ui.view">
+        <field name="name">contractor.report.interproject.stn.list</field>
+        <field name="model">contractor.report.interproject.stn</field>
+        <field name="arch" type="xml">
+            <list string="Inter-Project STN Register &amp; Cost Neutrality" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="stn_id"/>
+                <field name="donor_project_id"/>
+                <field name="receiving_project_id"/>
+                <field name="product_id"/>
+                <field name="transfer_qty"/>
+                <field name="unit_cost"/>
+                <field name="total_cost"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Inter-Project STN Register and Cost Neutrality Pivot View -->
+    <record id="view_contractor_report_interproject_stn_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.interproject.stn.pivot</field>
+        <field name="model">contractor.report.interproject.stn</field>
+        <field name="arch" type="xml">
+            <pivot string="Inter-Project STN Register &amp; Cost Neutrality">
+                <field name="donor_project_id" type="row"/>
+                <field name="receiving_project_id" type="col"/>
+                <field name="total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Inter-Project STN Register and Cost Neutrality Graph View -->
+    <record id="view_contractor_report_interproject_stn_graph" model="ir.ui.view">
+        <field name="name">contractor.report.interproject.stn.graph</field>
+        <field name="model">contractor.report.interproject.stn</field>
+        <field name="arch" type="xml">
+            <graph string="Inter-Project STN Register &amp; Cost Neutrality" type="bar">
+                <field name="donor_project_id"/>
+                <field name="total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Inter-Project STN Register and Cost Neutrality Search View -->
+    <record id="view_contractor_report_interproject_stn_search" model="ir.ui.view">
+        <field name="name">contractor.report.interproject.stn.search</field>
+        <field name="model">contractor.report.interproject.stn</field>
+        <field name="arch" type="xml">
+            <search string="Inter-Project STN Register &amp; Cost Neutrality">
+                <field name="stn_id"/>
+                <field name="donor_project_id"/>
+                <field name="receiving_project_id"/>
+                <field name="product_id"/>
+                <group>
+                    <filter string="Donor Project" name="group_by_donor_project_id" context="{'group_by': 'donor_project_id'}"/>
+                    <filter string="Receiving Project" name="group_by_receiving_project_id" context="{'group_by': 'receiving_project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Inter-Project STN Register and Cost Neutrality Action -->
+    <record id="action_contractor_report_interproject_stn" model="ir.actions.act_window">
+        <field name="name">Inter-Project STN Register &amp; Cost Neutrality</field>
+        <field name="res_model">contractor.report.interproject.stn</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_interproject_stn_search"/>
+    </record>
+
+    <!-- Material Requisition Approval SLA and Ageing List View -->
+    <record id="view_contractor_report_mr_approval_sla_list" model="ir.ui.view">
+        <field name="name">contractor.report.mr.approval.sla.list</field>
+        <field name="model">contractor.report.mr.approval.sla</field>
+        <field name="arch" type="xml">
+            <list string="Material Requisition Approval SLA &amp; Ageing" create="false" edit="false" delete="false">
+                <field name="submitted_datetime"/>
+                <field name="mr_id"/>
+                <field name="project_id"/>
+                <field name="requested_by"/>
+                <field name="approver_id"/>
+                <field name="approval_datetime"/>
+                <field name="approval_hours"/>
+                <field name="is_sla_breached"/>
+                <field name="escalated_to_md"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Material Requisition Approval SLA and Ageing Pivot View -->
+    <record id="view_contractor_report_mr_approval_sla_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.mr.approval.sla.pivot</field>
+        <field name="model">contractor.report.mr.approval.sla</field>
+        <field name="arch" type="xml">
+            <pivot string="Material Requisition Approval SLA &amp; Ageing">
+                <field name="approver_id" type="row"/>
+                <field name="is_sla_breached" type="col"/>
+                <field name="approval_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Material Requisition Approval SLA and Ageing Graph View -->
+    <record id="view_contractor_report_mr_approval_sla_graph" model="ir.ui.view">
+        <field name="name">contractor.report.mr.approval.sla.graph</field>
+        <field name="model">contractor.report.mr.approval.sla</field>
+        <field name="arch" type="xml">
+            <graph string="Material Requisition Approval SLA &amp; Ageing" type="bar">
+                <field name="approver_id"/>
+                <field name="approval_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Material Requisition Approval SLA and Ageing Search View -->
+    <record id="view_contractor_report_mr_approval_sla_search" model="ir.ui.view">
+        <field name="name">contractor.report.mr.approval.sla.search</field>
+        <field name="model">contractor.report.mr.approval.sla</field>
+        <field name="arch" type="xml">
+            <search string="Material Requisition Approval SLA &amp; Ageing">
+                <field name="mr_id"/>
+                <field name="project_id"/>
+                <field name="requested_by"/>
+                <field name="approver_id"/>
+                <group>
+                    <filter string="Approver" name="group_by_approver_id" context="{'group_by': 'approver_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="SLA Breached" name="group_by_is_sla_breached" context="{'group_by': 'is_sla_breached'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Material Requisition Approval SLA and Ageing Action -->
+    <record id="action_contractor_report_mr_approval_sla" model="ir.actions.act_window">
+        <field name="name">Material Requisition Approval SLA &amp; Ageing</field>
+        <field name="res_model">contractor.report.mr.approval.sla</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_mr_approval_sla_search"/>
+    </record>
+
+    <!-- Requisition Revision History and Audit Log List View -->
+    <record id="view_contractor_report_mr_revision_history_list" model="ir.ui.view">
+        <field name="name">contractor.report.mr.revision.history.list</field>
+        <field name="model">contractor.report.mr.revision.history</field>
+        <field name="arch" type="xml">
+            <list string="Requisition Revision History &amp; Audit Log" create="false" edit="false" delete="false">
+                <field name="write_date"/>
+                <field name="mr_id"/>
+                <field name="project_id"/>
+                <field name="version_number"/>
+                <field name="state"/>
+                <field name="last_action_reason"/>
+                <field name="approver_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Requisition Revision History and Audit Log Pivot View -->
+    <record id="view_contractor_report_mr_revision_history_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.mr.revision.history.pivot</field>
+        <field name="model">contractor.report.mr.revision.history</field>
+        <field name="arch" type="xml">
+            <pivot string="Requisition Revision History &amp; Audit Log">
+                <field name="project_id" type="row"/>
+                <field name="version_number" type="col"/>
+                <field name="version_number" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Requisition Revision History and Audit Log Graph View -->
+    <record id="view_contractor_report_mr_revision_history_graph" model="ir.ui.view">
+        <field name="name">contractor.report.mr.revision.history.graph</field>
+        <field name="model">contractor.report.mr.revision.history</field>
+        <field name="arch" type="xml">
+            <graph string="Requisition Revision History &amp; Audit Log" type="bar">
+                <field name="project_id"/>
+                <field name="version_number" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Requisition Revision History and Audit Log Search View -->
+    <record id="view_contractor_report_mr_revision_history_search" model="ir.ui.view">
+        <field name="name">contractor.report.mr.revision.history.search</field>
+        <field name="model">contractor.report.mr.revision.history</field>
+        <field name="arch" type="xml">
+            <search string="Requisition Revision History &amp; Audit Log">
+                <field name="mr_id"/>
+                <field name="project_id"/>
+                <field name="approver_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Version Number" name="group_by_version_number" context="{'group_by': 'version_number'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Requisition Revision History and Audit Log Action -->
+    <record id="action_contractor_report_mr_revision_history" model="ir.actions.act_window">
+        <field name="name">Requisition Revision History &amp; Audit Log</field>
+        <field name="res_model">contractor.report.mr.revision.history</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_mr_revision_history_search"/>
+    </record>
+
+    <!-- Budget Override Register with Approver List View -->
+    <record id="view_contractor_report_budget_override_list" model="ir.ui.view">
+        <field name="name">contractor.report.budget.override.list</field>
+        <field name="model">contractor.report.budget.override</field>
+        <field name="arch" type="xml">
+            <list string="Budget Override Register with Approver" create="false" edit="false" delete="false">
+                <field name="override_date"/>
+                <field name="budget_id"/>
+                <field name="project_id"/>
+                <field name="total_approved_budget"/>
+                <field name="committed_amount"/>
+                <field name="actual_cost_amount"/>
+                <field name="remaining_budget"/>
+                <field name="override_user_id"/>
+                <field name="override_reason"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Budget Override Register with Approver Pivot View -->
+    <record id="view_contractor_report_budget_override_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.budget.override.pivot</field>
+        <field name="model">contractor.report.budget.override</field>
+        <field name="arch" type="xml">
+            <pivot string="Budget Override Register with Approver">
+                <field name="project_id" type="row"/>
+                <field name="override_user_id" type="col"/>
+                <field name="total_approved_budget" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Budget Override Register with Approver Graph View -->
+    <record id="view_contractor_report_budget_override_graph" model="ir.ui.view">
+        <field name="name">contractor.report.budget.override.graph</field>
+        <field name="model">contractor.report.budget.override</field>
+        <field name="arch" type="xml">
+            <graph string="Budget Override Register with Approver" type="bar">
+                <field name="project_id"/>
+                <field name="total_approved_budget" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Budget Override Register with Approver Search View -->
+    <record id="view_contractor_report_budget_override_search" model="ir.ui.view">
+        <field name="name">contractor.report.budget.override.search</field>
+        <field name="model">contractor.report.budget.override</field>
+        <field name="arch" type="xml">
+            <search string="Budget Override Register with Approver">
+                <field name="budget_id"/>
+                <field name="project_id"/>
+                <field name="override_user_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Authorized User" name="group_by_override_user_id" context="{'group_by': 'override_user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Budget Override Register with Approver Action -->
+    <record id="action_contractor_report_budget_override" model="ir.actions.act_window">
+        <field name="name">Budget Override Register with Approver</field>
+        <field name="res_model">contractor.report.budget.override</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_budget_override_search"/>
+    </record>
+
+    <!-- 3-Vendor RFQ Compliance vs Exceptions List View -->
+    <record id="view_contractor_report_rfq_compliance_list" model="ir.ui.view">
+        <field name="name">contractor.report.rfq.compliance.list</field>
+        <field name="model">contractor.report.rfq.compliance</field>
+        <field name="arch" type="xml">
+            <list string="3-Vendor RFQ Compliance vs Exceptions" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="requisition_id"/>
+                <field name="vendor_count"/>
+                <field name="is_compliant"/>
+                <field name="is_sole_source"/>
+                <field name="selected_quote_amount"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- 3-Vendor RFQ Compliance vs Exceptions Pivot View -->
+    <record id="view_contractor_report_rfq_compliance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.rfq.compliance.pivot</field>
+        <field name="model">contractor.report.rfq.compliance</field>
+        <field name="arch" type="xml">
+            <pivot string="3-Vendor RFQ Compliance vs Exceptions">
+                <field name="project_id" type="row"/>
+                <field name="is_compliant" type="col"/>
+                <field name="selected_quote_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 3-Vendor RFQ Compliance vs Exceptions Graph View -->
+    <record id="view_contractor_report_rfq_compliance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.rfq.compliance.graph</field>
+        <field name="model">contractor.report.rfq.compliance</field>
+        <field name="arch" type="xml">
+            <graph string="3-Vendor RFQ Compliance vs Exceptions" type="bar">
+                <field name="project_id"/>
+                <field name="selected_quote_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- 3-Vendor RFQ Compliance vs Exceptions Search View -->
+    <record id="view_contractor_report_rfq_compliance_search" model="ir.ui.view">
+        <field name="name">contractor.report.rfq.compliance.search</field>
+        <field name="model">contractor.report.rfq.compliance</field>
+        <field name="arch" type="xml">
+            <search string="3-Vendor RFQ Compliance vs Exceptions">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="requisition_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Compliant" name="group_by_is_compliant" context="{'group_by': 'is_compliant'}"/>
+                    <filter string="Sole Source Claimed" name="group_by_is_sole_source" context="{'group_by': 'is_sole_source'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- 3-Vendor RFQ Compliance vs Exceptions Action -->
+    <record id="action_contractor_report_rfq_compliance" model="ir.actions.act_window">
+        <field name="name">3-Vendor RFQ Compliance vs Exceptions</field>
+        <field name="res_model">contractor.report.rfq.compliance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_rfq_compliance_search"/>
+    </record>
+
+    <!-- Sole-Source Procurements with Justification List View -->
+    <record id="view_contractor_report_sole_source_list" model="ir.ui.view">
+        <field name="name">contractor.report.sole.source.list</field>
+        <field name="model">contractor.report.sole.source</field>
+        <field name="arch" type="xml">
+            <list string="Sole-Source Procurements with Justification" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="sole_source_reason"/>
+                <field name="selected_quote_amount"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Sole-Source Procurements with Justification Pivot View -->
+    <record id="view_contractor_report_sole_source_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.sole.source.pivot</field>
+        <field name="model">contractor.report.sole.source</field>
+        <field name="arch" type="xml">
+            <pivot string="Sole-Source Procurements with Justification">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="selected_quote_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Sole-Source Procurements with Justification Graph View -->
+    <record id="view_contractor_report_sole_source_graph" model="ir.ui.view">
+        <field name="name">contractor.report.sole.source.graph</field>
+        <field name="model">contractor.report.sole.source</field>
+        <field name="arch" type="xml">
+            <graph string="Sole-Source Procurements with Justification" type="bar">
+                <field name="project_id"/>
+                <field name="selected_quote_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Sole-Source Procurements with Justification Search View -->
+    <record id="view_contractor_report_sole_source_search" model="ir.ui.view">
+        <field name="name">contractor.report.sole.source.search</field>
+        <field name="model">contractor.report.sole.source</field>
+        <field name="arch" type="xml">
+            <search string="Sole-Source Procurements with Justification">
+                <field name="name"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Sole-Source Procurements with Justification Action -->
+    <record id="action_contractor_report_sole_source" model="ir.actions.act_window">
+        <field name="name">Sole-Source Procurements with Justification</field>
+        <field name="res_model">contractor.report.sole.source</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_sole_source_search"/>
+    </record>
+
+    <!-- PO Amendments and Cancellation Register List View -->
+    <record id="view_contractor_report_po_amendments_list" model="ir.ui.view">
+        <field name="name">contractor.report.po.amendments.list</field>
+        <field name="model">contractor.report.po.amendments</field>
+        <field name="arch" type="xml">
+            <list string="PO Amendments &amp; Cancellation Register" create="false" edit="false" delete="false">
+                <field name="write_date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="version_number"/>
+                <field name="state"/>
+                <field name="last_action_reason"/>
+                <field name="amount_total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- PO Amendments and Cancellation Register Pivot View -->
+    <record id="view_contractor_report_po_amendments_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.po.amendments.pivot</field>
+        <field name="model">contractor.report.po.amendments</field>
+        <field name="arch" type="xml">
+            <pivot string="PO Amendments &amp; Cancellation Register">
+                <field name="partner_id" type="row"/>
+                <field name="version_number" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- PO Amendments and Cancellation Register Graph View -->
+    <record id="view_contractor_report_po_amendments_graph" model="ir.ui.view">
+        <field name="name">contractor.report.po.amendments.graph</field>
+        <field name="model">contractor.report.po.amendments</field>
+        <field name="arch" type="xml">
+            <graph string="PO Amendments &amp; Cancellation Register" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- PO Amendments and Cancellation Register Search View -->
+    <record id="view_contractor_report_po_amendments_search" model="ir.ui.view">
+        <field name="name">contractor.report.po.amendments.search</field>
+        <field name="model">contractor.report.po.amendments</field>
+        <field name="arch" type="xml">
+            <search string="PO Amendments &amp; Cancellation Register">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- PO Amendments and Cancellation Register Action -->
+    <record id="action_contractor_report_po_amendments" model="ir.actions.act_window">
+        <field name="name">PO Amendments &amp; Cancellation Register</field>
+        <field name="res_model">contractor.report.po.amendments</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_po_amendments_search"/>
+    </record>
+
+    <!-- Goods Rejection and Return to Vendor Analysis List View -->
+    <record id="view_contractor_report_goods_rejection_list" model="ir.ui.view">
+        <field name="name">contractor.report.goods.rejection.list</field>
+        <field name="model">contractor.report.goods.rejection</field>
+        <field name="arch" type="xml">
+            <list string="Goods Rejection &amp; Return to Vendor Analysis" create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="product_qty"/>
+                <field name="origin"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Goods Rejection and Return to Vendor Analysis Pivot View -->
+    <record id="view_contractor_report_goods_rejection_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.goods.rejection.pivot</field>
+        <field name="model">contractor.report.goods.rejection</field>
+        <field name="arch" type="xml">
+            <pivot string="Goods Rejection &amp; Return to Vendor Analysis">
+                <field name="partner_id" type="row"/>
+                <field name="product_id" type="col"/>
+                <field name="product_qty" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Goods Rejection and Return to Vendor Analysis Graph View -->
+    <record id="view_contractor_report_goods_rejection_graph" model="ir.ui.view">
+        <field name="name">contractor.report.goods.rejection.graph</field>
+        <field name="model">contractor.report.goods.rejection</field>
+        <field name="arch" type="xml">
+            <graph string="Goods Rejection &amp; Return to Vendor Analysis" type="bar">
+                <field name="partner_id"/>
+                <field name="product_qty" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Goods Rejection and Return to Vendor Analysis Search View -->
+    <record id="view_contractor_report_goods_rejection_search" model="ir.ui.view">
+        <field name="name">contractor.report.goods.rejection.search</field>
+        <field name="model">contractor.report.goods.rejection</field>
+        <field name="arch" type="xml">
+            <search string="Goods Rejection &amp; Return to Vendor Analysis">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Rejected Material" name="group_by_product_id" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Goods Rejection and Return to Vendor Analysis Action -->
+    <record id="action_contractor_report_goods_rejection" model="ir.actions.act_window">
+        <field name="name">Goods Rejection &amp; Return to Vendor Analysis</field>
+        <field name="res_model">contractor.report.goods.rejection</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_goods_rejection_search"/>
+    </record>
+
+    <!-- 3-Way Match Exception Register and Days Held List View -->
+    <record id="view_contractor_report_three_way_exceptions_list" model="ir.ui.view">
+        <field name="name">contractor.report.three.way.exceptions.list</field>
+        <field name="model">contractor.report.three.way.exceptions</field>
+        <field name="arch" type="xml">
+            <list string="3-Way Match Exception Register &amp; Days Held" create="false" edit="false" delete="false">
+                <field name="invoice_date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="amount_total"/>
+                <field name="days_held"/>
+                <field name="three_way_match_status"/>
+                <field name="match_exception_reason"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- 3-Way Match Exception Register and Days Held Pivot View -->
+    <record id="view_contractor_report_three_way_exceptions_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.three.way.exceptions.pivot</field>
+        <field name="model">contractor.report.three.way.exceptions</field>
+        <field name="arch" type="xml">
+            <pivot string="3-Way Match Exception Register &amp; Days Held">
+                <field name="partner_id" type="row"/>
+                <field name="three_way_match_status" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 3-Way Match Exception Register and Days Held Graph View -->
+    <record id="view_contractor_report_three_way_exceptions_graph" model="ir.ui.view">
+        <field name="name">contractor.report.three.way.exceptions.graph</field>
+        <field name="model">contractor.report.three.way.exceptions</field>
+        <field name="arch" type="xml">
+            <graph string="3-Way Match Exception Register &amp; Days Held" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- 3-Way Match Exception Register and Days Held Search View -->
+    <record id="view_contractor_report_three_way_exceptions_search" model="ir.ui.view">
+        <field name="name">contractor.report.three.way.exceptions.search</field>
+        <field name="model">contractor.report.three.way.exceptions</field>
+        <field name="arch" type="xml">
+            <search string="3-Way Match Exception Register &amp; Days Held">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Match Status" name="group_by_three_way_match_status" context="{'group_by': 'three_way_match_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- 3-Way Match Exception Register and Days Held Action -->
+    <record id="action_contractor_report_three_way_exceptions" model="ir.actions.act_window">
+        <field name="name">3-Way Match Exception Register &amp; Days Held</field>
+        <field name="res_model">contractor.report.three.way.exceptions</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_three_way_exceptions_search"/>
+    </record>
+
+    <!-- Vendor Advance Aging and Prepayment Exposure List View -->
+    <record id="view_contractor_report_vendor_advances_list" model="ir.ui.view">
+        <field name="name">contractor.report.vendor.advances.list</field>
+        <field name="model">contractor.report.vendor.advances</field>
+        <field name="arch" type="xml">
+            <list string="Vendor Advance Aging &amp; Prepayment Exposure" create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="payment_id"/>
+                <field name="partner_id"/>
+                <field name="purchase_order_id"/>
+                <field name="amount"/>
+                <field name="days_outstanding"/>
+                <field name="payment_workflow_state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vendor Advance Aging and Prepayment Exposure Pivot View -->
+    <record id="view_contractor_report_vendor_advances_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.vendor.advances.pivot</field>
+        <field name="model">contractor.report.vendor.advances</field>
+        <field name="arch" type="xml">
+            <pivot string="Vendor Advance Aging &amp; Prepayment Exposure">
+                <field name="partner_id" type="row"/>
+                <field name="payment_workflow_state" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Vendor Advance Aging and Prepayment Exposure Graph View -->
+    <record id="view_contractor_report_vendor_advances_graph" model="ir.ui.view">
+        <field name="name">contractor.report.vendor.advances.graph</field>
+        <field name="model">contractor.report.vendor.advances</field>
+        <field name="arch" type="xml">
+            <graph string="Vendor Advance Aging &amp; Prepayment Exposure" type="bar">
+                <field name="partner_id"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Vendor Advance Aging and Prepayment Exposure Search View -->
+    <record id="view_contractor_report_vendor_advances_search" model="ir.ui.view">
+        <field name="name">contractor.report.vendor.advances.search</field>
+        <field name="model">contractor.report.vendor.advances</field>
+        <field name="arch" type="xml">
+            <search string="Vendor Advance Aging &amp; Prepayment Exposure">
+                <field name="payment_id"/>
+                <field name="partner_id"/>
+                <field name="purchase_order_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Workflow State" name="group_by_payment_workflow_state" context="{'group_by': 'payment_workflow_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Vendor Advance Aging and Prepayment Exposure Action -->
+    <record id="action_contractor_report_vendor_advances" model="ir.actions.act_window">
+        <field name="name">Vendor Advance Aging &amp; Prepayment Exposure</field>
+        <field name="res_model">contractor.report.vendor.advances</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_vendor_advances_search"/>
+    </record>
+
+    <!-- Payment Maker-Checker SLA Timeframes List View -->
+    <record id="view_contractor_report_payment_maker_checker_list" model="ir.ui.view">
+        <field name="name">contractor.report.payment.maker.checker.list</field>
+        <field name="model">contractor.report.payment.maker.checker</field>
+        <field name="arch" type="xml">
+            <list string="Payment Maker-Checker SLA Timeframes" create="false" edit="false" delete="false">
+                <field name="preparation_date"/>
+                <field name="payment_id"/>
+                <field name="partner_id"/>
+                <field name="amount"/>
+                <field name="payment_workflow_state"/>
+                <field name="prepared_by_id"/>
+                <field name="approved_by_id"/>
+                <field name="released_by_id"/>
+                <field name="approval_sla_hours"/>
+                <field name="release_sla_hours"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Payment Maker-Checker SLA Timeframes Pivot View -->
+    <record id="view_contractor_report_payment_maker_checker_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.payment.maker.checker.pivot</field>
+        <field name="model">contractor.report.payment.maker.checker</field>
+        <field name="arch" type="xml">
+            <pivot string="Payment Maker-Checker SLA Timeframes">
+                <field name="approved_by_id" type="row"/>
+                <field name="payment_workflow_state" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Payment Maker-Checker SLA Timeframes Graph View -->
+    <record id="view_contractor_report_payment_maker_checker_graph" model="ir.ui.view">
+        <field name="name">contractor.report.payment.maker.checker.graph</field>
+        <field name="model">contractor.report.payment.maker.checker</field>
+        <field name="arch" type="xml">
+            <graph string="Payment Maker-Checker SLA Timeframes" type="bar">
+                <field name="approved_by_id"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Payment Maker-Checker SLA Timeframes Search View -->
+    <record id="view_contractor_report_payment_maker_checker_search" model="ir.ui.view">
+        <field name="name">contractor.report.payment.maker.checker.search</field>
+        <field name="model">contractor.report.payment.maker.checker</field>
+        <field name="arch" type="xml">
+            <search string="Payment Maker-Checker SLA Timeframes">
+                <field name="payment_id"/>
+                <field name="partner_id"/>
+                <field name="prepared_by_id"/>
+                <field name="approved_by_id"/>
+                <group>
+                    <filter string="Status" name="group_by_payment_workflow_state" context="{'group_by': 'payment_workflow_state'}"/>
+                    <filter string="Checker (Manager)" name="group_by_approved_by_id" context="{'group_by': 'approved_by_id'}"/>
+                    <filter string="Disbursed By" name="group_by_released_by_id" context="{'group_by': 'released_by_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Payment Maker-Checker SLA Timeframes Action -->
+    <record id="action_contractor_report_payment_maker_checker" model="ir.actions.act_window">
+        <field name="name">Payment Maker-Checker SLA Timeframes</field>
+        <field name="res_model">contractor.report.payment.maker.checker</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_payment_maker_checker_search"/>
+    </record>
+
+    <!-- Leftover Material Disposition Register List View -->
+    <record id="view_contractor_report_leftover_disposition_list" model="ir.ui.view">
+        <field name="name">contractor.report.leftover.disposition.list</field>
+        <field name="model">contractor.report.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <list string="Leftover Material Disposition Register" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="disposition_type"/>
+                <field name="total_value"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Leftover Material Disposition Register Pivot View -->
+    <record id="view_contractor_report_leftover_disposition_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.leftover.disposition.pivot</field>
+        <field name="model">contractor.report.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <pivot string="Leftover Material Disposition Register">
+                <field name="project_id" type="row"/>
+                <field name="disposition_type" type="col"/>
+                <field name="total_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Leftover Material Disposition Register Graph View -->
+    <record id="view_contractor_report_leftover_disposition_graph" model="ir.ui.view">
+        <field name="name">contractor.report.leftover.disposition.graph</field>
+        <field name="model">contractor.report.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <graph string="Leftover Material Disposition Register" type="bar">
+                <field name="project_id"/>
+                <field name="total_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Leftover Material Disposition Register Search View -->
+    <record id="view_contractor_report_leftover_disposition_search" model="ir.ui.view">
+        <field name="name">contractor.report.leftover.disposition.search</field>
+        <field name="model">contractor.report.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <search string="Leftover Material Disposition Register">
+                <field name="name"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Strategy" name="group_by_disposition_type" context="{'group_by': 'disposition_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Leftover Material Disposition Register Action -->
+    <record id="action_contractor_report_leftover_disposition" model="ir.actions.act_window">
+        <field name="name">Leftover Material Disposition Register</field>
+        <field name="res_model">contractor.report.leftover.disposition</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_leftover_disposition_search"/>
+    </record>
+
+    <!-- Physical Stock Audit Variance Analysis List View -->
+    <record id="view_contractor_report_physical_stock_variance_list" model="ir.ui.view">
+        <field name="name">contractor.report.physical.stock.variance.list</field>
+        <field name="model">contractor.report.physical.stock.variance</field>
+        <field name="arch" type="xml">
+            <list string="Physical Stock Audit Variance Analysis" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="san_id"/>
+                <field name="location_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <field name="system_qty"/>
+                <field name="counted_qty"/>
+                <field name="variance_qty"/>
+                <field name="unit_cost"/>
+                <field name="variance_value"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Physical Stock Audit Variance Analysis Pivot View -->
+    <record id="view_contractor_report_physical_stock_variance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.physical.stock.variance.pivot</field>
+        <field name="model">contractor.report.physical.stock.variance</field>
+        <field name="arch" type="xml">
+            <pivot string="Physical Stock Audit Variance Analysis">
+                <field name="location_id" type="row"/>
+                <field name="product_id" type="col"/>
+                <field name="variance_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Physical Stock Audit Variance Analysis Graph View -->
+    <record id="view_contractor_report_physical_stock_variance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.physical.stock.variance.graph</field>
+        <field name="model">contractor.report.physical.stock.variance</field>
+        <field name="arch" type="xml">
+            <graph string="Physical Stock Audit Variance Analysis" type="bar">
+                <field name="location_id"/>
+                <field name="variance_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Physical Stock Audit Variance Analysis Search View -->
+    <record id="view_contractor_report_physical_stock_variance_search" model="ir.ui.view">
+        <field name="name">contractor.report.physical.stock.variance.search</field>
+        <field name="model">contractor.report.physical.stock.variance</field>
+        <field name="arch" type="xml">
+            <search string="Physical Stock Audit Variance Analysis">
+                <field name="san_id"/>
+                <field name="location_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <group>
+                    <filter string="Location" name="group_by_location_id" context="{'group_by': 'location_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Physical Stock Audit Variance Analysis Action -->
+    <record id="action_contractor_report_physical_stock_variance" model="ir.actions.act_window">
+        <field name="name">Physical Stock Audit Variance Analysis</field>
+        <field name="res_model">contractor.report.physical.stock.variance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_physical_stock_variance_search"/>
+    </record>
+
+    <!-- Emergency PO Frequency by Project and Month List View -->
+    <record id="view_contractor_report_emergency_frequency_list" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.frequency.list</field>
+        <field name="model">contractor.report.emergency.frequency</field>
+        <field name="arch" type="xml">
+            <list string="Emergency PO Frequency by Project &amp; Month" create="false" edit="false" delete="false">
+                <field name="period_month"/>
+                <field name="project_id"/>
+                <field name="emergency_po_count"/>
+                <field name="total_emergency_spend"/>
+                <field name="avg_po_value"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Emergency PO Frequency by Project and Month Pivot View -->
+    <record id="view_contractor_report_emergency_frequency_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.frequency.pivot</field>
+        <field name="model">contractor.report.emergency.frequency</field>
+        <field name="arch" type="xml">
+            <pivot string="Emergency PO Frequency by Project &amp; Month">
+                <field name="project_id" type="row"/>
+                <field name="period_month" type="col"/>
+                <field name="total_emergency_spend" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Emergency PO Frequency by Project and Month Graph View -->
+    <record id="view_contractor_report_emergency_frequency_graph" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.frequency.graph</field>
+        <field name="model">contractor.report.emergency.frequency</field>
+        <field name="arch" type="xml">
+            <graph string="Emergency PO Frequency by Project &amp; Month" type="bar">
+                <field name="project_id"/>
+                <field name="total_emergency_spend" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Emergency PO Frequency by Project and Month Search View -->
+    <record id="view_contractor_report_emergency_frequency_search" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.frequency.search</field>
+        <field name="model">contractor.report.emergency.frequency</field>
+        <field name="arch" type="xml">
+            <search string="Emergency PO Frequency by Project &amp; Month">
+                <field name="project_id"/>
+                <field name="period_month"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Month" name="group_by_period_month" context="{'group_by': 'period_month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Emergency PO Frequency by Project and Month Action -->
+    <record id="action_contractor_report_emergency_frequency" model="ir.actions.act_window">
+        <field name="name">Emergency PO Frequency by Project &amp; Month</field>
+        <field name="res_model">contractor.report.emergency.frequency</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_emergency_frequency_search"/>
+    </record>
+
+    <!-- Emergency PO Price Variance vs Standard List View -->
+    <record id="view_contractor_report_emergency_price_variance_list" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.price.variance.list</field>
+        <field name="model">contractor.report.emergency.price.variance</field>
+        <field name="arch" type="xml">
+            <list string="Emergency PO Price Variance vs Standard" create="false" edit="false" delete="false">
+                <field name="date_order"/>
+                <field name="po_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <field name="partner_id"/>
+                <field name="product_qty"/>
+                <field name="price_unit"/>
+                <field name="standard_price"/>
+                <field name="price_variance"/>
+                <field name="variance_pct"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Emergency PO Price Variance vs Standard Pivot View -->
+    <record id="view_contractor_report_emergency_price_variance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.price.variance.pivot</field>
+        <field name="model">contractor.report.emergency.price.variance</field>
+        <field name="arch" type="xml">
+            <pivot string="Emergency PO Price Variance vs Standard">
+                <field name="project_id" type="row"/>
+                <field name="product_id" type="col"/>
+                <field name="price_variance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Emergency PO Price Variance vs Standard Graph View -->
+    <record id="view_contractor_report_emergency_price_variance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.price.variance.graph</field>
+        <field name="model">contractor.report.emergency.price.variance</field>
+        <field name="arch" type="xml">
+            <graph string="Emergency PO Price Variance vs Standard" type="bar">
+                <field name="product_id"/>
+                <field name="variance_pct" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Emergency PO Price Variance vs Standard Search View -->
+    <record id="view_contractor_report_emergency_price_variance_search" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.price.variance.search</field>
+        <field name="model">contractor.report.emergency.price.variance</field>
+        <field name="arch" type="xml">
+            <search string="Emergency PO Price Variance vs Standard">
+                <field name="po_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <field name="partner_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Product" name="group_by_product_id" context="{'group_by': 'product_id'}"/>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Emergency PO Price Variance vs Standard Action -->
+    <record id="action_contractor_report_emergency_price_variance" model="ir.actions.act_window">
+        <field name="name">Emergency PO Price Variance vs Standard</field>
+        <field name="res_model">contractor.report.emergency.price.variance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_emergency_price_variance_search"/>
+    </record>
+
+    <!-- Emergency PO Vendor Concentration and Spend List View -->
+    <record id="view_contractor_report_emergency_vendor_conc_list" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.vendor.conc.list</field>
+        <field name="model">contractor.report.emergency.vendor.conc</field>
+        <field name="arch" type="xml">
+            <list string="Emergency PO Vendor Concentration &amp; Spend" create="false" edit="false" delete="false">
+                <field name="partner_id"/>
+                <field name="order_count"/>
+                <field name="total_emergency_spend"/>
+                <field name="avg_order_value"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Emergency PO Vendor Concentration and Spend Pivot View -->
+    <record id="view_contractor_report_emergency_vendor_conc_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.vendor.conc.pivot</field>
+        <field name="model">contractor.report.emergency.vendor.conc</field>
+        <field name="arch" type="xml">
+            <pivot string="Emergency PO Vendor Concentration &amp; Spend">
+                <field name="partner_id" type="row"/>
+                <field name="order_count" type="col"/>
+                <field name="total_emergency_spend" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Emergency PO Vendor Concentration and Spend Graph View -->
+    <record id="view_contractor_report_emergency_vendor_conc_graph" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.vendor.conc.graph</field>
+        <field name="model">contractor.report.emergency.vendor.conc</field>
+        <field name="arch" type="xml">
+            <graph string="Emergency PO Vendor Concentration &amp; Spend" type="bar">
+                <field name="partner_id"/>
+                <field name="total_emergency_spend" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Emergency PO Vendor Concentration and Spend Search View -->
+    <record id="view_contractor_report_emergency_vendor_conc_search" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.vendor.conc.search</field>
+        <field name="model">contractor.report.emergency.vendor.conc</field>
+        <field name="arch" type="xml">
+            <search string="Emergency PO Vendor Concentration &amp; Spend">
+                <field name="partner_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Emergency PO Vendor Concentration and Spend Action -->
+    <record id="action_contractor_report_emergency_vendor_conc" model="ir.actions.act_window">
+        <field name="name">Emergency PO Vendor Concentration &amp; Spend</field>
+        <field name="res_model">contractor.report.emergency.vendor.conc</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_emergency_vendor_conc_search"/>
+    </record>
+
+    <!-- Emergency PO Reasons Analysis List View -->
+    <record id="view_contractor_report_emergency_reasons_list" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.reasons.list</field>
+        <field name="model">contractor.report.emergency.reasons</field>
+        <field name="arch" type="xml">
+            <list string="Emergency PO Reasons Analysis" create="false" edit="false" delete="false">
+                <field name="emergency_reason_code"/>
+                <field name="project_id"/>
+                <field name="order_count"/>
+                <field name="total_spend"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Emergency PO Reasons Analysis Pivot View -->
+    <record id="view_contractor_report_emergency_reasons_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.reasons.pivot</field>
+        <field name="model">contractor.report.emergency.reasons</field>
+        <field name="arch" type="xml">
+            <pivot string="Emergency PO Reasons Analysis">
+                <field name="emergency_reason_code" type="row"/>
+                <field name="project_id" type="col"/>
+                <field name="total_spend" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Emergency PO Reasons Analysis Graph View -->
+    <record id="view_contractor_report_emergency_reasons_graph" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.reasons.graph</field>
+        <field name="model">contractor.report.emergency.reasons</field>
+        <field name="arch" type="xml">
+            <graph string="Emergency PO Reasons Analysis" type="pie">
+                <field name="emergency_reason_code"/>
+                <field name="total_spend" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Emergency PO Reasons Analysis Search View -->
+    <record id="view_contractor_report_emergency_reasons_search" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.reasons.search</field>
+        <field name="model">contractor.report.emergency.reasons</field>
+        <field name="arch" type="xml">
+            <search string="Emergency PO Reasons Analysis">
+                <field name="emergency_reason_code"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Reason" name="group_by_emergency_reason_code" context="{'group_by': 'emergency_reason_code'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Emergency PO Reasons Analysis Action -->
+    <record id="action_contractor_report_emergency_reasons" model="ir.actions.act_window">
+        <field name="name">Emergency PO Reasons Analysis</field>
+        <field name="res_model">contractor.report.emergency.reasons</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_emergency_reasons_search"/>
+    </record>
+
+    <!-- Emergency PO MD Post-Facto Review Log List View -->
+    <record id="view_contractor_report_emergency_md_review_list" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.md.review.list</field>
+        <field name="model">contractor.report.emergency.md.review</field>
+        <field name="arch" type="xml">
+            <list string="Emergency PO MD Post-Facto Review Log" create="false" edit="false" delete="false">
+                <field name="date_order"/>
+                <field name="po_id"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="amount_total"/>
+                <field name="emergency_reason_code"/>
+                <field name="md_post_event_review_state"/>
+                <field name="emergency_approver_id"/>
+                <field name="md_reviewer_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Emergency PO MD Post-Facto Review Log Pivot View -->
+    <record id="view_contractor_report_emergency_md_review_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.md.review.pivot</field>
+        <field name="model">contractor.report.emergency.md.review</field>
+        <field name="arch" type="xml">
+            <pivot string="Emergency PO MD Post-Facto Review Log">
+                <field name="md_post_event_review_state" type="row"/>
+                <field name="emergency_reason_code" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Emergency PO MD Post-Facto Review Log Graph View -->
+    <record id="view_contractor_report_emergency_md_review_graph" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.md.review.graph</field>
+        <field name="model">contractor.report.emergency.md.review</field>
+        <field name="arch" type="xml">
+            <graph string="Emergency PO MD Post-Facto Review Log" type="bar">
+                <field name="md_post_event_review_state"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Emergency PO MD Post-Facto Review Log Search View -->
+    <record id="view_contractor_report_emergency_md_review_search" model="ir.ui.view">
+        <field name="name">contractor.report.emergency.md.review.search</field>
+        <field name="model">contractor.report.emergency.md.review</field>
+        <field name="arch" type="xml">
+            <search string="Emergency PO MD Post-Facto Review Log">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="emergency_approver_id"/>
+                <group>
+                    <filter string="MD Status" name="group_by_md_post_event_review_state" context="{'group_by': 'md_post_event_review_state'}"/>
+                    <filter string="Reason" name="group_by_emergency_reason_code" context="{'group_by': 'emergency_reason_code'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Emergency PO MD Post-Facto Review Log Action -->
+    <record id="action_contractor_report_emergency_md_review" model="ir.actions.act_window">
+        <field name="name">Emergency PO MD Post-Facto Review Log</field>
+        <field name="res_model">contractor.report.emergency.md.review</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_emergency_md_review_search"/>
+    </record>
+</odoo>

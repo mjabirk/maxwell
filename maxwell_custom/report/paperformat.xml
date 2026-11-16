@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_maxwell" model="report.paperformat">
+        <field name="name">Maxwell Report Format</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">6</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="css_margins" eval="False"/>
+    </record>
+
+    <!-- Bind Maxwell paperformat to Sales Order reports -->
+    <record id="sale.action_report_saleorder" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+    <record id="sale.action_report_pro_forma_invoice" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+
+    <!-- Bind Maxwell paperformat to Purchase Order reports -->
+    <record id="purchase.action_report_purchase_order" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+    <record id="purchase.report_purchase_quotation" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+
+    <!-- Bind Maxwell paperformat to Invoice reports -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+    <record id="account.account_invoices_without_payment" model="ir.actions.report">
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+</odoo>

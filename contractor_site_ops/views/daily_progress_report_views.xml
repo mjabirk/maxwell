@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_daily_progress_report_form" model="ir.ui.view">
+        <field name="name">contractor.daily.progress.report.form</field>
+        <field name="model">contractor.daily.progress.report</field>
+        <field name="arch" type="xml">
+            <form string="Daily Progress Report (DPR)">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to PM"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_pm_approve"
+                            string="PM Verify &amp; Sign Off"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_override_missing_prior"
+                            string="Authorize Missing Prior DPR Override"
+                            type="object"
+                            class="btn-warning"
+                            invisible="missing_prior_dpr_override"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                <header>
+                    <button name="action_submit" string="Submit DPR" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_pm_approve" string="PM Approve DPR" type="object" class="btn-success" invisible="state != 'submitted'" groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_override_missing_prior" string="Grant Gap Override" type="object" class="btn-outline-warning" invisible="missing_prior_dpr_override" groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_request_late_amendment"
+                            string="Request Late Amendment"
+                            type="object"
+                            class="btn-warning"
+                            invisible="not is_entry_locked or late_amendment_approved or late_amendment_requested"/>
+                    <button name="action_approve_late_amendment"
+                            string="Authorize Late Amendment"
+                            type="object"
+                            class="btn-outline-warning"
+                            invisible="not is_entry_locked or late_amendment_approved"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,pm_approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_daily_attendance" type="object" class="oe_stat_button" icon="fa-users" invisible="not project_id or not report_date">
+                            <field name="attendance_count" widget="statinfo" string="Attendance"/>
+                        </button>
+                        <button name="action_open_daily_consumption" type="object" class="oe_stat_button" icon="fa-cubes" invisible="not project_id or not report_date">
+                            <field name="consumption_count" widget="statinfo" string="Material Used"/>
+                        </button>
+                        <button name="action_open_daily_work_logs" type="object" class="oe_stat_button" icon="fa-tasks" invisible="not project_id or not report_date">
+                            <field name="work_log_count" widget="statinfo" string="Work Logs"/>
+                        </button>
+                        <button name="action_open_daily_issues" type="object" class="oe_stat_button" icon="fa-exclamation-triangle" invisible="not project_id or not report_date">
+                            <field name="issue_count" widget="statinfo" string="Site Issues"/>
+                        </button>
+                    </div>
+                    <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_entry_locked">
+                        <strong>48-Hour Site Entry Lock:</strong> This DPR is locked past operational cutoff.
+                        <span invisible="not late_amendment_requested or late_amendment_approved">
+                            | Amendment Requested by <field name="late_amendment_requester_id" readonly="1" class="oe_inline"/>: <field name="late_amendment_request_reason" readonly="1" class="oe_inline"/>
+                        </span>
+                        <span invisible="not late_amendment_approved">
+                            (Late Amendment Authorized by <field name="late_amendment_approver_id" readonly="1" class="oe_inline"/> - Reason: <field name="late_amendment_reason" readonly="1" class="oe_inline"/>)
+                        </span>
+                        <button name="action_request_late_amendment"
+                                string="Request Late Amendment"
+                                type="object"
+                                class="btn btn-warning btn-sm ms-2"
+                                invisible="late_amendment_approved or late_amendment_requested"/>
+                    </div>
+
+                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not missing_prior_dpr_override">
+                        <strong>Missing Prior-Day DPR Override Active:</strong>
+                        Authorized by <field name="missing_prior_dpr_approver_id" readonly="1" class="oe_inline"/> on <field name="missing_prior_dpr_approval_date" readonly="1" class="oe_inline"/>.
+                        <br/>
+                        <em>Justification:</em> <field name="missing_prior_dpr_reason" readonly="1" class="oe_inline"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="DPR Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Project &amp; Schedule">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="report_date" readonly="state != 'draft'"/>
+                            <field name="site_engineer_id" readonly="state != 'draft'"/>
+                            <field name="pm_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="is_entry_locked" invisible="1"/>
+                            <field name="is_locked" invisible="1"/>
+                            <field name="late_amendment_approved" invisible="1"/>
+                            <field name="late_amendment_requested" invisible="1"/>
+                            <field name="late_amendment_requester_id" invisible="1"/>
+                            <field name="late_amendment_request_reason" invisible="1"/>
+                            <field name="missing_prior_dpr_override" invisible="1"/>
+                        </group>
+                        <group string="Site Conditions &amp; Deviation">
+                            <field name="cost_head" readonly="state != 'draft'"/>
+                            <field name="work_package" readonly="state != 'draft'"/>
+                            <field name="weather_conditions" readonly="state != 'draft'"/>
+                            <field name="schedule_deviation" widget="badge"
+                                   decoration-success="schedule_deviation == 'ahead'"
+                                   decoration-info="schedule_deviation == 'on_schedule'"
+                                   decoration-warning="schedule_deviation == 'minor_delay'"
+                                   decoration-danger="schedule_deviation == 'critical_delay'"
+                                   readonly="state != 'draft'"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                            <field name="submitted_datetime" readonly="1" invisible="not submitted_datetime"/>
+                            <field name="submission_deadline" readonly="1"/>
+                            <field name="is_late_submission" widget="boolean" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Daily Works Executed">
+                        <field name="work_done_summary" placeholder="State concrete pour volume, structural elements cast, steel placed, testing results..." readonly="state != 'draft'"/>
+                    </group>
+
+                    <group string="Planned Works for Tomorrow">
+                        <field name="planned_work_tomorrow" placeholder="Next operational activities and structural preparations..." readonly="state != 'draft'"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Site Obstructions &amp; Incidents" name="page_issues">
+                            <field name="issue_ids" readonly="state == 'pm_approved'" context="{'default_project_id': project_id, 'default_issue_date': report_date, 'default_dpr_id': id}">
+                                <list string="Site Issues">
+                                    <field name="name"/>
+                                    <field name="issue_date"/>
+                                    <field name="issue_type"/>
+                                    <field name="severity" widget="badge"
+                                           decoration-warning="severity == 'high'"
+                                           decoration-danger="severity == 'material_safety_critical'"/>
+                                    <field name="description"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'open'"
+                                           decoration-warning="state == 'escalated'"
+                                           decoration-success="state == 'resolved'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Site Attendance" name="page_attendance">
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Filtered automatically by Project &amp; Report Date.</span>
+                                <button name="action_open_daily_attendance" string="Open / Record Daily Attendance" type="object" class="btn btn-primary btn-sm"/>
+                            </div>
+                            <field name="attendance_sheet_ids" readonly="1" context="{'default_project_id': project_id, 'default_attendance_date': report_date}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="attendance_date"/>
+                                    <field name="site_engineer_id"/>
+                                    <field name="total_workers"/>
+                                    <field name="total_present"/>
+                                    <field name="total_labour_cost" widget="monetary"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                            <separator string="Operative Lines"/>
+                            <field name="attendance_line_ids" readonly="1">
+                                <list>
+                                    <field name="employee_id"/>
+                                    <field name="worker_category" widget="badge"/>
+                                    <field name="attendance_status" widget="badge"/>
+                                    <field name="regular_hours"/>
+                                    <field name="overtime_hours"/>
+                                    <field name="se_ot_verified" widget="boolean_toggle"/>
+                                    <field name="calculated_labour_cost" widget="monetary"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Material Consumption" name="page_consumption">
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Daily material usage recorded for this Project &amp; Date.</span>
+                                <button name="action_open_daily_consumption" string="Open / Record Material Consumption" type="object" class="btn btn-primary btn-sm"/>
+                            </div>
+                            <field name="consumption_sheet_ids" readonly="1" context="{'default_project_id': project_id, 'default_consumption_date': report_date}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="consumption_date"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Work Log" name="page_work_logs">
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Crew &amp; subcontractor verified output on this Project &amp; Date.</span>
+                                <button name="action_open_daily_work_logs" string="Open / Log Work Output" type="object" class="btn btn-primary btn-sm"/>
+                            </div>
+                            <field name="work_log_ids" readonly="1" context="{'default_project_id': project_id, 'default_work_date': report_date}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="crew_type"/>
+                                    <field name="subcontractor_id"/>
+                                    <field name="work_package"/>
+                                    <field name="site_verified_qty"/>
+                                    <field name="uom_id"/>
+                                    <field name="accrued_subcontractor_cost" widget="monetary"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_progress_report_list" model="ir.ui.view">
+        <field name="name">contractor.daily.progress.report.list</field>
+        <field name="model">contractor.daily.progress.report</field>
+        <field name="arch" type="xml">
+            <list string="Daily Progress Reports" default_order="report_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="report_date"/>
+                <field name="cost_head"/>
+                <field name="work_package"/>
+                <field name="weather_conditions"/>
+                <field name="schedule_deviation" widget="badge"
+                       decoration-success="schedule_deviation == 'ahead'"
+                       decoration-info="schedule_deviation == 'on_schedule'"
+                       decoration-warning="schedule_deviation == 'minor_delay'"
+                       decoration-danger="schedule_deviation == 'critical_delay'"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'pm_approved'"/>
+                <field name="issue_count" widget="statinfo" string="Issues"/>
+                <field name="is_late_submission" widget="boolean" optional="show"/>
+                <field name="is_entry_locked" widget="boolean" invisible="not is_entry_locked"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_daily_progress_report_search" model="ir.ui.view">
+        <field name="name">contractor.daily.progress.report.search</field>
+        <field name="model">contractor.daily.progress.report</field>
+        <field name="arch" type="xml">
+            <search string="Search Daily Progress Reports">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="site_engineer_id"/>
+                <field name="pm_id"/>
+                <field name="report_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted to PM" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved by PM" name="pm_approved" domain="[('state', '=', 'pm_approved')]"/>
+                <separator/>
+                <filter string="Late Amendment Authorized" name="late_amendment" domain="[('late_amendment_approved', '=', True)]"/>
+                <filter string="Prior DPR Override Active" name="prior_override" domain="[('missing_prior_dpr_override', '=', True)]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Site Engineer" name="group_by_engineer" context="{'group_by': 'site_engineer_id'}"/>
+                    <filter string="Schedule Deviation" name="group_by_deviation" context="{'group_by': 'schedule_deviation'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Report Date" name="group_by_date" context="{'group_by': 'report_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_daily_progress_report" model="ir.actions.act_window">
+        <field name="name">Daily Progress Reports (DPR)</field>
+        <field name="res_model">contractor.daily.progress.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_daily_progress_report_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record daily site progress, weather conditions, and structural outputs with unbroken daily continuity.
+            </p>
+        </field>
+    </record>
+</odoo>
+

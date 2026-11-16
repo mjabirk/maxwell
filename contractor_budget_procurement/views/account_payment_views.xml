@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Expose Emergency Purchase Audit Tags on Payments -->
+    <record id="view_account_payment_form_contractor_emergency" model="ir.ui.view">
+        <field name="name">account.payment.form.contractor.emergency</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="priority">70</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="after">
+                <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_emergency_purchase">
+                    <strong>EMERGENCY PURCHASE PAYMENT:</strong> This payment settles an emergency vendor bill
+                    (<field name="emergency_reason_code" readonly="1" class="oe_inline"/>).
+                </div>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Emergency Procurement Audit Trail" invisible="not is_emergency_purchase">
+                    <field name="is_emergency_purchase" readonly="1"/>
+                    <field name="emergency_reason_code" readonly="1"/>
+                    <field name="emergency_explanation" readonly="1" colspan="2"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Expose Emergency Purchase Audit Tags on Register Payment Wizard -->
+    <record id="view_account_payment_register_form_contractor_emergency" model="ir.ui.view">
+        <field name="name">account.payment.register.form.contractor.emergency</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form"/>
+        <field name="priority">70</field>
+        <field name="arch" type="xml">
+            <xpath expr="//form/group" position="before">
+                <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_emergency_purchase">
+                    <strong>EMERGENCY PURCHASE PAYMENT:</strong> Originating bill was raised under Emergency Procurement
+                    (<field name="emergency_reason_code" readonly="1" force_save="1" class="oe_inline"/>).
+                </div>
+            </xpath>
+            <xpath expr="//form/group" position="after">
+                <group string="Emergency Procurement Justification" invisible="not is_emergency_purchase">
+                    <field name="is_emergency_purchase" readonly="1" force_save="1"/>
+                    <field name="emergency_explanation" readonly="1" force_save="1" colspan="2"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_contractor_agency_agreement_multi_company" model="ir.rule">
+        <field name="name">Agency Agreement Multi-Company</field>
+        <field name="model_id" ref="model_contractor_agency_agreement"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_agency_reconciliation_multi_company" model="ir.rule">
+        <field name="name">Agency Reconciliation Multi-Company</field>
+        <field name="model_id" ref="model_contractor_agency_reconciliation"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_labour_cost_adjustment_multi_company" model="ir.rule">
+        <field name="name">Labour Cost Adjustment Multi-Company</field>
+        <field name="model_id" ref="model_contractor_labour_cost_adjustment"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_payroll_run_multi_company" model="ir.rule">
+        <field name="name">Payroll Run Multi-Company</field>
+        <field name="model_id" ref="model_contractor_payroll_run"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_temp_wage_settlement_multi_company" model="ir.rule">
+        <field name="name">Temporary Wage Settlement Multi-Company</field>
+        <field name="model_id" ref="model_contractor_temp_wage_settlement"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_leave_salary_request_multi_company" model="ir.rule">
+        <field name="name">Leave Salary Request Multi-Company</field>
+        <field name="model_id" ref="model_contractor_leave_salary_request"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_ticket_allowance_request_multi_company" model="ir.rule">
+        <field name="name">Ticket Allowance Request Multi-Company</field>
+        <field name="model_id" ref="model_contractor_ticket_allowance_request"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_tool_asset_multi_company" model="ir.rule">
+        <field name="name">Tool Asset Multi-Company</field>
+        <field name="model_id" ref="model_contractor_tool_asset"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_contractor_employee_exit_multi_company" model="ir.rule">
+        <field name="name">Employee Exit Settlement Multi-Company</field>
+        <field name="model_id" ref="model_contractor_employee_exit"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

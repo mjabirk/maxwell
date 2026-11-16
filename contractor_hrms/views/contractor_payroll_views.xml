@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================= -->
+    <!-- 1. Track 1 — Permanent Staff Monthly Payroll Run                  -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_payroll_run_form" model="ir.ui.view">
+        <field name="name">contractor.payroll.run.form</field>
+        <field name="model">contractor.payroll.run</field>
+        <field name="arch" type="xml">
+            <form string="Permanent Staff Payroll Run">
+                <header>
+                    <button name="action_calculate_payroll"
+                            string="Calculate Payroll"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state not in ('draft', 'hr_prepared')"/>
+                    <button name="action_hr_prepare"
+                            string="Submit by HR"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_hr_officer"/>
+                    <button name="action_accountant_approve"
+                            string="Audit &amp; Approve"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'hr_prepared'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_release_payroll"
+                            string="Release &amp; Disburse"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'accountant_approved'"
+                            confirm="Are you sure you want to release this Payroll Run and post its journal entry? This action cannot be undone."
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,hr_prepared,accountant_approved,released"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Payroll Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Payroll Period">
+                            <field name="date_start" readonly="state != 'draft'"/>
+                            <field name="date_end" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Payroll Totals">
+                            <field name="total_gross" readonly="1"/>
+                            <field name="total_unpaid_deductions" readonly="1"/>
+                            <field name="total_ot_pay" readonly="1"/>
+                            <field name="total_tool_deductions" readonly="1"/>
+                            <field name="total_net_payable" class="fw-bold" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Permanent Employee Salary Lines" name="salary_lines">
+                            <field name="line_ids" readonly="state in ('accountant_approved', 'released')">
+                                <list string="Salaries &amp; Overtime" editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="basic_salary"/>
+                                    <field name="monthly_gross"/>
+                                    <field name="days_in_month"/>
+                                    <field name="unpaid_leave_days"/>
+                                    <field name="unpaid_leave_deduction"/>
+                                    <field name="approved_ot_hours"/>
+                                    <field name="ot_earnings"/>
+                                    <field name="tool_deductions"/>
+                                    <field name="other_deductions"/>
+                                    <field name="net_payable" class="fw-bold"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Maker-Checker Audit &amp; Journal Entry" name="maker_checker">
+                            <group>
+                                <group string="Workflow Authorizations">
+                                    <field name="prepared_by"/>
+                                    <field name="preparation_date"/>
+                                    <field name="accountant_id"/>
+                                    <field name="accountant_date"/>
+                                    <field name="manager_id"/>
+                                    <field name="release_date"/>
+                                </group>
+                                <group string="Accounting Integration">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_payroll_run_list" model="ir.ui.view">
+        <field name="name">contractor.payroll.run.list</field>
+        <field name="model">contractor.payroll.run</field>
+        <field name="arch" type="xml">
+            <list string="Monthly Payroll Runs" decoration-success="state == 'released'" decoration-warning="state in ('hr_prepared', 'accountant_approved')">
+                <field name="name"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="total_gross" sum="Total Gross"/>
+                <field name="total_ot_pay" sum="Total OT"/>
+                <field name="total_unpaid_deductions" sum="Total Unpaid"/>
+                <field name="total_tool_deductions" sum="Total Tools"/>
+                <field name="total_net_payable" sum="Total Net"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'accountant_approved'" decoration-info="state == 'hr_prepared'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_payroll_run_search" model="ir.ui.view">
+        <field name="name">contractor.payroll.run.search</field>
+        <field name="model">contractor.payroll.run</field>
+        <field name="arch" type="xml">
+            <search string="Search Monthly Payroll Runs">
+                <field name="name"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="HR Prepared" name="hr_prepared" domain="[('state', '=', 'hr_prepared')]"/>
+                <filter string="Accountant Approved" name="accountant_approved" domain="[('state', '=', 'accountant_approved')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Period Start" name="group_by_date_start" context="{'group_by': 'date_start'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_payroll_run" model="ir.actions.act_window">
+        <field name="name">Monthly Payroll Runs (Permanent)</field>
+        <field name="res_model">contractor.payroll.run</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_payroll_run_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Initiate a monthly payroll run for permanent contractor staff.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 2. Track 2 — Temporary Worker Daily Wage Settlement               -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_temp_wage_settlement_form" model="ir.ui.view">
+        <field name="name">contractor.temp.wage.settlement.form</field>
+        <field name="model">contractor.temp.wage.settlement</field>
+        <field name="arch" type="xml">
+            <form string="Temporary Worker Wage Settlement">
+                <header>
+                    <button name="action_compute_settlement"
+                            string="Compute Wages from Site Attendance"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state not in ('draft', 'hr_prepared')"/>
+                    <button name="action_hr_prepare"
+                            string="Submit by Site Engineer / HR"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_accountant_approve"
+                            string="Audit &amp; Approve"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'hr_prepared'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_release_settlement"
+                            string="Disburse Wages"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'accountant_approved'"
+                            confirm="Are you sure you want to release this Temporary Wage Settlement and post its journal entry? This action cannot be undone."
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,hr_prepared,accountant_approved,released"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Settlement Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Site &amp; Cycle">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="date_start" readonly="state != 'draft'"/>
+                            <field name="date_end" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Cycle Aggregates">
+                            <field name="total_workers" readonly="1"/>
+                            <field name="total_days_worked" readonly="1"/>
+                            <field name="total_regular_hours" readonly="1"/>
+                            <field name="total_ot_hours" readonly="1"/>
+                            <field name="total_wage_payable" class="fw-bold" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Temporary Operative Wage Lines" name="wage_lines">
+                            <field name="line_ids" readonly="state in ('accountant_approved', 'released')">
+                                <list string="Daily Wages &amp; Releases" editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="days_worked"/>
+                                    <field name="regular_hours"/>
+                                    <field name="ot_hours"/>
+                                    <field name="daily_wage"/>
+                                    <field name="regular_pay"/>
+                                    <field name="ot_pay"/>
+                                    <field name="total_payable" class="fw-bold"/>
+                                    <field name="is_released_worker"/>
+                                    <field name="release_reason" invisible="not is_released_worker"/>
+                                    <button name="action_release_worker"
+                                            string="Discharge"
+                                            type="object"
+                                            class="btn btn-sm btn-outline-danger"
+                                            invisible="is_released_worker"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Workflow Audit &amp; Journal Entry" name="settlement_audit">
+                            <group>
+                                <group string="Authorizations">
+                                    <field name="prepared_by"/>
+                                    <field name="accountant_id"/>
+                                    <field name="manager_id"/>
+                                </group>
+                                <group string="Accounting Entry">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_temp_wage_settlement_list" model="ir.ui.view">
+        <field name="name">contractor.temp.wage.settlement.list</field>
+        <field name="model">contractor.temp.wage.settlement</field>
+        <field name="arch" type="xml">
+            <list string="Temporary Wage Settlements" decoration-success="state == 'released'" decoration-warning="state in ('hr_prepared', 'accountant_approved')">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="total_workers"/>
+                <field name="total_days_worked"/>
+                <field name="total_wage_payable" sum="Total Wages"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'accountant_approved'" decoration-info="state == 'hr_prepared'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_temp_wage_settlement_search" model="ir.ui.view">
+        <field name="name">contractor.temp.wage.settlement.search</field>
+        <field name="model">contractor.temp.wage.settlement</field>
+        <field name="arch" type="xml">
+            <search string="Search Temporary Wage Settlements">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="HR Prepared" name="hr_prepared" domain="[('state', '=', 'hr_prepared')]"/>
+                <filter string="Accountant Approved" name="accountant_approved" domain="[('state', '=', 'accountant_approved')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Period Start" name="group_by_date_start" context="{'group_by': 'date_start'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_temp_wage_settlement" model="ir.actions.act_window">
+        <field name="name">Temporary Wage Settlements (Daily)</field>
+        <field name="res_model">contractor.temp.wage.settlement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_temp_wage_settlement_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Calculate and disburse daily wages for site temporary workforce.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 3. Track 3 — Manpower Supply Agency Reconciliation                -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_agency_reconciliation_form" model="ir.ui.view">
+        <field name="name">contractor.agency.reconciliation.form</field>
+        <field name="model">contractor.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <form string="Agency Invoice Reconciliation">
+                <header>
+                    <button name="action_pull_and_reconcile"
+                            string="Pull Site Hours &amp; Reconcile"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state not in ('draft', 'discrepancy_flagged')"/>
+                    <button name="action_resolve_discrepancy"
+                            string="Resolve Discrepancy"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="state != 'discrepancy_flagged'"
+                            groups="contractor_core.group_contractor_manager,contractor_core.group_contractor_senior_accountant"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,matched,discrepancy_flagged,resolved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="not has_variance">
+                        <strong>Discrepancy Detected:</strong> Agency Invoiced values mismatch ERP site attendance records.
+                        Vendor Bill payment is blocked by system governance until this reconciliation is resolved.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Reconciliation Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Agency &amp; Period">
+                            <field name="agency_id" readonly="state in ('matched', 'resolved')"/>
+                            <field name="agreement_id" readonly="state in ('matched', 'resolved')"/>
+                            <field name="vendor_bill_id" readonly="state in ('matched', 'resolved')"/>
+                            <field name="date_start" readonly="state in ('matched', 'resolved')"/>
+                            <field name="date_end" readonly="state in ('matched', 'resolved')"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Comparison Matrix">
+                            <field name="erp_total_hours" readonly="1"/>
+                            <field name="erp_total_provisional_cost" readonly="1"/>
+                            <field name="agency_invoiced_hours" readonly="state in ('matched', 'resolved')"/>
+                            <field name="agency_invoiced_amount" readonly="state in ('matched', 'resolved')"/>
+                            <field name="variance_hours" readonly="1" class="fw-bold"/>
+                            <field name="variance_amount" readonly="1" class="fw-bold"/>
+                            <field name="has_variance" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Operative Hours Comparison" name="operative_hours">
+                            <field name="line_ids" readonly="state in ('matched', 'resolved')">
+                                <list string="Operative Comparison" decoration-danger="abs(variance_hours) &gt; 0.5 or abs(variance_amount) &gt; 1.0">
+                                    <field name="employee_id"/>
+                                    <field name="erp_regular_hours"/>
+                                    <field name="erp_ot_hours"/>
+                                    <field name="erp_hours"/>
+                                    <field name="erp_cost"/>
+                                    <field name="agency_invoiced_hours"/>
+                                    <field name="agency_invoiced_amount"/>
+                                    <field name="variance_hours"/>
+                                    <field name="variance_amount" class="fw-bold"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Resolution Notes &amp; Audit" name="resolution_notes">
+                            <group string="Discrepancy Resolution Protocol">
+                                <field name="resolution_notes" placeholder="Detail the agreed credit note, agreed hours compromise, or agency explanation..." readonly="state == 'resolved'"/>
+                            </group>
+                            <group string="Sign-Off Details">
+                                <group>
+                                    <field name="resolved_by"/>
+                                    <field name="resolution_date"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_agency_reconciliation_list" model="ir.ui.view">
+        <field name="name">contractor.agency.reconciliation.list</field>
+        <field name="model">contractor.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Agency Invoice Reconciliations" decoration-success="state == 'matched'" decoration-danger="state == 'discrepancy_flagged'" decoration-info="state == 'resolved'">
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="vendor_bill_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="erp_total_hours"/>
+                <field name="agency_invoiced_hours"/>
+                <field name="erp_total_provisional_cost"/>
+                <field name="agency_invoiced_amount"/>
+                <field name="variance_amount"/>
+                <field name="state" widget="badge" decoration-success="state == 'matched'" decoration-danger="state == 'discrepancy_flagged'" decoration-info="state == 'resolved'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_agency_reconciliation_search" model="ir.ui.view">
+        <field name="name">contractor.agency.reconciliation.search</field>
+        <field name="model">contractor.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <search string="Search Agency Invoice Reconciliations">
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="agreement_id"/>
+                <field name="vendor_bill_id"/>
+                <field name="date_start"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Matched" name="matched" domain="[('state', '=', 'matched')]"/>
+                <filter string="Discrepancy Flagged" name="discrepancy_flagged" domain="[('state', '=', 'discrepancy_flagged')]"/>
+                <filter string="Resolved" name="resolved" domain="[('state', '=', 'resolved')]"/>
+                <filter string="Declined" name="declined" domain="[('state', '=', 'declined')]"/>
+                <separator/>
+                <filter string="Has Variance" name="has_variance" domain="[('has_variance', '=', True)]"/>
+                <group>
+                    <filter string="Agency" name="group_by_agency" context="{'group_by': 'agency_id'}"/>
+                    <filter string="Agreement" name="group_by_agreement" context="{'group_by': 'agreement_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_agency_reconciliation" model="ir.actions.act_window">
+        <field name="name">Agency Invoice Reconciliations</field>
+        <field name="res_model">contractor.agency.reconciliation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_agency_reconciliation_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Reconcile manpower agency billing against ERP site attendance before vendor bill posting.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

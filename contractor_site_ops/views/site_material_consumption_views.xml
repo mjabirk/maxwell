@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_site_consumption_form" model="ir.ui.view">
+        <field name="name">contractor.site.consumption.form</field>
+        <field name="model">contractor.site.consumption</field>
+        <field name="arch" type="xml">
+            <form string="Daily Site Material Consumption &amp; Store Reconciliation">
+                <header>
+                    <button name="action_submit_to_storekeeper"
+                            string="Submit to Storekeeper"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_reconcile_storekeeper"
+                            string="Reconcile Store Receipts"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_manager"/>
+                    <button name="action_pm_approve"
+                            string="PM Approve &amp; Cost"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'reconciled'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('draft', 'reconciled')"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_load_issued_site_materials"
+                            string="Load Issued Site Materials"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_request_late_amendment"
+                            string="Request Late Amendment"
+                            type="object"
+                            class="btn-warning"
+                            invisible="not is_entry_locked or late_amendment_approved or late_amendment_requested"/>
+                    <button name="action_approve_late_amendment"
+                            string="Authorize Late Amendment"
+                            type="object"
+                            class="btn-outline-warning"
+                            invisible="not is_entry_locked or late_amendment_approved"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,reconciled,pm_approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_entry_locked">
+                        <strong>48-Hour Site Entry Lock:</strong> This material consumption record is locked past operational cutoff.
+                        <span invisible="not late_amendment_requested or late_amendment_approved">
+                            | Amendment Requested by <field name="late_amendment_requester_id" readonly="1" class="oe_inline"/>: <field name="late_amendment_request_reason" readonly="1" class="oe_inline"/>
+                        </span>
+                        <button name="action_request_late_amendment"
+                                string="Request Late Amendment"
+                                type="object"
+                                class="btn btn-warning btn-sm ms-2"
+                                invisible="late_amendment_approved or late_amendment_requested"/>
+                        <span invisible="not late_amendment_approved">
+                            (Late Amendment Authorized by <field name="late_amendment_approver_id" readonly="1" class="oe_inline"/> - Reason: <field name="late_amendment_reason" readonly="1" class="oe_inline"/>)
+                        </span>
+                    </div>
+
+                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not variance_flagged">
+                        <strong>Store Reconciliation Tolerance Variance Flagged:</strong>
+                        Consumed quantities exceed store-issued receipts beyond allowable company tolerance.
+                        Documented storekeeper investigation findings in 'Reconciliation Notes' are mandatory prior to closure.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Sheet Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Project &amp; Work Date">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="consumption_date" readonly="state != 'draft'"/>
+                            <field name="site_engineer_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="is_entry_locked" invisible="1"/>
+                            <field name="is_locked" invisible="1"/>
+                            <field name="late_amendment_approved" invisible="1"/>
+                            <field name="late_amendment_requested" invisible="1"/>
+                            <field name="late_amendment_requester_id" invisible="1"/>
+                            <field name="late_amendment_request_reason" invisible="1"/>
+                        </group>
+                        <group string="Consumption Financials &amp; Reconciliation">
+                            <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="variance_flagged" readonly="1" widget="boolean_toggle"/>
+                            <field name="reconciled_by" readonly="1" invisible="not reconciled_by"/>
+                            <field name="reconciliation_date" readonly="1" invisible="not reconciliation_date"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Storekeeper Investigation &amp; Reconciliation Notes" invisible="not variance_flagged and not reconciliation_notes">
+                        <field name="reconciliation_notes" placeholder="Explain causes for material usage variance against store issues (wastage, cutting losses, site stock adjustment)..." readonly="state in ('pm_approved', 'declined')"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Consumed Material Items" name="page_lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list string="Materials Consumed" editable="bottom">
+                                    <field name="cost_head"/>
+                                    <field name="product_id"/>
+                                    <field name="source_picking_id"/>
+                                    <field name="source_po_id"/>
+                                    <field name="work_location"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="issued_to_site_qty" readonly="1"/>
+                                    <field name="previously_consumed_qty" readonly="1"/>
+                                    <field name="available_site_qty" readonly="1" decoration-bf="1"/>
+                                    <field name="consumed_today_qty" decoration-danger="is_over_consumed" decoration-warning="consumed_today_qty &gt; 0 and available_site_qty &lt;= consumed_today_qty and not is_over_consumed"/>
+                                    <field name="is_over_consumed" column_invisible="1"/>
+                                    <field name="remaining_site_stock_qty" readonly="1" decoration-bf="1"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"/>
+                                    <field name="variance_pct" widget="percentage" readonly="1" optional="show"/>
+                                    <field name="variance_flagged" widget="badge" decoration-danger="variance_flagged" readonly="1" optional="show"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_consumption_list" model="ir.ui.view">
+        <field name="name">contractor.site.consumption.list</field>
+        <field name="model">contractor.site.consumption</field>
+        <field name="arch" type="xml">
+            <list string="Material Consumption Sheets" default_order="consumption_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="consumption_date"/>
+                <field name="site_engineer_id"/>
+                <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"/>
+                <field name="variance_flagged" widget="badge" decoration-danger="variance_flagged" invisible="not variance_flagged"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'reconciled'"
+                       decoration-success="state == 'pm_approved'"
+                       decoration-danger="state == 'declined'"/>
+                <field name="is_entry_locked" widget="boolean" invisible="not is_entry_locked"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_consumption_search" model="ir.ui.view">
+        <field name="name">contractor.site.consumption.search</field>
+        <field name="model">contractor.site.consumption</field>
+        <field name="arch" type="xml">
+            <search string="Search Site Material Consumption">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="site_engineer_id"/>
+                <field name="consumption_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Reconciled" name="reconciled" domain="[('state', '=', 'reconciled')]"/>
+                <filter string="PM Approved" name="pm_approved" domain="[('state', '=', 'pm_approved')]"/>
+                <filter string="Declined" name="declined" domain="[('state', '=', 'declined')]"/>
+                <separator/>
+                <filter string="Variance Flagged" name="variance_flagged" domain="[('variance_flagged', '=', True)]"/>
+                <filter string="Late Amendment Approved" name="late_amendment" domain="[('late_amendment_approved', '=', True)]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Site Engineer" name="group_by_engineer" context="{'group_by': 'site_engineer_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Consumption Date" name="group_by_date" context="{'group_by': 'consumption_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_site_consumption" model="ir.actions.act_window">
+        <field name="name">Site Material Consumption</field>
+        <field name="res_model">contractor.site.consumption</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_site_consumption_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record daily site material consumption and reconcile cumulative usage against store issues.
+            </p>
+        </field>
+    </record>
+</odoo>
+

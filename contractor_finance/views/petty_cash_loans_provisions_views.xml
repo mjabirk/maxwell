@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================= -->
+    <!-- 1. Petty Cash Floats & Vouchers                                   -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_petty_cash_float_form" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.float.form</field>
+        <field name="model">contractor.petty.cash.float</field>
+        <field name="arch" type="xml">
+            <form string="Site Petty Cash Float">
+                <header>
+                    <button name="action_replenish_float"
+                            string="Replenish Imprest Float"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'active'"
+                            groups="contractor_core.group_contractor_accountant"/>
+                    <field name="state" widget="statusbar" statusbar_visible="active,suspended,closed"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="not repeated_discrepancy_flag">
+                        <strong>Repeated Discrepancy MD Alert:</strong> Multiple surprise count variances detected on this float.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not has_unresolved_discrepancy">
+                        <strong>Replenishment Locked:</strong> An unresolved cash count discrepancy exists. Clear the discrepancy before replenishing.
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" string="Float Tag / Location"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Float Custody &amp; Site">
+                            <field name="project_id"/>
+                            <field name="custodian_id"/>
+                            <field name="journal_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Imprest Balances">
+                            <field name="float_limit"/>
+                            <field name="current_balance" class="fw-bold fs-4 text-success" readonly="1"/>
+                            <field name="has_unresolved_discrepancy" readonly="1"/>
+                            <field name="repeated_discrepancy_flag" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Disbursement Vouchers" name="vouchers">
+                            <field name="voucher_ids" readonly="1">
+                                <list string="Recent Vouchers" decoration-success="state == 'paid'" decoration-info="state == 'approved'">
+                                    <field name="voucher_date"/>
+                                    <field name="name"/>
+                                    <field name="recipient_name"/>
+                                    <field name="amount"/>
+                                    <field name="purpose"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Surprise Cash Count Audits" name="surprise_counts">
+                            <field name="surprise_count_ids" readonly="state == 'closed'">
+                                <list string="Independent Cash Counts" editable="bottom" decoration-danger="variance_amount != 0 and not discrepancy_resolved">
+                                    <field name="count_date"/>
+                                    <field name="counted_by_id"/>
+                                    <field name="physical_cash_counted"/>
+                                    <field name="expected_cash_balance"/>
+                                    <field name="variance_amount"/>
+                                    <field name="notes"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="discrepancy_resolved"/>
+                                    <field name="resolution_notes"/>
+                                    <button name="action_verify_count" string="Verify" type="object" icon="fa-check" invisible="state != 'draft'"/>
+                                    <button name="action_resolve_discrepancy" string="Resolve" type="object" icon="fa-unlock" invisible="discrepancy_resolved or variance_amount == 0" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_petty_cash_float_list" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.float.list</field>
+        <field name="model">contractor.petty.cash.float</field>
+        <field name="arch" type="xml">
+            <list string="Petty Cash Floats">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_id"/>
+                <field name="journal_id"/>
+                <field name="float_limit" sum="Total Limit"/>
+                <field name="current_balance" sum="Total Cash in Hand"/>
+                <field name="state" widget="badge" decoration-success="state == 'active'" decoration-danger="state in ('suspended', 'closed')"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_petty_cash_float_search" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.float.search</field>
+        <field name="model">contractor.petty.cash.float</field>
+        <field name="arch" type="xml">
+            <search string="Search Petty Cash Floats">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_id"/>
+                <field name="journal_id"/>
+                <filter string="Active" name="active" domain="[('state', '=', 'active')]"/>
+                <filter string="Suspended" name="suspended" domain="[('state', '=', 'suspended')]"/>
+                <filter string="Closed" name="closed" domain="[('state', '=', 'closed')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Custodian" name="group_by_custodian" context="{'group_by': 'custodian_id'}"/>
+                    <filter string="Journal" name="group_by_journal" context="{'group_by': 'journal_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_petty_cash_float" model="ir.actions.act_window">
+        <field name="name">Site Petty Cash Floats</field>
+        <field name="res_model">contractor.petty.cash.float</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_petty_cash_float_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Establish a site or office petty cash imprest float under a designated cashier.
+            </p>
+        </field>
+    </record>
+
+    <!-- Petty Cash Voucher Form & List -->
+    <record id="view_contractor_petty_cash_voucher_form" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.voucher.form</field>
+        <field name="model">contractor.petty.cash.voucher</field>
+        <field name="arch" type="xml">
+            <form string="Petty Cash Voucher">
+                <header>
+                    <button name="action_approve"
+                            string="Approve Voucher"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant"/>
+                    <button name="action_disburse"
+                            string="Disburse Cash"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'approved'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Voucher Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Float &amp; Project Site">
+                            <field name="float_id" readonly="state != 'draft'"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="voucher_date" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Payee &amp; Amount">
+                            <field name="recipient_name" readonly="state != 'draft'"/>
+                            <field name="amount" class="fw-bold fs-4" readonly="state != 'draft'"/>
+                            <field name="expense_account_id" readonly="state != 'draft'"/>
+                            <field name="cost_head" readonly="state != 'draft'"/>
+                            <field name="approved_by_id" readonly="1" invisible="not approved_by_id"/>
+                        </group>
+                    </group>
+                    <group string="Purpose &amp; Description">
+                        <field name="purpose" placeholder="Describe the site purchases (hardware, fuel, refreshment, urgent freight)..." readonly="state != 'draft'"/>
+                    </group>
+                    <group string="Mandatory Scanned Receipt Attachments">
+                        <field name="receipt_attachment_ids" widget="many2many_binary" readonly="state != 'draft'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_petty_cash_voucher_list" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.voucher.list</field>
+        <field name="model">contractor.petty.cash.voucher</field>
+        <field name="arch" type="xml">
+            <list string="Petty Cash Vouchers" decoration-success="state == 'paid'" decoration-info="state == 'approved'">
+                <field name="name"/>
+                <field name="voucher_date"/>
+                <field name="float_id"/>
+                <field name="project_id"/>
+                <field name="recipient_name"/>
+                <field name="amount" sum="Total Spent"/>
+                <field name="state" widget="badge" decoration-success="state == 'paid'" decoration-warning="state == 'approved'" decoration-info="state == 'draft'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_petty_cash_voucher_search" model="ir.ui.view">
+        <field name="name">contractor.petty.cash.voucher.search</field>
+        <field name="model">contractor.petty.cash.voucher</field>
+        <field name="arch" type="xml">
+            <search string="Search Petty Cash Vouchers">
+                <field name="name"/>
+                <field name="float_id"/>
+                <field name="project_id"/>
+                <field name="recipient_name"/>
+                <field name="voucher_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Paid" name="paid" domain="[('state', '=', 'paid')]"/>
+                <filter string="Replenished" name="replenished" domain="[('state', '=', 'replenished')]"/>
+                <group>
+                    <filter string="Float" name="group_by_float" context="{'group_by': 'float_id'}"/>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Voucher Date" name="group_by_date" context="{'group_by': 'voucher_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_petty_cash_voucher" model="ir.actions.act_window">
+        <field name="name">Petty Cash Vouchers</field>
+        <field name="res_model">contractor.petty.cash.voucher</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_petty_cash_voucher_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record a site cash expenditure with scanned bill attachments.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 2. Loan Facilities & Financing                                    -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_loan_facility_form" model="ir.ui.view">
+        <field name="name">contractor.loan.facility.form</field>
+        <field name="model">contractor.loan.facility</field>
+        <field name="arch" type="xml">
+            <form string="Financing &amp; Loan Facility">
+                <header>
+                    <button name="action_approve_md"
+                            string="MD Authorize Facility"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_md"/>
+                    <button name="action_drawdown"
+                            string="Confirm Drawdown"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'md_approved'"/>
+                    <button name="action_review_covenants"
+                            string="Log Covenant Review"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state not in ('md_approved', 'active')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,md_approved,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Facility Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Lender &amp; Terms">
+                            <field name="lender_id" readonly="state != 'draft'"/>
+                            <field name="register_as_related_party" readonly="state in ('active', 'closed')"/>
+                            <field name="is_related_party_lender" readonly="1"/>
+                            <field name="loan_type" readonly="state != 'draft'"/>
+                            <field name="principal_amount" class="fw-bold" readonly="state != 'draft'"/>
+                            <field name="interest_rate_pct" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Maturity &amp; Balances">
+                            <field name="start_date" readonly="state != 'draft'"/>
+                            <field name="maturity_date" readonly="state != 'draft'"/>
+                            <field name="outstanding_balance" class="fw-bold fs-4 text-danger" readonly="1"/>
+                            <field name="loan_account_id" readonly="state != 'draft'"/>
+                            <field name="interest_expense_account_id" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <group string="Collateral &amp; Mortgages">
+                        <field name="collateral_description" readonly="state == 'closed'" placeholder="Specify pledged assets, corporate guarantees, or project receivables..."/>
+                    </group>
+                    <group string="Financial Covenants &amp; Compliance">
+                        <group>
+                            <field name="covenant_compliance_status" readonly="state == 'closed'"/>
+                            <field name="last_covenant_review_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="covenant_terms" readonly="state == 'closed'" placeholder="Specify debt-service ratios, reporting schedules, or lender restrictions..."/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Repayment Amortization Schedule" name="amortization">
+                            <field name="repayment_schedule_ids" readonly="state == 'closed'">
+                                <list string="Instalments" editable="bottom">
+                                    <field name="due_date"/>
+                                    <field name="principal_due"/>
+                                    <field name="interest_due"/>
+                                    <field name="total_due"/>
+                                    <field name="is_paid" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="MD Authorization Audit" name="md_audit">
+                            <group>
+                                <field name="md_approver_id" readonly="1"/>
+                                <field name="md_approval_date" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_loan_facility_list" model="ir.ui.view">
+        <field name="name">contractor.loan.facility.list</field>
+        <field name="model">contractor.loan.facility</field>
+        <field name="arch" type="xml">
+            <list string="Loan Facilities" decoration-success="state == 'active'" decoration-info="state == 'md_approved'">
+                <field name="name"/>
+                <field name="lender_id"/>
+                <field name="is_related_party_lender" widget="boolean_toggle"/>
+                <field name="loan_type"/>
+                <field name="principal_amount" sum="Total Borrowed"/>
+                <field name="outstanding_balance" sum="Total Outstanding"/>
+                <field name="interest_rate_pct"/>
+                <field name="maturity_date"/>
+                <field name="state" widget="badge" decoration-success="state == 'active'" decoration-warning="state == 'md_approved'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_loan_facility_search" model="ir.ui.view">
+        <field name="name">contractor.loan.facility.search</field>
+        <field name="model">contractor.loan.facility</field>
+        <field name="arch" type="xml">
+            <search string="Search Loan Facilities">
+                <field name="name"/>
+                <field name="lender_id"/>
+                <field name="start_date"/>
+                <field name="maturity_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="MD Approved" name="md_approved" domain="[('state', '=', 'md_approved')]"/>
+                <filter string="Active" name="active" domain="[('state', '=', 'active')]"/>
+                <filter string="Closed" name="closed" domain="[('state', '=', 'closed')]"/>
+                <separator/>
+                <filter string="Related-Party Lender" name="related_party" domain="[('is_related_party_lender', '=', True)]"/>
+                <group>
+                    <filter string="Lender" name="group_by_lender" context="{'group_by': 'lender_id'}"/>
+                    <filter string="Loan Type" name="group_by_type" context="{'group_by': 'loan_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_loan_facility" model="ir.actions.act_window">
+        <field name="name">Financing &amp; Loan Facilities</field>
+        <field name="res_model">contractor.loan.facility</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_loan_facility_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage bank loans, project overdrafts, and related-party financing with Managing Director oversight.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 3. Monthly Accounting Provisions Engine                           -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_accounting_provision_form" model="ir.ui.view">
+        <field name="name">contractor.accounting.provision.form</field>
+        <field name="model">contractor.accounting.provision</field>
+        <field name="arch" type="xml">
+            <form string="Accounting Provision">
+                <header>
+                    <button name="action_sync_hrms_eosb"
+                            string="Sync HRMS Statutory EOSB"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            string="Approve Provision"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_post"
+                            string="Post to General Ledger"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'approved'"
+                            confirm="Are you sure you want to post this accounting provision to the General Ledger? This action cannot be undone."
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Provision Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Classification &amp; Date">
+                            <field name="provision_type" readonly="state != 'draft'"/>
+                            <field name="provision_date" readonly="state != 'draft'"/>
+                            <field name="amount" class="fw-bold fs-4" readonly="state != 'draft'"/>
+                            <field name="requires_md_approval" readonly="1" invisible="not requires_md_approval"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="GL Accounts &amp; Journal">
+                            <field name="expense_account_id" readonly="state != 'draft'"/>
+                            <field name="provision_account_id" readonly="state != 'draft'"/>
+                            <field name="journal_id" readonly="state != 'draft'"/>
+                            <field name="move_id" readonly="1" invisible="not move_id"/>
+                        </group>
+                    </group>
+                    <group string="Calculation Methodology &amp; Audit Trail">
+                        <field name="calculation_basis" placeholder="Detail the calculation basis, benchmark, or regulatory requirement..." readonly="state != 'draft'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_accounting_provision_list" model="ir.ui.view">
+        <field name="name">contractor.accounting.provision.list</field>
+        <field name="model">contractor.accounting.provision</field>
+        <field name="arch" type="xml">
+            <list string="Accounting Provisions" decoration-success="state == 'posted'" decoration-warning="state == 'approved'">
+                <field name="name"/>
+                <field name="provision_date"/>
+                <field name="provision_type"/>
+                <field name="amount" sum="Total Provisions"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-warning="state == 'approved'" decoration-info="state == 'draft'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_accounting_provision_search" model="ir.ui.view">
+        <field name="name">contractor.accounting.provision.search</field>
+        <field name="model">contractor.accounting.provision</field>
+        <field name="arch" type="xml">
+            <search string="Search Accounting Provisions">
+                <field name="name"/>
+                <field name="provision_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Posted" name="posted" domain="[('state', '=', 'posted')]"/>
+                <filter string="Reversed" name="reversed" domain="[('state', '=', 'reversed')]"/>
+                <group>
+                    <filter string="Provision Type" name="group_by_type" context="{'group_by': 'provision_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Provision Date" name="group_by_date" context="{'group_by': 'provision_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_accounting_provision" model="ir.actions.act_window">
+        <field name="name">Monthly Accounting Provisions</field>
+        <field name="res_model">contractor.accounting.provision</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_accounting_provision_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Establish month-end provisions for unbilled liabilities, HRMS statutory EOSB, and bad debt allowances.
+            </p>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 4. Chart of Accounts Governance Extension                         -->
+    <!-- ================================================================= -->
+    <record id="view_account_form_contractor_governance" model="ir.ui.view">
+        <field name="name">account.account.form.contractor.governance</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Construction Project Cost-Head Governance">
+                    <group>
+                        <field name="is_project_cost_head"/>
+                        <field name="cost_head_category" invisible="not is_project_cost_head"/>
+                        <field name="coa_approval_state" widget="badge" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="mapped_previous_account_id"/>
+                        <field name="restructure_effective_date"/>
+                        <field name="coa_change_reason"/>
+                        <div>
+                            <button name="action_propose_coa_change" string="Propose COA Change" type="object" class="btn btn-secondary me-1" invisible="coa_approval_state != 'approved'" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                            <button name="action_manager_approve_coa" string="Manager Approve COA" type="object" class="btn btn-warning me-1" invisible="coa_approval_state != 'proposed'" groups="contractor_core.group_contractor_manager"/>
+                            <button name="action_md_approve_coa" string="MD Finalize COA" type="object" class="btn btn-primary" invisible="coa_approval_state != 'manager_approved'" groups="contractor_core.group_contractor_md"/>
+                        </div>
+                    </group>
+                </group>
+                <notebook invisible="not is_project_cost_head">
+                    <page string="Cost Head Reclassification Audit Trail" name="mapping_history">
+                        <field name="mapping_history_ids" readonly="1">
+                            <list string="Mapping History">
+                                <field name="effective_date"/>
+                                <field name="old_category"/>
+                                <field name="new_category"/>
+                                <field name="reason"/>
+                                <field name="authorized_by_id"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 5. Employee Advances & Loans Views                                -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_employee_advance_form" model="ir.ui.view">
+        <field name="name">contractor.employee.advance.form</field>
+        <field name="model">contractor.employee.advance</field>
+        <field name="arch" type="xml">
+            <form string="Employee Advance &amp; Personal Loan">
+                <header>
+                    <button name="action_submit" string="Submit Request" type="object" class="btn btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_hr_verify" string="HR Verify" type="object" class="btn btn-secondary" invisible="state != 'submitted'" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager"/>
+                    <button name="action_approve" string="Management Approve" type="object" class="btn btn-success" invisible="state not in ('submitted', 'hr_verified')" groups="contractor_core.group_contractor_manager,contractor_core.group_contractor_md"/>
+                    <button name="action_disburse" string="Disburse Funds" type="object" class="btn btn-primary" invisible="state != 'approved'" groups="contractor_core.group_contractor_accountant"/>
+                    <button name="action_decline" string="Decline" type="object" class="btn btn-danger" invisible="state in ('disbursed', 'recovered', 'deducted_at_exit', 'declined')" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,hr_verified,approved,disbursed,recovered"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Advance Reference"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Employee &amp; Request Details">
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="request_date" readonly="state != 'draft'"/>
+                            <field name="advance_type" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Amounts &amp; Payroll Recovery">
+                            <field name="advance_amount" readonly="state != 'draft'"/>
+                            <field name="monthly_installment" readonly="state in ('recovered', 'deducted_at_exit', 'declined')"/>
+                            <field name="recovered_amount" readonly="1"/>
+                            <field name="outstanding_balance" class="fw-bold fs-4 text-primary" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Business Justification">
+                        <field name="reason" readonly="state != 'draft'" placeholder="State reason for advance or personal loan request..."/>
+                    </group>
+                    <group string="Authorizations &amp; Accounting" invisible="state in ('draft', 'submitted')">
+                        <group>
+                            <field name="hr_verified_by_id" readonly="1"/>
+                            <field name="approved_by_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="disbursement_journal_id" readonly="state in ('disbursed', 'recovered', 'deducted_at_exit')"/>
+                            <field name="account_move_id" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_employee_advance_list" model="ir.ui.view">
+        <field name="name">contractor.employee.advance.list</field>
+        <field name="model">contractor.employee.advance</field>
+        <field name="arch" type="xml">
+            <list string="Employee Advances &amp; Loans" decoration-info="state in ('submitted', 'hr_verified', 'approved')" decoration-warning="state == 'disbursed'" decoration-success="state in ('recovered', 'deducted_at_exit')" decoration-muted="state == 'declined'">
+                <field name="name"/>
+                <field name="request_date"/>
+                <field name="employee_id"/>
+                <field name="advance_type"/>
+                <field name="advance_amount" sum="Total Advanced"/>
+                <field name="monthly_installment"/>
+                <field name="recovered_amount" sum="Total Recovered"/>
+                <field name="outstanding_balance" sum="Total Outstanding"/>
+                <field name="state" widget="badge" decoration-warning="state == 'disbursed'" decoration-success="state in ('recovered', 'deducted_at_exit')" decoration-info="state in ('submitted', 'hr_verified', 'approved')" decoration-danger="state == 'declined'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_employee_advance_search" model="ir.ui.view">
+        <field name="name">contractor.employee.advance.search</field>
+        <field name="model">contractor.employee.advance</field>
+        <field name="arch" type="xml">
+            <search string="Search Employee Advances">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <filter string="Active Outstanding" name="disbursed" domain="[('state', '=', 'disbursed')]"/>
+                <filter string="Pending Approval" name="pending" domain="[('state', 'in', ('submitted', 'hr_verified', 'approved'))]"/>
+                <filter string="Recovered / Settled" name="recovered" domain="[('state', 'in', ('recovered', 'deducted_at_exit'))]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Advance Type" name="group_by_type" context="{'group_by': 'advance_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_employee_advance" model="ir.actions.act_window">
+        <field name="name">Employee Advances &amp; Loans</field>
+        <field name="res_model">contractor.employee.advance</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_employee_advance_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage employee salary advances and staff loans with automated monthly payroll recovery and exit deduction.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

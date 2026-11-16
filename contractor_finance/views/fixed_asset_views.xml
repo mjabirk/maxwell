@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Fixed Asset Form View -->
+    <record id="view_contractor_fixed_asset_form" model="ir.ui.view">
+        <field name="name">contractor.fixed.asset.form</field>
+        <field name="model">contractor.fixed.asset</field>
+        <field name="arch" type="xml">
+            <form string="Fixed Asset (NCA)">
+                <header>
+                    <button name="action_generate_depreciation_schedule"
+                            string="Compute Depreciation Schedule"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state not in ('draft', 'running')"/>
+                    <button name="action_confirm"
+                            string="Confirm &amp; Activate Asset"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <button name="action_post_monthly_depreciation"
+                            string="Post Due Depreciation"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'running'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_dispose"
+                            string="Dispose / Write-Off Asset"
+                            type="object"
+                            class="btn btn-outline-danger"
+                            invisible="state != 'running'"
+                            confirm="Are you sure you want to dispose or write off this Fixed Asset?"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,fully_depreciated"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="asset_code" string="Asset Code / Tag"/>
+                        <h1>
+                            <field name="asset_code" readonly="1"/>
+                        </h1>
+                        <label for="name" string="Asset Description"/>
+                        <h2>
+                            <field name="name" readonly="state in ('fully_depreciated', 'disposed')"/>
+                        </h2>
+                    </div>
+                    <group>
+                        <group string="Acquisition &amp; Valuation">
+                            <field name="acquisition_date" readonly="state != 'draft'"/>
+                            <field name="purchase_value" readonly="state != 'draft'"/>
+                            <field name="salvage_value" readonly="state != 'draft'"/>
+                            <field name="useful_life_months" readonly="state != 'draft'"/>
+                            <field name="depreciation_method" readonly="state != 'draft'"/>
+                            <field name="declining_rate_pct" invisible="depreciation_method != 'declining'" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Site Deployment &amp; Custody">
+                            <field name="project_id" readonly="state in ('fully_depreciated', 'disposed')"/>
+                            <field name="location_id" readonly="state in ('fully_depreciated', 'disposed')"/>
+                            <field name="custodian_employee_id" readonly="state in ('fully_depreciated', 'disposed')"/>
+                            <field name="is_personal_tool" readonly="state != 'draft'"/>
+                            <field name="tool_asset_id" readonly="state != 'draft'"/>
+                            <field name="last_physical_verification_date" readonly="1"/>
+                            <field name="last_verified_by_id" readonly="1"/>
+                            <field name="cumulative_depreciation" readonly="1"/>
+                            <field name="book_value" readonly="1" class="fw-bold fs-4"/>
+                        </group>
+                    </group>
+
+                    <group string="Procurement &amp; AP Linkage">
+                        <group>
+                            <field name="po_id" readonly="state != 'draft'"/>
+                            <field name="grn_picking_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="vendor_bill_id" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Depreciation Amortization Schedule" name="depreciation_schedule">
+                            <field name="depreciation_line_ids" readonly="1">
+                                <list string="Monthly Depreciation" decoration-success="is_posted">
+                                    <field name="schedule_date"/>
+                                    <field name="depreciation_amount"/>
+                                    <field name="cumulative_depreciation"/>
+                                    <field name="book_value"/>
+                                    <field name="is_posted" widget="boolean_toggle"/>
+                                    <field name="move_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="General Ledger Accounts" name="gl_accounts">
+                            <group>
+                                <group string="Balance Sheet">
+                                    <field name="asset_account_id" readonly="state != 'draft'"/>
+                                    <field name="accumulated_depreciation_account_id" readonly="state != 'draft'"/>
+                                </group>
+                                <group string="P&amp;L and Journal">
+                                    <field name="depreciation_expense_account_id" readonly="state != 'draft'"/>
+                                    <field name="journal_id" readonly="state != 'draft'"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Disposal &amp; Retirement Audit" name="disposal_audit" invisible="state != 'disposed'">
+                            <group>
+                                <group string="Disposal Settlement">
+                                    <field name="disposal_date" readonly="1"/>
+                                    <field name="disposal_proceeds" readonly="1"/>
+                                    <field name="disposal_gain_loss" readonly="1" class="fw-bold"/>
+                                </group>
+                                <group string="Authorization &amp; Move">
+                                    <field name="disposal_approver_id" readonly="1"/>
+                                    <field name="disposal_move_id" readonly="1"/>
+                                    <field name="disposal_reason" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Fixed Asset List View -->
+    <record id="view_contractor_fixed_asset_list" model="ir.ui.view">
+        <field name="name">contractor.fixed.asset.list</field>
+        <field name="model">contractor.fixed.asset</field>
+        <field name="arch" type="xml">
+            <list string="Fixed Assets (NCA)" decoration-success="state == 'running'" decoration-muted="state in ('fully_depreciated', 'disposed')">
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="acquisition_date"/>
+                <field name="purchase_value" sum="Total Gross Cost"/>
+                <field name="cumulative_depreciation" sum="Total Depreciation"/>
+                <field name="book_value" sum="Total NBV"/>
+                <field name="project_id"/>
+                <field name="custodian_employee_id"/>
+                <field name="state" widget="badge" decoration-success="state == 'running'" decoration-info="state == 'draft'" decoration-danger="state == 'disposed'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_fixed_asset_search" model="ir.ui.view">
+        <field name="name">contractor.fixed.asset.search</field>
+        <field name="model">contractor.fixed.asset</field>
+        <field name="arch" type="xml">
+            <search string="Search Fixed Assets">
+                <field name="name"/>
+                <field name="asset_code"/>
+                <field name="project_id"/>
+                <field name="custodian_employee_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Running" name="running" domain="[('state', '=', 'running')]"/>
+                <filter string="Fully Depreciated" name="fully_depreciated" domain="[('state', '=', 'fully_depreciated')]"/>
+                <filter string="Disposed" name="disposed" domain="[('state', '=', 'disposed')]"/>
+                <separator/>
+                <filter string="Straight Line" name="straight_line" domain="[('depreciation_method', '=', 'straight_line')]"/>
+                <filter string="Declining Balance" name="declining" domain="[('depreciation_method', '=', 'declining')]"/>
+                <group>
+                    <filter string="Assigned Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Custodian" name="group_by_custodian" context="{'group_by': 'custodian_employee_id'}"/>
+                    <filter string="Depreciation Method" name="group_by_method" context="{'group_by': 'depreciation_method'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Fixed Assets -->
+    <record id="action_contractor_fixed_asset" model="ir.actions.act_window">
+        <field name="name">Fixed Asset Register (NCA)</field>
+        <field name="res_model">contractor.fixed.asset</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_fixed_asset_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register non-current plant, machinery, heavy equipment, and capitalized site tools.
+            </p>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- Physical Asset Verification Views                                 -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_asset_verification_form" model="ir.ui.view">
+        <field name="name">contractor.asset.verification.form</field>
+        <field name="model">contractor.asset.verification</field>
+        <field name="arch" type="xml">
+            <form string="Physical Asset Verification">
+                <header>
+                    <button name="action_load_assets"
+                            string="Load Site / Yard Assets"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_submit"
+                            string="Submit Verification"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            string="Approve Discrepancies"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_post_adjustment"
+                            string="Post GL Impairment Entries"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'approved'"
+                            confirm="Are you sure you want to post GL impairment entries for this physical asset verification? This action cannot be undone."
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,adjusted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Verification Audit Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Audit Scope">
+                            <field name="verification_date" readonly="state != 'draft'"/>
+                            <field name="verified_by_id" readonly="state != 'draft'"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="location_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Audit Findings Summary">
+                            <field name="discrepancy_count" readonly="1"/>
+                            <field name="total_adjustment_amount" readonly="1" class="fw-bold"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                            <field name="adjustment_move_id" readonly="1" invisible="not adjustment_move_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Verified Assets &amp; Condition Tagging" name="asset_lines">
+                            <field name="line_ids" readonly="state in ('approved', 'adjusted')">
+                                <list string="Physical Asset Findings" editable="bottom" decoration-danger="discrepancy_type == 'missing_asset'" decoration-warning="discrepancy_type == 'condition_mismatch'">
+                                    <field name="asset_id"/>
+                                    <field name="book_value"/>
+                                    <field name="expected_condition"/>
+                                    <field name="actual_condition"/>
+                                    <field name="discrepancy_type"/>
+                                    <field name="adjustment_amount"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_asset_verification_list" model="ir.ui.view">
+        <field name="name">contractor.asset.verification.list</field>
+        <field name="model">contractor.asset.verification</field>
+        <field name="arch" type="xml">
+            <list string="Physical Asset Verifications" decoration-success="state == 'adjusted'" decoration-warning="state == 'submitted'">
+                <field name="name"/>
+                <field name="verification_date"/>
+                <field name="verified_by_id"/>
+                <field name="project_id"/>
+                <field name="location_id"/>
+                <field name="discrepancy_count"/>
+                <field name="total_adjustment_amount" sum="Total Impairments"/>
+                <field name="state" widget="badge" decoration-success="state == 'adjusted'" decoration-warning="state == 'submitted'" decoration-info="state == 'draft'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_asset_verification_search" model="ir.ui.view">
+        <field name="name">contractor.asset.verification.search</field>
+        <field name="model">contractor.asset.verification</field>
+        <field name="arch" type="xml">
+            <search string="Search Physical Asset Verifications">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="location_id"/>
+                <field name="verified_by_id"/>
+                <field name="verification_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Adjusted" name="adjusted" domain="[('state', '=', 'adjusted')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Location" name="group_by_location" context="{'group_by': 'location_id'}"/>
+                    <filter string="Verified By" name="group_by_verifier" context="{'group_by': 'verified_by_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Verification Date" name="group_by_date" context="{'group_by': 'verification_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_asset_verification" model="ir.actions.act_window">
+        <field name="name">Physical Asset Verifications</field>
+        <field name="res_model">contractor.asset.verification</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_asset_verification_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Perform physical asset verifications across project sites and yards to audit equipment condition and write down missing plant.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.contractor.core</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="40"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Contractor ERP" string="Contractor ERP" name="contractor_core" groups="base.group_system,contractor_core.group_contractor_manager,contractor_core.group_contractor_md">
+                    
+                    <!-- 0. Approval Roles & Managers Assignment -->
+                    <block title="Approval Roles &amp; Managers Assignment" id="contractor_approval_roles_block">
+                        <setting string="Managing Directors (MD)" help="Executive authority: threshold overrides, emergency PO caps, major VO approvals, and SLA escalations.">
+                            <field name="md_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Contractor Managers" help="General management oversight: approves quotations, low-margin overrides, budgets, high-value POs, VOs, and settlements.">
+                            <field name="manager_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Project Managers (PM)" help="Project operational control: approves Material Requisitions, Stock Transfers, Site Material Consumption, and project budgets.">
+                            <field name="project_manager_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Sales Administrators" help="Commercial control: releases approved quotations to clients and records customer acceptance gates.">
+                            <field name="sales_admin_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Procurement Officers" help="Purchasing control: manages RFQs, vendor comparative statements, and purchase orders.">
+                            <field name="procurement_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Senior Accountants" help="Finance governance: verifies budgets, billing milestones, payroll batches, final settlements, and bank reconciliations.">
+                            <field name="senior_accountant_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Accountants" help="Accounting execution: prepares supplier bills, customer invoices, and reconciliation drafts.">
+                            <field name="accountant_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="HR Officers" help="Workforce governance: manages dated labor rate histories, attendance, ticket eligibility, and settlement computations.">
+                            <field name="hr_officer_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Storekeepers" help="Warehouse custody: receives site material returns, executes transfers, and validates stock movements.">
+                            <field name="storekeeper_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                        <setting string="Site Engineers" help="Field operations: performs CRM site visits, uploads inspection photos/sketches, and submits site consumption/progress.">
+                            <field name="site_engineer_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </setting>
+                    </block>
+
+                    <!-- 1. Quotation & Variation Orders (VO) -->
+                    <block title="Quotation &amp; Variation Orders" id="contractor_quotation_vo_block">
+                        <setting id="setting_quote_margin" string="Margin &amp; Thresholds" help="Define baseline margins and executive threshold triggers for quotes and change orders.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="min_quotation_margin_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="min_quotation_margin_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="vo_md_approval_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="vo_md_approval_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="vo_cumulative_ratio_trigger_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="vo_cumulative_ratio_trigger_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="vo_use_approval_sla_timers" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="vo_use_approval_sla_timers"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="new_sku_requires_manager_review" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="new_sku_requires_manager_review"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_quote_slas" string="Approval &amp; Release SLAs" help="Configure automated timeline SLAs for quotation review and sales handover.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="quote_approval_sla_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="quote_approval_sla_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="quote_escalation_sla_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="quote_escalation_sla_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="sales_release_sla_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="sales_release_sla_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="sales_release_escalation_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="sales_release_escalation_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_quote_followups" string="Client Follow-up &amp; Stagnation" help="Set automated reminder cadences and stagnation detection benchmarks.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="client_followup_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="client_followup_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="non_conversion_benchmark_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="non_conversion_benchmark_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="draft_stagnation_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="draft_stagnation_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="lead_reopen_reassessment_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="lead_reopen_reassessment_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 2. Procurement Controls -->
+                    <block title="Procurement Controls" id="contractor_procurement_block">
+                        <setting id="setting_procurement_thresholds" string="Approval &amp; Policy Thresholds" help="Define mandatory RFQ thresholds, emergency caps, and MD approval levels.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="rfq_three_vendor_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="rfq_three_vendor_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="cs_pm_approval_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="cs_pm_approval_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="po_md_approval_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="po_md_approval_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="internal_budget_rev_md_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="internal_budget_rev_md_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="emergency_po_cap" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="emergency_po_cap" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_procurement_slas" string="Material Requisitions &amp; Tolerances" help="Configure MR approval turnaround, emergency review SLA, inventory count frequency, and over-delivery limits.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="mr_escalation_sla_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="mr_escalation_sla_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="emergency_review_timeline_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="emergency_review_timeline_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="over_delivery_tolerance_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="over_delivery_tolerance_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="physical_count_frequency" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="physical_count_frequency" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 3. Site Operations & Daily Logs -->
+                    <block title="Site Operations &amp; Daily Logs" id="contractor_site_ops_block">
+                        <setting id="setting_site_controls" string="DPR Timers &amp; Variances" help="Enforce cutoffs on site progress reporting and material consumption deviations.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="dpr_cutoff_hour" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="dpr_cutoff_hour" widget="float_time" class="oe_inline"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="site_entry_lock_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="site_entry_lock_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="material_variance_tolerance_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="material_variance_tolerance_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 4. Human Resources & Labor Governance -->
+                    <block title="Human Resources &amp; Labor Governance" id="contractor_hr_payroll_block">
+                        <setting id="setting_hr_working_hours" string="Working Hours Baseline" help="Standard regular daily and monthly working hours used for rate derivation.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="standard_monthly_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="standard_monthly_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="standard_daily_hours" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="standard_daily_hours" class="oe_inline"/>
+                                            <span class="input-group-text">Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="annual_leave_salary_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="annual_leave_salary_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="eosb_first_5yr_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="eosb_first_5yr_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days/Yr</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="eosb_after_5yr_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="eosb_after_5yr_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days/Yr</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="agency_reconciliation_frequency" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="agency_reconciliation_frequency" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_hr_overtime_multipliers" string="Overtime Multipliers" help="Rate multipliers applied to labor classification rates based on shift type.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="ot_workday_multiplier" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="ot_workday_multiplier" class="oe_inline"/>
+                                            <span class="input-group-text">x</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="ot_friday_multiplier" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="ot_friday_multiplier" class="oe_inline"/>
+                                            <span class="input-group-text">x</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="ot_holiday_multiplier" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="ot_holiday_multiplier" class="oe_inline"/>
+                                            <span class="input-group-text">x</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 5. Financial Controls & Compliance -->
+                    <block title="Financial Controls &amp; Compliance" id="contractor_finance_block">
+                        <setting id="setting_finance_thresholds" string="Accounting Thresholds" help="Capitalization minimums and related-party disclosure materiality ceilings.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="nca_capitalization_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="nca_capitalization_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="rpt_materiality_threshold" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="rpt_materiality_threshold" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_finance_retention_dlp" string="Retention &amp; DLP Controls" help="Warranty retention withholding percentages, defect periods, and AR collection SLAs.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="default_retention_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="default_retention_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_dlp_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="default_dlp_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="ar_escalation_overdue_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="ar_escalation_overdue_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="bank_unmatched_escalation_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="bank_unmatched_escalation_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="petty_cash_default_float_limit" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="petty_cash_default_float_limit" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="petty_cash_count_frequency" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="petty_cash_count_frequency" class="oe_inline"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="bad_debt_provisioning_days" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="bad_debt_provisioning_days" class="oe_inline"/>
+                                            <span class="input-group-text">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="bad_debt_provisioning_pct" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="bad_debt_provisioning_pct" class="oe_inline"/>
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="month_end_close_day" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <div class="input-group">
+                                            <field name="month_end_close_day" class="oe_inline"/>
+                                            <span class="input-group-text">Day</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="covenant_review_frequency" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="covenant_review_frequency" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_finance_default_accounts" string="Default GL Accounts" help="Default expense, accrual clearing, and payroll payable accounts for automated journal entries.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="default_expense_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_expense_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_cost_accrual_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_cost_accrual_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_payroll_payable_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_payroll_payable_account_id"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_contractor_config_settings" model="ir.actions.act_window">
+        <field name="name">Contractor Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'contractor_core', 'bin_size': False}</field>
+    </record>
+
+    <record id="action_contractor_security_groups" model="ir.actions.act_window">
+        <field name="name">Approval Roles &amp; Groups</field>
+        <field name="res_model">res.groups</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain" eval="[('privilege_id', '=', ref('contractor_core.res_groups_privilege_contractor_erp'))]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Contractor ERP Approval Roles &amp; Security Groups
+            </p>
+            <p>
+                Open any role group to manage assigned users and view inherited permissions.
+            </p>
+        </field>
+    </record>
+</odoo>
+

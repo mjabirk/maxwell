@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_contractor_erp" model="ir.module.category">
+        <field name="name">Contractor ERP</field>
+        <field name="description">Contractor ERP platform governance, operational, and executive roles</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="res_groups_privilege_contractor_erp" model="res.groups.privilege">
+        <field name="name">Contractor ERP</field>
+        <field name="sequence">20</field>
+        <field name="category_id" ref="module_category_contractor_erp"/>
+    </record>
+
+    <!-- 1. Sales Administrator -->
+    <record id="group_contractor_sales_admin" model="res.groups">
+        <field name="name">Sales Administrator</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Responsible for quotation drafting, client follow-ups, and sales releases.</field>
+    </record>
+
+    <!-- 2. Site Engineer -->
+    <record id="group_contractor_site_engineer" model="res.groups">
+        <field name="name">Site Engineer</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Responsible for DPR entry, site logs, and material requisitions.</field>
+    </record>
+
+    <!-- 3. Project Manager (Hierarchical: Site Engineer) -->
+    <record id="group_contractor_project_manager" model="res.groups">
+        <field name="name">Project Manager</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('group_contractor_site_engineer'))]"/>
+        <field name="comment">Supervises project execution, milestone approvals, and site budgets.</field>
+    </record>
+
+    <!-- 4. Procurement Officer -->
+    <record id="group_contractor_procurement_officer" model="res.groups">
+        <field name="name">Procurement Officer</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Handles vendor quotations, price comparison sheets, and purchase orders.</field>
+    </record>
+
+    <!-- 5. Storekeeper -->
+    <record id="group_contractor_storekeeper" model="res.groups">
+        <field name="name">Storekeeper</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Responsible for material receipts (GRN), store issuances, and inventory audits.</field>
+    </record>
+
+    <!-- 6. HR Officer -->
+    <record id="group_contractor_hr_officer" model="res.groups">
+        <field name="name">HR Officer</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Manages site employee attendance, labor classifications, and effective rate histories.</field>
+    </record>
+
+    <!-- 7. Accountant -->
+    <record id="group_contractor_accountant" model="res.groups">
+        <field name="name">Accountant</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Handles operational invoicing, vendor bills, and daily ledger postings.</field>
+    </record>
+
+    <!-- 8. Senior Accountant (Hierarchical: Accountant) -->
+    <record id="group_contractor_senior_accountant" model="res.groups">
+        <field name="name">Senior Accountant</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('group_contractor_accountant'))]"/>
+        <field name="comment">Manages retention tracking, DLP release governance, and asset capitalization.</field>
+    </record>
+
+    <!-- 9. Contractor Manager (Hierarchical: PM, Sales Admin, Procurement, Storekeeper, Senior Accountant, HR) -->
+    <record id="group_contractor_manager" model="res.groups">
+        <field name="name">Contractor Manager</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[
+            (4, ref('group_contractor_project_manager')),
+            (4, ref('group_contractor_sales_admin')),
+            (4, ref('group_contractor_procurement_officer')),
+            (4, ref('group_contractor_storekeeper')),
+            (4, ref('group_contractor_senior_accountant')),
+            (4, ref('group_contractor_hr_officer'))
+        ]"/>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        <field name="comment">General management oversight, approving high-value operational budgets and change orders.</field>
+    </record>
+
+    <!-- 10. Managing Director (Hierarchical: Contractor Manager) -->
+    <record id="group_contractor_md" model="res.groups">
+        <field name="name">Managing Director</field>
+        <field name="privilege_id" ref="res_groups_privilege_contractor_erp"/>
+        <field name="implied_ids" eval="[(4, ref('group_contractor_manager'))]"/>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        <field name="comment">Executive authority for threshold overrides, emergency PO caps, and major VO approvals.</field>
+    </record>
+</odoo>
+

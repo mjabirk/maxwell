@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Bank Reconciliation Form View -->
+    <record id="view_contractor_bank_reconciliation_form" model="ir.ui.view">
+        <field name="name">contractor.bank.reconciliation.form</field>
+        <field name="model">contractor.bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <form string="Bank Reconciliation Sheet">
+                <header>
+                    <button name="action_fetch_unreconciled_items"
+                            string="Fetch Outstanding Bank Items"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_submit"
+                            string="Step 1: Submit for Audit (Maker)"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant"/>
+                    <button name="action_approve"
+                            string="Step 2: Certify Reconciliation (Checker)"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <button name="action_reject"
+                            string="Reject back to Maker"
+                            type="object"
+                            class="btn btn-outline-danger"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="is_balanced">
+                        <strong>Unreconciled Variance Detected:</strong> Difference of
+                        <field name="reconciled_difference" widget="monetary" readonly="1" class="fw-bold"/>
+                        remains between bank statement and GL. Certification is blocked until zero variance is achieved.
+                    </div>
+                    <div class="alert alert-success" role="alert" invisible="not is_balanced">
+                        <strong>Statement Fully Balanced:</strong> Zero variance. Ready for independent Checker sign-off.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Reconciliation Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Statement Parameters">
+                            <field name="journal_id" readonly="state != 'draft'"/>
+                            <field name="statement_date" readonly="state != 'draft'"/>
+                            <field name="opening_balance" readonly="state != 'draft'"/>
+                            <field name="closing_balance" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Audit Balance Comparison">
+                            <field name="gl_balance" readonly="1"/>
+                            <field name="unmatched_payments_total" readonly="1"/>
+                            <field name="unmatched_receipts_total" readonly="1"/>
+                            <field name="reconciled_difference" readonly="1" class="fw-bold fs-4"/>
+                            <field name="is_balanced" widget="boolean_toggle" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Segregation of Duties (Strict Maker-Checker)">
+                        <group>
+                            <field name="prepared_by_id" readonly="1"/>
+                            <field name="preparation_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="reviewed_by_id" readonly="1"/>
+                            <field name="review_date" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Outstanding Bank Items &amp; Uncleared Cheques" name="bank_lines">
+                            <field name="line_ids" readonly="state == 'approved'">
+                                <list string="Audit Items" editable="bottom" decoration-muted="is_matched">
+                                    <field name="date"/>
+                                    <field name="ref"/>
+                                    <field name="partner_id"/>
+                                    <field name="payment_type"/>
+                                    <field name="amount"/>
+                                    <field name="is_matched" widget="boolean_toggle"/>
+                                    <field name="unmatched_reason" invisible="is_matched"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Bank Reconciliation List View -->
+    <record id="view_contractor_bank_reconciliation_list" model="ir.ui.view">
+        <field name="name">contractor.bank.reconciliation.list</field>
+        <field name="model">contractor.bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Bank Reconciliations" decoration-success="state == 'approved'" decoration-warning="state == 'submitted'">
+                <field name="name"/>
+                <field name="journal_id"/>
+                <field name="statement_date"/>
+                <field name="opening_balance"/>
+                <field name="closing_balance"/>
+                <field name="gl_balance"/>
+                <field name="reconciled_difference"/>
+                <field name="is_balanced" widget="boolean_toggle"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-warning="state == 'submitted'" decoration-info="state == 'draft'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_bank_reconciliation_search" model="ir.ui.view">
+        <field name="name">contractor.bank.reconciliation.search</field>
+        <field name="model">contractor.bank.reconciliation</field>
+        <field name="arch" type="xml">
+            <search string="Search Bank Reconciliations">
+                <field name="name"/>
+                <field name="journal_id"/>
+                <field name="statement_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted (Pending Checker)" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter string="Balanced" name="balanced" domain="[('is_balanced', '=', True)]"/>
+                <filter string="Unbalanced" name="unbalanced" domain="[('is_balanced', '=', False)]"/>
+                <group>
+                    <filter string="Bank Journal" name="group_by_journal" context="{'group_by': 'journal_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Statement Date" name="group_by_date" context="{'group_by': 'statement_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Bank Reconciliations -->
+    <record id="action_contractor_bank_reconciliation" model="ir.actions.act_window">
+        <field name="name">Bank Reconciliations (Maker-Checker)</field>
+        <field name="res_model">contractor.bank.reconciliation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_bank_reconciliation_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Execute periodic bank reconciliations with enforced two-person segregation of duties (Maker vs Checker).
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

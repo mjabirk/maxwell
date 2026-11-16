@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Master Budget Form to add Overrun Override & Revisions -->
+    <record id="view_contractor_project_budget_form_inherit_procurement" model="ir.ui.view">
+        <field name="name">contractor.project.budget.form.inherit.procurement</field>
+        <field name="model">contractor.project.budget</field>
+        <field name="inherit_id" ref="contractor_crm_estimation.view_contractor_project_budget_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_approve_override"
+                            string="Authorize Budget Overrun Override"
+                            type="object"
+                            class="btn-warning"
+                            invisible="override_approved"
+                            groups="contractor_core.group_contractor_manager"/>
+                </header>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not override_approved">
+                    <strong>Budget Overrun Authorized:</strong> Management override active.
+                    Approved by <field name="override_user_id" readonly="1" class="oe_inline"/> on <field name="override_date" readonly="1" class="oe_inline"/>.
+                    <br/>
+                    <em>Reason:</em> <field name="override_reason" readonly="1" class="oe_inline"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="is_active" widget="boolean_toggle"/>
+                <field name="override_approved" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='total_revised_budget']" position="after">
+                <field name="total_internal_revisions" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='planned_amount']" position="after">
+                <field name="baseline_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Baseline"/>
+                <field name="variation_order_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total VO"/>
+                <field name="internal_revision_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Rev"/>
+                <field name="total_approved_budget" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Approved" decoration-bf="1"/>
+                <field name="committed_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Committed"/>
+                <field name="actual_cost_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Actual"/>
+                <field name="remaining_budget" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Remaining" decoration-danger="remaining_budget &lt; 0" decoration-success="remaining_budget &gt;= 0" decoration-bf="1"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']" position="attributes">
+                <attribute name="readonly">not is_active</attribute>
+            </xpath>
+            <xpath expr="//field[@name='vo_line_ids']" position="attributes">
+                <attribute name="readonly">not is_active</attribute>
+            </xpath>
+            <xpath expr="//page[@name='page_vo_lines']" position="after">
+                <page string="Internal Budget Revisions" name="page_internal_revisions">
+                    <field name="budget_revision_ids" readonly="not is_active">
+                        <list string="Internal Revisions" default_order="create_date desc">
+                            <field name="name"/>
+                            <field name="cost_head"/>
+                            <field name="revision_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Revisions"/>
+                            <field name="state" widget="badge"
+                                   decoration-info="state == 'draft'"
+                                   decoration-warning="state == 'pm_submitted'"
+                                   decoration-success="state in ('manager_approved', 'md_approved')"
+                                   decoration-danger="state == 'declined'"/>
+                            <field name="requires_md_approval"/>
+                            <field name="approver_id"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Views for contractor.budget.revision -->
+    <record id="view_contractor_budget_revision_form" model="ir.ui.view">
+        <field name="name">contractor.budget.revision.form</field>
+        <field name="model">contractor.budget.revision</field>
+        <field name="arch" type="xml">
+            <form string="Internal Budget Revision">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to Management"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_manager_approve"
+                            string="Manager Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'pm_submitted'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_md_approve"
+                            string="Managing Director Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state not in ('pm_submitted', 'manager_approved') or not requires_md_approval"
+                            groups="contractor_core.group_contractor_md"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('pm_submitted', 'manager_approved')"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,pm_submitted,manager_approved,md_approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Revision Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Project &amp; Budget Allocation">
+                            <field name="budget_id" readonly="state != 'draft'"/>
+                            <field name="project_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Revision Values &amp; Thresholds">
+                            <field name="cost_head" readonly="state != 'draft'"/>
+                            <field name="revision_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
+                            <field name="requires_md_approval"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                        </group>
+                    </group>
+                    <group string="Technical Justification">
+                        <field name="reason" placeholder="Document technical basis for budget reallocation (rate variance, quantity adjustment, scope transfer)..." readonly="state != 'draft'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_budget_revision_list" model="ir.ui.view">
+        <field name="name">contractor.budget.revision.list</field>
+        <field name="model">contractor.budget.revision</field>
+        <field name="arch" type="xml">
+            <list string="Internal Budget Revisions" default_order="create_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="cost_head"/>
+                <field name="revision_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Revisions"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'pm_submitted'"
+                       decoration-success="state in ('manager_approved', 'md_approved')"
+                       decoration-danger="state == 'declined'"/>
+                <field name="requires_md_approval"/>
+                <field name="approver_id"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_budget_revision_search" model="ir.ui.view">
+        <field name="name">contractor.budget.revision.search</field>
+        <field name="model">contractor.budget.revision</field>
+        <field name="arch" type="xml">
+            <search string="Search Budget Revisions">
+                <field name="name"/>
+                <field name="budget_id"/>
+                <field name="project_id"/>
+                <field name="cost_head"/>
+                <filter string="Submitted" name="filter_submitted" domain="[('state', '=', 'pm_submitted')]"/>
+                <filter string="MD Approval Required" name="filter_md_required" domain="[('requires_md_approval', '=', True)]"/>
+                <filter string="Approved" name="filter_approved" domain="[('state', 'in', ('manager_approved', 'md_approved'))]"/>
+                <group>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Cost Head" name="group_cost_head" domain="[]" context="{'group_by': 'cost_head'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_budget_revision" model="ir.actions.act_window">
+        <field name="name">Internal Budget Revisions</field>
+        <field name="res_model">contractor.budget.revision</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_budget_revision_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create an internal budget reallocation between cost heads.
+            </p>
+        </field>
+    </record>
+</odoo>
+

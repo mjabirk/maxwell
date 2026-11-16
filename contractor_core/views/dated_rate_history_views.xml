@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_contractor_dated_rate_history_list" model="ir.ui.view">
+        <field name="name">contractor.dated.rate.history.list</field>
+        <field name="model">contractor.dated.rate.history</field>
+        <field name="arch" type="xml">
+            <list string="Labor Rate Histories" default_order="effective_date desc, id desc">
+                <field name="employee_id" widget="many2one_avatar_employee"/>
+                <field name="classification"/>
+                <field name="effective_date"/>
+                <field name="effective_to"/>
+                <field name="system_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="override_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="effective_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
+                <field name="approved_by_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="currency_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_contractor_dated_rate_history_form" model="ir.ui.view">
+        <field name="name">contractor.dated.rate.history.form</field>
+        <field name="model">contractor.dated.rate.history</field>
+        <field name="arch" type="xml">
+            <form string="Labor Rate History Record">
+                <sheet>
+                    <group>
+                        <group string="Labor Information">
+                            <field name="employee_id"/>
+                            <field name="classification"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Effective Validity Window">
+                            <field name="effective_date"/>
+                            <field name="effective_to"/>
+                            <field name="approved_by_id"/>
+                        </group>
+                    </group>
+                    <group string="Hourly Costing Structure">
+                        <group>
+                            <field name="system_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="override_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                        <group>
+                            <field name="effective_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </group>
+                    <group string="Justification &amp; Audit Trail">
+                        <field name="reason" placeholder="Document the reason for this rate change or classification adjustment..."/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_contractor_dated_rate_history_search" model="ir.ui.view">
+        <field name="name">contractor.dated.rate.history.search</field>
+        <field name="model">contractor.dated.rate.history</field>
+        <field name="arch" type="xml">
+            <search string="Search Labor Rates">
+                <field name="employee_id"/>
+                <field name="classification"/>
+                <field name="reason"/>
+                <filter string="Active Now" name="active_now" domain="[('effective_date', '&lt;=', context_today().strftime('%Y-%m-%d')), '|', ('effective_to', '=', False), ('effective_to', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter string="Employee" name="group_employee" domain="[]" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Classification" name="group_classification" domain="[]" context="{'group_by': 'classification'}"/>
+                    <filter string="Effective Date" name="group_effective_date" domain="[]" context="{'group_by': 'effective_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_contractor_dated_rate_history" model="ir.actions.act_window">
+        <field name="name">Labor Rate Histories</field>
+        <field name="res_model">contractor.dated.rate.history</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_dated_rate_history_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No effective-dated labor rates recorded yet.
+            </p>
+            <p>
+                Record labor classifications, base system rates, and approved management override rates.
+                Historical project costings reference these exact snapshots to preserve historical cost integrity.
+            </p>
+        </field>
+    </record>
+</odoo>
+

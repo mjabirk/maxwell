@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_contractor_doc_version_user,contractor.document.version.user,model_contractor_document_version,base.group_user,1,0,1,0
+access_contractor_doc_version_mgr,contractor.document.version.manager,model_contractor_document_version,contractor_core.group_contractor_manager,1,0,1,0
+access_contractor_doc_version_md,contractor.document.version.md,model_contractor_document_version,contractor_core.group_contractor_md,1,0,1,0
+access_contractor_doc_version_admin,contractor.document.version.admin,model_contractor_document_version,base.group_system,1,1,1,1
+access_contractor_rate_history_user,contractor.dated.rate.history.user,model_contractor_dated_rate_history,base.group_user,1,0,0,0
+access_contractor_rate_history_hr,contractor.dated.rate.history.hr,model_contractor_dated_rate_history,contractor_core.group_contractor_hr_officer,1,1,1,0
+access_contractor_rate_history_mgr,contractor.dated.rate.history.manager,model_contractor_dated_rate_history,contractor_core.group_contractor_manager,1,1,1,0
+access_contractor_rate_history_md,contractor.dated.rate.history.md,model_contractor_dated_rate_history,contractor_core.group_contractor_md,1,1,1,0
+access_contractor_rate_history_admin,contractor.dated.rate.history.admin,model_contractor_dated_rate_history,base.group_system,1,1,1,1
+access_contractor_reason_wizard_user,contractor.reason.wizard.user,model_contractor_reason_wizard,base.group_user,1,1,1,1
+access_contractor_config_settings_mgr,contractor.config.settings.manager,base.model_res_config_settings,contractor_core.group_contractor_manager,1,1,1,0
+

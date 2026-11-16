@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Labour Cost Adjustment Form View -->
+    <record id="view_contractor_labour_cost_adjustment_form" model="ir.ui.view">
+        <field name="name">contractor.labour.cost.adjustment.form</field>
+        <field name="model">contractor.labour.cost.adjustment</field>
+        <field name="arch" type="xml">
+            <form string="Labour Cost Adjustment">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to Manager"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            string="Approve &amp; Post Cost"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_decline"
+                            string="Decline Adjustment"
+                            type="object"
+                            class="btn btn-outline-danger"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="LCA Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Operative &amp; Project Site">
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="adjustment_date" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Source Records &amp; Net Variances">
+                            <field name="attendance_id" readonly="state != 'draft'"/>
+                            <field name="cost_posting_id" readonly="state != 'draft'"/>
+                            <field name="hours_adjustment" readonly="state != 'draft'"/>
+                            <field name="rate_adjustment" readonly="state != 'draft'"/>
+                            <field name="amount_adjustment" class="fw-bold" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+
+                    <group string="Audit Justification &amp; Technical Basis">
+                        <field name="reason" placeholder="Document technical and timecard rationale for this retroactive cost adjustment..." readonly="state != 'draft'"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Audit Trail &amp; Accounting Move" name="audit_accounting">
+                            <group>
+                                <group string="Workflow Sign-Offs">
+                                    <field name="requested_by"/>
+                                    <field name="approver_id"/>
+                                    <field name="approval_date"/>
+                                </group>
+                                <group string="General Ledger Handoff">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Labour Cost Adjustment List View -->
+    <record id="view_contractor_labour_cost_adjustment_list" model="ir.ui.view">
+        <field name="name">contractor.labour.cost.adjustment.list</field>
+        <field name="model">contractor.labour.cost.adjustment</field>
+        <field name="arch" type="xml">
+            <list string="Labour Cost Adjustments" decoration-success="state == 'approved'" decoration-warning="state == 'submitted'" decoration-danger="state == 'declined'">
+                <field name="name"/>
+                <field name="adjustment_date"/>
+                <field name="employee_id"/>
+                <field name="project_id"/>
+                <field name="hours_adjustment"/>
+                <field name="rate_adjustment"/>
+                <field name="amount_adjustment" sum="Total Adjusted"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-warning="state == 'submitted'" decoration-danger="state == 'declined'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_labour_cost_adjustment_search" model="ir.ui.view">
+        <field name="name">contractor.labour.cost.adjustment.search</field>
+        <field name="model">contractor.labour.cost.adjustment</field>
+        <field name="arch" type="xml">
+            <search string="Search Labour Cost Adjustments">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="project_id"/>
+                <field name="adjustment_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Declined" name="declined" domain="[('state', '=', 'declined')]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Adjustment Date" name="group_by_date" context="{'group_by': 'adjustment_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Labour Cost Adjustments -->
+    <record id="action_contractor_labour_cost_adjustment" model="ir.actions.act_window">
+        <field name="name">Labour Cost Adjustments</field>
+        <field name="res_model">contractor.labour.cost.adjustment</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_labour_cost_adjustment_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register a documented labour cost adjustment against a project site and daily attendance.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

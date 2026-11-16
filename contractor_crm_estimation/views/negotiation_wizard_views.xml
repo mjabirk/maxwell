@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_negotiation_wizard_form" model="ir.ui.view">
+        <field name="name">contractor.negotiation.wizard.form</field>
+        <field name="model">contractor.negotiation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Client Negotiation &amp; Scope Revision">
+                <sheet>
+                    <div class="alert alert-info mb-3" role="alert">
+                        <strong>Negotiation Governance Rule:</strong>
+                        Logging client negotiations will automatically archive the current estimate into an immutable version snapshot (v2, v3...), attach the client's correspondence, and route the revised quote back for Contractor Manager review.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="order_id" readonly="1"/>
+                            <field name="current_quotation_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="update_margin"/>
+                            <field name="revised_margin_type" invisible="not update_margin"/>
+                            <field name="revised_margin_percent" invisible="not update_margin or revised_margin_type != 'percentage'"/>
+                            <field name="revised_margin_amount" invisible="not update_margin or revised_margin_type != 'fixed'" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                    </group>
+                    <group string="Client Feedback &amp; Trade-Offs">
+                        <field name="negotiation_notes" placeholder="Summarize client comments, target budget requests, scope deductions, and commercial adjustments (min 5 characters)..." nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Mandatory Client Message Attachments">
+                        <field name="client_message_ids" widget="many2many_binary" string="Attach Emails / Letters / Marked-up BOQs" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Submit Revised Estimate" name="action_confirm_negotiation" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
+

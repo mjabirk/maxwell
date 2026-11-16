@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================= -->
+    <!-- 0. Inherit hr.leave.type for Pay Percentage & EOSB Exclusion      -->
+    <!-- ================================================================= -->
+    <record id="edit_holiday_status_form_contractor_hrms" model="ir.ui.view">
+        <field name="name">hr.leave.type.form.contractor.hrms</field>
+        <field name="model">hr.leave.type</field>
+        <field name="inherit_id" ref="hr_holidays.edit_holiday_status_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Contractor Payroll &amp; EOSB Policy">
+                    <group>
+                        <field name="leave_pay_percentage"/>
+                        <field name="exclude_from_eosb_accrual"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 1. Inherit hr.leave for Critical Project Period & Governance      -->
+    <!-- ================================================================= -->
+    <record id="hr_leave_view_form_contractor_hrms" model="ir.ui.view">
+        <field name="name">hr.leave.view.form.contractor.hrms</field>
+        <field name="model">hr.leave</field>
+        <field name="inherit_id" ref="hr_holidays.hr_leave_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_pm_acknowledge"
+                        string="PM Acknowledge Milestone Leave"
+                        type="object"
+                        class="btn btn-warning"
+                        invisible="not is_critical_project_period or pm_acknowledged_by_id"
+                        groups="contractor_core.group_contractor_project_manager"/>
+            </xpath>
+
+            <xpath expr="//sheet" position="inside">
+                <group string="Contractor Project Milestone &amp; Governance">
+                    <group>
+                        <field name="current_leave_balance" readonly="1"/>
+                        <field name="is_critical_project_period"/>
+                        <field name="pm_acknowledged_by_id" invisible="not is_critical_project_period" readonly="1"/>
+                        <field name="pm_acknowledgement_date" invisible="not is_critical_project_period" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="leave_salary_paid" readonly="1"/>
+                        <field name="leave_salary_request_id" invisible="not leave_salary_paid" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 2. Leave Salary Payout Request                                    -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_leave_salary_request_form" model="ir.ui.view">
+        <field name="name">contractor.leave.salary.request.form</field>
+        <field name="model">contractor.leave.salary.request</field>
+        <field name="arch" type="xml">
+            <form string="Leave Salary Payout Request">
+                <header>
+                    <button name="action_hr_prepare"
+                            string="Submit by HR"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_hr_officer"/>
+                    <button name="action_accountant_approve"
+                            string="Audit &amp; Approve"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'hr_prepared'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_release_salary"
+                            string="Disburse Leave Salary"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'accountant_approved'"
+                            confirm="Are you sure you want to release this Leave Salary payout and post the GL entry? This action cannot be undone."
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,hr_prepared,accountant_approved,released"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Request Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Permanent Operative &amp; Approved Leave">
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="leave_id" readonly="state != 'draft'"/>
+                            <field name="payout_method" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Statutory Rate &amp; Payout Calculation">
+                            <field name="leave_days" readonly="1"/>
+                            <field name="basic_hourly_rate" readonly="1"/>
+                            <field name="pay_percentage" readonly="1"/>
+                            <field name="daily_salary_rate" readonly="1"/>
+                            <field name="leave_salary_amount" readonly="1"/>
+                            <field name="approved_amount" class="fw-bold" readonly="state in ('accountant_approved', 'released')"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Workflow Audit &amp; Journal Entry" name="leave_salary_audit">
+                            <group>
+                                <group string="Authorizations">
+                                    <field name="prepared_by"/>
+                                    <field name="accountant_id"/>
+                                    <field name="manager_id"/>
+                                </group>
+                                <group string="Payment Move">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_leave_salary_request_list" model="ir.ui.view">
+        <field name="name">contractor.leave.salary.request.list</field>
+        <field name="model">contractor.leave.salary.request</field>
+        <field name="arch" type="xml">
+            <list string="Leave Salary Requests" decoration-success="state == 'released'" decoration-warning="state in ('hr_prepared', 'accountant_approved')">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="leave_id"/>
+                <field name="leave_days"/>
+                <field name="payout_method"/>
+                <field name="approved_amount" sum="Total Leave Salary"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'accountant_approved'" decoration-info="state == 'hr_prepared'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_leave_salary_request_search" model="ir.ui.view">
+        <field name="name">contractor.leave.salary.request.search</field>
+        <field name="model">contractor.leave.salary.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Leave Salary Requests">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="leave_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="HR Prepared" name="hr_prepared" domain="[('state', '=', 'hr_prepared')]"/>
+                <filter string="Accountant Approved" name="accountant_approved" domain="[('state', '=', 'accountant_approved')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter string="Advance Release" name="advance_release" domain="[('payout_method', '=', 'advance_release')]"/>
+                <filter string="With Payroll" name="with_payroll" domain="[('payout_method', '=', 'with_payroll')]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Payout Method" name="group_by_payout" context="{'group_by': 'payout_method'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_leave_salary_request" model="ir.actions.act_window">
+        <field name="name">Leave Salary Requests</field>
+        <field name="res_model">contractor.leave.salary.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_leave_salary_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Calculate and process statutory leave salary for approved annual leaves.
+            </p>
+        </field>
+    </record>
+
+
+    <!-- ================================================================= -->
+    <!-- 3. Air Ticket Allowance Tracker & Request                         -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_ticket_allowance_request_form" model="ir.ui.view">
+        <field name="name">contractor.ticket.allowance.request.form</field>
+        <field name="model">contractor.ticket.allowance.request</field>
+        <field name="arch" type="xml">
+            <form string="Air Ticket Allowance Request">
+                <header>
+                    <button name="action_hr_prepare"
+                            string="Submit by HR"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_hr_officer"/>
+                    <button name="action_accountant_approve"
+                            string="Audit &amp; Approve"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'hr_prepared'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_release_ticket"
+                            string="Disburse Allowance / Book Ticket"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'accountant_approved'"
+                            confirm="Are you sure you want to release this Air Ticket Allowance and post the GL entry? This action cannot be undone."
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,hr_prepared,accountant_approved,released"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert" invisible="not is_early_release">
+                        <strong>Early Release Warning:</strong> This request is prior to the contractual entitlement date.
+                        Documented Manager justification is mandatory.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Ticket Request Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Operative &amp; Request Info">
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="request_date" readonly="state != 'draft'"/>
+                            <field name="disbursement_type" readonly="state != 'draft'"/>
+                            <field name="allowance_amount" readonly="state in ('accountant_approved', 'released')"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Entitlement Cycle Tracking">
+                            <field name="last_ticket_date" readonly="1"/>
+                            <field name="next_ticket_due_date" readonly="1"/>
+                            <field name="is_early_release" readonly="1" widget="boolean_toggle"/>
+                            <field name="manager_override_reason" invisible="not is_early_release" required="is_early_release" readonly="state in ('accountant_approved', 'released')"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Authorizations &amp; Accounting" name="ticket_audit">
+                            <group>
+                                <group string="Sign-Offs">
+                                    <field name="prepared_by"/>
+                                    <field name="accountant_id"/>
+                                    <field name="manager_id"/>
+                                </group>
+                                <group string="Accounting Entry">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_ticket_allowance_request_list" model="ir.ui.view">
+        <field name="name">contractor.ticket.allowance.request.list</field>
+        <field name="model">contractor.ticket.allowance.request</field>
+        <field name="arch" type="xml">
+            <list string="Air Ticket Allowance Requests" decoration-success="state == 'released'" decoration-warning="state in ('hr_prepared', 'accountant_approved')">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="request_date"/>
+                <field name="disbursement_type"/>
+                <field name="allowance_amount" sum="Total Ticket Allowance"/>
+                <field name="next_ticket_due_date"/>
+                <field name="is_early_release" widget="boolean_toggle"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'accountant_approved'" decoration-info="state == 'hr_prepared'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_ticket_allowance_request_search" model="ir.ui.view">
+        <field name="name">contractor.ticket.allowance.request.search</field>
+        <field name="model">contractor.ticket.allowance.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Air Ticket Allowance Requests">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="request_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="HR Prepared" name="hr_prepared" domain="[('state', '=', 'hr_prepared')]"/>
+                <filter string="Accountant Approved" name="accountant_approved" domain="[('state', '=', 'accountant_approved')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter string="Early Release" name="early_release" domain="[('is_early_release', '=', True)]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Disbursement Type" name="group_by_type" context="{'group_by': 'disbursement_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Request Date" name="group_by_date" context="{'group_by': 'request_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_ticket_allowance_request" model="ir.actions.act_window">
+        <field name="name">Air Ticket Allowance Requests</field>
+        <field name="res_model">contractor.ticket.allowance.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_ticket_allowance_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Process contractual air ticket allowances or flights for permanent workforce.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

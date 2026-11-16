@@ -1,0 +1,6 @@
+// Ensure FileViewer renders above Bootstrap/Odoo FormViewDialog modals with a dim backdrop
+body .modal.modal-fullscreen:has(.o-FileViewer) {
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1065;
+}
+

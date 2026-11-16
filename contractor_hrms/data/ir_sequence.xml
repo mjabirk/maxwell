@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Sequence for Agency Agreement -->
+    <record id="seq_contractor_agency_agreement" model="ir.sequence">
+        <field name="name">Manpower Agency Agreement Sequence</field>
+        <field name="code">contractor.agency.agreement</field>
+        <field name="prefix">AGR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Labour Cost Adjustment -->
+    <record id="seq_contractor_labour_cost_adjustment" model="ir.sequence">
+        <field name="name">Labour Cost Adjustment Sequence</field>
+        <field name="code">contractor.labour.cost.adjustment</field>
+        <field name="prefix">LCA-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Permanent Payroll Run -->
+    <record id="seq_contractor_payroll_run" model="ir.sequence">
+        <field name="name">Permanent Payroll Run Sequence</field>
+        <field name="code">contractor.payroll.run</field>
+        <field name="prefix">PAY-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Temp Wage Settlement -->
+    <record id="seq_contractor_temp_wage_settlement" model="ir.sequence">
+        <field name="name">Temporary Wage Settlement Sequence</field>
+        <field name="code">contractor.temp.wage.settlement</field>
+        <field name="prefix">TWS-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Agency Reconciliation -->
+    <record id="seq_contractor_agency_reconciliation" model="ir.sequence">
+        <field name="name">Agency Invoice Reconciliation Sequence</field>
+        <field name="code">contractor.agency.reconciliation</field>
+        <field name="prefix">MAR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Tool Asset -->
+    <record id="seq_contractor_tool_asset" model="ir.sequence">
+        <field name="name">Tool Asset Sequence</field>
+        <field name="code">contractor.tool.asset</field>
+        <field name="prefix">TOOL-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Leave Salary Request -->
+    <record id="seq_contractor_leave_salary_request" model="ir.sequence">
+        <field name="name">Leave Salary Request Sequence</field>
+        <field name="code">contractor.leave.salary.request</field>
+        <field name="prefix">LSR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Ticket Allowance Request -->
+    <record id="seq_contractor_ticket_allowance_request" model="ir.sequence">
+        <field name="name">Ticket Allowance Request Sequence</field>
+        <field name="code">contractor.ticket.allowance.request</field>
+        <field name="prefix">TAR-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Sequence for Employee Exit Settlement -->
+    <record id="seq_contractor_employee_exit" model="ir.sequence">
+        <field name="name">Employee Exit Settlement Sequence</field>
+        <field name="code">contractor.employee.exit</field>
+        <field name="prefix">EXIT-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>
+

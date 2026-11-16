@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="ir_cron_mr_sla_escalation" model="ir.cron">
+        <field name="name">Contractor ERP: Material Requisition 24h SLA Escalation</field>
+        <field name="model_id" ref="model_contractor_material_requisition"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_mr_escalations()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>
+

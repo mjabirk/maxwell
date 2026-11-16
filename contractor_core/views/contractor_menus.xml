@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-Level Root Menu -->
+    <menuitem id="menu_contractor_root"
+              name="Contractor ERP"
+              web_icon="contractor_core,static/description/icon.png"
+              sequence="15"
+              groups="base.group_user"/>
+
+    <!-- Document Control Submenu -->
+    <menuitem id="menu_contractor_document_control"
+              name="Document Governance"
+              parent="menu_contractor_root"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_version_snapshots"
+              name="Version Snapshots"
+              parent="menu_contractor_document_control"
+              action="action_contractor_document_version"
+              sequence="10"/>
+
+    <!-- HR & Labor Governance Submenu -->
+    <menuitem id="menu_contractor_hr_governance"
+              name="Labor Governance"
+              parent="menu_contractor_root"
+              sequence="30"
+              groups="base.group_system,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager"/>
+
+    <menuitem id="menu_contractor_rate_histories"
+              name="Labor Rate Histories"
+              parent="menu_contractor_hr_governance"
+              action="action_contractor_dated_rate_history"
+              sequence="10"/>
+
+    <!-- Central Configuration Submenu -->
+    <menuitem id="menu_contractor_configuration"
+              name="Configuration"
+              parent="menu_contractor_root"
+              sequence="90"
+              groups="base.group_system,contractor_core.group_contractor_manager,contractor_core.group_contractor_md"/>
+
+    <menuitem id="menu_contractor_settings"
+              name="Settings"
+              parent="menu_contractor_configuration"
+              action="action_contractor_config_settings"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_approval_roles"
+              name="Approval Roles &amp; Groups"
+              parent="menu_contractor_configuration"
+              action="action_contractor_security_groups"
+              sequence="20"/>
+</odoo>
+

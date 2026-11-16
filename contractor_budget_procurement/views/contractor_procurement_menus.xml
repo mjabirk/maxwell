@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add Internal Budget Revisions under Project Control -->
+    <menuitem id="menu_contractor_internal_budget_revisions"
+              name="Internal Budget Revisions"
+              parent="contractor_crm_estimation.menu_contractor_project_control"
+              action="action_contractor_budget_revision"
+              sequence="42"/>
+
+    <!-- Main Procurement & Material Control Category -->
+    <menuitem id="menu_contractor_procurement"
+              name="Procurement &amp; Material Control"
+              parent="contractor_core.menu_contractor_root"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_material_requisitions"
+              name="Material Requisitions (MR)"
+              parent="menu_contractor_procurement"
+              action="action_contractor_material_requisition"
+              sequence="10"/>
+
+    <menuitem id="menu_contractor_comparative_statements"
+              name="Comparative Statements (3-Vendor RFQ)"
+              parent="menu_contractor_procurement"
+              action="action_contractor_comparative_statement"
+              sequence="20"/>
+
+    <menuitem id="menu_contractor_purchase_orders"
+              name="Purchase Orders"
+              parent="menu_contractor_procurement"
+              action="purchase.purchase_form_action"
+              sequence="30"/>
+
+    <menuitem id="menu_contractor_stock_transfers"
+              name="Inter-Project Transfers (STN)"
+              parent="menu_contractor_procurement"
+              action="action_contractor_stock_transfer_note"
+              sequence="40"/>
+
+    <menuitem id="menu_contractor_stock_availability"
+              name="Consolidated Stock Availability"
+              parent="menu_contractor_procurement"
+              action="action_contractor_stock_availability_wizard"
+              sequence="50"/>
+
+    <menuitem id="menu_contractor_leftover_dispositions"
+              name="Leftover Material Dispositions"
+              parent="menu_contractor_procurement"
+              action="action_contractor_leftover_disposition"
+              sequence="60"/>
+
+    <menuitem id="menu_contractor_stock_adjustments"
+              name="Physical Stock Audits (SAN)"
+              parent="menu_contractor_procurement"
+              action="action_contractor_stock_adjustment_note"
+              sequence="70"/>
+</odoo>
+

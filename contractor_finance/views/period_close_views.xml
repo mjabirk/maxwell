@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Period Close Form View -->
+    <record id="view_contractor_period_close_form" model="ir.ui.view">
+        <field name="name">contractor.period.close.form</field>
+        <field name="model">contractor.period.close</field>
+        <field name="arch" type="xml">
+            <form string="Period Close Checklist &amp; Lock Engine">
+                <header>
+                    <button name="action_run_automated_checks"
+                            string="Run Automated System Checks"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state == 'locked'"/>
+                    <button name="action_submit_for_review"
+                            string="Submit for Management Review"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_signoff_year_end"
+                            string="Year-End Manager Sign-Off"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="period_type != 'year_end' or year_end_manager_signed_off or state == 'locked'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_approve_auditor_access"
+                            string="Approve External Auditor Access"
+                            type="object"
+                            class="btn btn-info"
+                            invisible="period_type != 'year_end' or auditor_access_approved"
+                            groups="contractor_core.group_contractor_manager,contractor_core.group_contractor_md"/>
+                    <button name="action_lock_period"
+                            string="Formally Lock Accounting Period"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state not in ('in_review', 'reopened')"
+                            confirm="Are you sure you want to formally lock this accounting period? Once locked, journal entries and period cost postings within these dates will be blocked."
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_reopen_period"
+                            string="Reopen Closed Period"
+                            type="object"
+                            class="btn btn-outline-danger"
+                            invisible="state != 'locked'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_review,locked"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Closing Schedule Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Period &amp; Type">
+                            <field name="period_type" widget="radio" readonly="state == 'locked'"/>
+                            <field name="date_start" readonly="state == 'locked'"/>
+                            <field name="date_end" readonly="state == 'locked'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Checklist Score &amp; Integrity">
+                            <field name="completion_percentage" widget="progressbar"/>
+                            <field name="all_gates_cleared" widget="boolean_toggle" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <separator string="10-Point Mandatory Close Checklist Gates"/>
+                    <group>
+                        <group>
+                            <field name="gate_bank_recs_approved" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_ap_bills_accruals_cleared" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_hrms_payroll_eosb_verified" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_inventory_counts_reconciled" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_nca_depreciation_posted" widget="boolean_toggle" readonly="state == 'locked'"/>
+                        </group>
+                        <group>
+                            <field name="gate_provisions_reviewed" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_poc_revenue_wip_posted" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_retention_register_reviewed" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_rpt_partner_accounts_reconciled" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_project_profitability_generated" widget="boolean_toggle" readonly="state == 'locked'"/>
+                        </group>
+                    </group>
+
+                    <group string="Year-End Statutory Extension Gates" invisible="period_type != 'year_end'">
+                        <group>
+                            <field name="gate_ye_physical_asset_count_100pct" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_ye_retention_current_noncurrent_split" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="year_end_manager_signed_off" readonly="1"/>
+                            <field name="year_end_signoff_by_id" readonly="1" invisible="not year_end_manager_signed_off"/>
+                            <field name="year_end_signoff_date" readonly="1" invisible="not year_end_manager_signed_off"/>
+                        </group>
+                        <group>
+                            <field name="gate_ye_lender_confirmations_received" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="gate_ye_ifrs_draft_statements_ready" widget="boolean_toggle" readonly="state == 'locked'"/>
+                            <field name="auditor_access_approved" readonly="1"/>
+                            <field name="auditor_access_approved_by_id" readonly="1" invisible="not auditor_access_approved"/>
+                            <field name="auditor_access_approved_date" readonly="1" invisible="not auditor_access_approved"/>
+                        </group>
+                    </group>
+
+                    <group string="Management Carry-Forward &amp; Exceptions">
+                        <field name="carry_forward_reason" placeholder="Document management justification for carrying forward any incomplete checklist gates..." readonly="state == 'locked'"/>
+                        <field name="carry_forward_authorized_by_id" readonly="1" invisible="not carry_forward_authorized_by_id"/>
+                    </group>
+
+                    <notebook>
+                        <page string="External &amp; Internal Audit Queries" name="audit_queries">
+                            <field name="audit_query_ids" readonly="state == 'locked'">
+                                <list string="Audit Queries" decoration-danger="status == 'open'" decoration-success="status == 'closed'">
+                                    <field name="query_ref"/>
+                                    <field name="auditor_firm"/>
+                                    <field name="query_text"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="has_audit_adjustment" widget="boolean_toggle"/>
+                                    <field name="adjustment_amount"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Lock &amp; Reopen Sign-Off Audit Trail" name="lock_audit">
+                            <group>
+                                <group string="Lock Certification">
+                                    <field name="locked_by_id" readonly="1"/>
+                                    <field name="lock_date" readonly="1"/>
+                                </group>
+                                <group string="Reopen History" invisible="not reopened_by_id">
+                                    <field name="reopened_by_id" readonly="1"/>
+                                    <field name="reopen_date" readonly="1"/>
+                                    <field name="reopen_reason" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Period Close List View -->
+    <record id="view_contractor_period_close_list" model="ir.ui.view">
+        <field name="name">contractor.period.close.list</field>
+        <field name="model">contractor.period.close</field>
+        <field name="arch" type="xml">
+            <list string="Period Close Schedules" decoration-success="state == 'locked'" decoration-warning="state == 'in_review'" decoration-danger="state == 'reopened'">
+                <field name="name"/>
+                <field name="period_type"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="completion_percentage" widget="progressbar"/>
+                <field name="all_gates_cleared" widget="boolean_toggle"/>
+                <field name="state" widget="badge" decoration-success="state == 'locked'" decoration-warning="state == 'in_review'" decoration-danger="state == 'reopened'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_period_close_search" model="ir.ui.view">
+        <field name="name">contractor.period.close.search</field>
+        <field name="model">contractor.period.close</field>
+        <field name="arch" type="xml">
+            <search string="Search Period Close Checklists">
+                <field name="name"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <filter string="Month-End Close" name="month_end" domain="[('period_type', '=', 'month_end')]"/>
+                <filter string="Year-End Close" name="year_end" domain="[('period_type', '=', 'year_end')]"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="In Review" name="in_review" domain="[('state', '=', 'in_review')]"/>
+                <filter string="Locked" name="locked" domain="[('state', '=', 'locked')]"/>
+                <filter string="Reopened" name="reopened" domain="[('state', '=', 'reopened')]"/>
+                <separator/>
+                <filter string="All Gates Cleared" name="gates_cleared" domain="[('all_gates_cleared', '=', True)]"/>
+                <filter string="Pending Gates" name="gates_pending" domain="[('all_gates_cleared', '=', False)]"/>
+                <group>
+                    <filter string="Period Type" name="group_by_period_type" context="{'group_by': 'period_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Period Close -->
+    <record id="action_contractor_period_close" model="ir.actions.act_window">
+        <field name="name">Month-End &amp; Year-End Close Checklists</field>
+        <field name="res_model">contractor.period.close</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_period_close_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Enforce 10-point mandatory closing checklists and formal period lockouts.
+            </p>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- External Audit Query Views                                        -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_audit_query_form" model="ir.ui.view">
+        <field name="name">contractor.audit.query.form</field>
+        <field name="model">contractor.audit.query</field>
+        <field name="arch" type="xml">
+            <form string="Audit Query &amp; Adjustment">
+                <header>
+                    <button name="action_approve_md"
+                            string="MD Authorize Audit Adjustment"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="not has_audit_adjustment or md_approved"
+                            groups="contractor_core.group_contractor_md"/>
+                    <field name="status" widget="statusbar" statusbar_visible="open,responded,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Audit Query Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Auditor &amp; PBC Reference">
+                            <field name="period_close_id"/>
+                            <field name="query_ref"/>
+                            <field name="auditor_firm"/>
+                        </group>
+                        <group string="Audit Adjustment Impact">
+                            <field name="has_audit_adjustment"/>
+                            <field name="adjustment_amount" invisible="not has_audit_adjustment"/>
+                            <field name="audit_adjustment_ref" invisible="not has_audit_adjustment"/>
+                            <field name="account_move_id" invisible="not has_audit_adjustment"/>
+                            <field name="md_approved" readonly="1" invisible="not has_audit_adjustment"/>
+                            <field name="md_approver_id" readonly="1" invisible="not md_approved"/>
+                        </group>
+                    </group>
+                    <group string="Auditor Inquiry">
+                        <field name="query_text" placeholder="Detail the auditor request, calculation challenge, or evidence required..."/>
+                    </group>
+                    <group string="Management Formal Response">
+                        <field name="management_response" placeholder="Enter company management reply, technical justification, or schedule references..."/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_audit_query_list" model="ir.ui.view">
+        <field name="name">contractor.audit.query.list</field>
+        <field name="model">contractor.audit.query</field>
+        <field name="arch" type="xml">
+            <list string="Audit Queries" decoration-danger="status == 'open'" decoration-success="status == 'closed'">
+                <field name="name"/>
+                <field name="period_close_id"/>
+                <field name="query_ref"/>
+                <field name="auditor_firm"/>
+                <field name="has_audit_adjustment" widget="boolean_toggle"/>
+                <field name="adjustment_amount" sum="Total Audit Adjustments"/>
+                <field name="status" widget="badge" decoration-danger="status == 'open'" decoration-success="status == 'closed'" decoration-info="status == 'responded'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_audit_query_search" model="ir.ui.view">
+        <field name="name">contractor.audit.query.search</field>
+        <field name="model">contractor.audit.query</field>
+        <field name="arch" type="xml">
+            <search string="Search Audit Queries">
+                <field name="name"/>
+                <field name="query_ref"/>
+                <field name="auditor_firm"/>
+                <field name="period_close_id"/>
+                <filter string="Open" name="open" domain="[('status', '=', 'open')]"/>
+                <filter string="Responded" name="responded" domain="[('status', '=', 'responded')]"/>
+                <filter string="Closed" name="closed" domain="[('status', '=', 'closed')]"/>
+                <separator/>
+                <filter string="Has Audit Adjustment" name="has_adjustment" domain="[('has_audit_adjustment', '=', True)]"/>
+                <filter string="MD Approved" name="md_approved" domain="[('md_approved', '=', True)]"/>
+                <group>
+                    <filter string="Period Close" name="group_by_period" context="{'group_by': 'period_close_id'}"/>
+                    <filter string="Auditor Firm" name="group_by_firm" context="{'group_by': 'auditor_firm'}"/>
+                    <filter string="Status" name="group_by_status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_audit_query" model="ir.actions.act_window">
+        <field name="name">External Audit Queries &amp; Adjustments</field>
+        <field name="res_model">contractor.audit.query</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_audit_query_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Log external and internal auditor inquiries and track material statutory audit adjustments.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

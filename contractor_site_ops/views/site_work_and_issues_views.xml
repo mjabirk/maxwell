@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Subcontractor Daily Work Log Views -->
+    <record id="view_contractor_site_work_log_form" model="ir.ui.view">
+        <field name="name">contractor.site.work.log.form</field>
+        <field name="model">contractor.site.work.log</field>
+        <field name="arch" type="xml">
+            <form string="Daily Output &amp; Subcontractor Work Log">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to PM"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_pm_certify"
+                            string="Certify Daily Output (Accrue Cost)"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_request_late_amendment"
+                            string="Request Late Amendment"
+                            type="object"
+                            class="btn-warning"
+                            invisible="not is_entry_locked or late_amendment_approved or late_amendment_requested"/>
+                    <button name="action_approve_late_amendment"
+                            string="Authorize Late Amendment"
+                            type="object"
+                            class="btn-outline-warning"
+                            invisible="not is_entry_locked or late_amendment_approved"
+                            groups="contractor_core.group_contractor_project_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,pm_certified"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_entry_locked">
+                        <strong>48-Hour Site Entry Lock:</strong> This work log is locked past operational cutoff.
+                        <span invisible="not late_amendment_requested or late_amendment_approved">
+                            | Amendment Requested by <field name="late_amendment_requester_id" readonly="1" class="oe_inline"/>: <field name="late_amendment_request_reason" readonly="1" class="oe_inline"/>
+                        </span>
+                        <button name="action_request_late_amendment"
+                                string="Request Late Amendment"
+                                type="object"
+                                class="btn btn-warning btn-sm ms-2"
+                                invisible="late_amendment_approved or late_amendment_requested"/>
+                        <span invisible="not late_amendment_approved">
+                            (Late Amendment Authorized by <field name="late_amendment_approver_id" readonly="1" class="oe_inline"/> - Reason: <field name="late_amendment_reason" readonly="1" class="oe_inline"/>)
+                        </span>
+                    </div>
+
+                    <div class="alert alert-info py-2 mb-3" role="alert">
+                        <strong>Progress Certification Governance:</strong>
+                        PM certification here logs physical output for daily project cost accruals only.
+                        Subcontractor invoice processing and disbursement remain strictly subject to formal contract milestone certificates.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Log Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Project &amp; Trade Crew">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="work_date" readonly="state != 'draft'"/>
+                            <field name="crew_type" readonly="state != 'draft'"/>
+                            <field name="subcontractor_id" invisible="crew_type != 'subcontractor'" required="crew_type == 'subcontractor'" readonly="state != 'draft'"/>
+                            <field name="work_package" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="is_entry_locked" invisible="1"/>
+                            <field name="is_locked" invisible="1"/>
+                            <field name="late_amendment_approved" invisible="1"/>
+                            <field name="late_amendment_requested" invisible="1"/>
+                            <field name="late_amendment_requester_id" invisible="1"/>
+                            <field name="late_amendment_request_reason" invisible="1"/>
+                        </group>
+                        <group string="Physical Output &amp; Daily Accrual">
+                            <field name="uom_id" readonly="state != 'draft'"/>
+                            <field name="subcontractor_claimed_qty" readonly="state != 'draft'"/>
+                            <field name="site_verified_qty" readonly="state != 'draft'"/>
+                            <field name="agreed_unit_rate" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
+                            <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="certified_by" readonly="1" invisible="not certified_by"/>
+                            <field name="certification_date" readonly="1" invisible="not certification_date"/>
+                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Execution Observations &amp; Grid Coordinates">
+                        <field name="notes" placeholder="State structural gridlines, elevation, and execution quality..." readonly="state != 'draft'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_work_log_list" model="ir.ui.view">
+        <field name="name">contractor.site.work.log.list</field>
+        <field name="model">contractor.site.work.log</field>
+        <field name="arch" type="xml">
+            <list string="Subcontractor Work Logs" default_order="work_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="work_date"/>
+                <field name="crew_type" widget="badge"/>
+                <field name="subcontractor_id"/>
+                <field name="work_package"/>
+                <field name="site_verified_qty"/>
+                <field name="uom_id"/>
+                <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Accrual"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'pm_certified'"
+                       decoration-danger="state == 'declined'"/>
+                <field name="is_entry_locked" widget="boolean" invisible="not is_entry_locked"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_work_log_search" model="ir.ui.view">
+        <field name="name">contractor.site.work.log.search</field>
+        <field name="model">contractor.site.work.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Subcontractor Daily Work Logs">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="subcontractor_id"/>
+                <field name="work_package"/>
+                <field name="work_date"/>
+                <filter string="In-House Crew" name="in_house" domain="[('crew_type', '=', 'in_house')]"/>
+                <filter string="Subcontractor Crew" name="subcontractor" domain="[('crew_type', '=', 'subcontractor')]"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="PM Certified" name="pm_certified" domain="[('state', '=', 'pm_certified')]"/>
+                <filter string="Declined" name="declined" domain="[('state', '=', 'declined')]"/>
+                <separator/>
+                <filter string="Late Amendment Approved" name="late_amendment" domain="[('late_amendment_approved', '=', True)]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Crew Type" name="group_by_crew_type" context="{'group_by': 'crew_type'}"/>
+                    <filter string="Subcontractor" name="group_by_subcontractor" context="{'group_by': 'subcontractor_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Work Date" name="group_by_date" context="{'group_by': 'work_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_site_work_log" model="ir.actions.act_window">
+        <field name="name">Subcontractor Daily Work Logs</field>
+        <field name="res_model">contractor.site.work.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_site_work_log_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Log daily verified physical output for subcontractor crews and accrue project costs in real time.
+            </p>
+        </field>
+    </record>
+
+    <!-- Site Issue Views -->
+    <record id="view_contractor_site_issue_form" model="ir.ui.view">
+        <field name="name">contractor.site.issue.form</field>
+        <field name="model">contractor.site.issue</field>
+        <field name="arch" type="xml">
+            <form string="Site Obstruction &amp; Critical Issue">
+                <header>
+                    <button name="action_resolve_issue"
+                            string="Resolve &amp; Close Issue"
+                            type="object"
+                            class="btn-success"
+                            invisible="state == 'resolved'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="open,escalated,resolved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger py-2 mb-3" role="alert" invisible="severity != 'material_safety_critical'">
+                        <strong>CRITICAL SAFETY HAZARD / STOP WORK:</strong>
+                        This incident has triggered immediate priority escalation to Project Manager and Operations Leadership.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Issue Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Incident Classification">
+                            <field name="project_id" readonly="state == 'resolved'"/>
+                            <field name="issue_date" readonly="state == 'resolved'"/>
+                            <field name="dpr_id" readonly="state == 'resolved'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Severity &amp; Status">
+                            <field name="issue_type" readonly="state == 'resolved'"/>
+                            <field name="severity" widget="badge"
+                                   decoration-warning="severity == 'high'"
+                                   decoration-danger="severity == 'material_safety_critical'"
+                                   readonly="state == 'resolved'"/>
+                            <field name="resolved_by" readonly="1" invisible="not resolved_by"/>
+                            <field name="resolved_date" readonly="1" invisible="not resolved_date"/>
+                        </group>
+                    </group>
+
+                    <group string="Issue Description &amp; Immediate Site Action">
+                        <field name="description" placeholder="Describe obstruction, hazard, cause of delay, or structural discrepancy..." readonly="state == 'resolved'"/>
+                    </group>
+
+                    <group string="Photographs &amp; Documented Evidence">
+                        <field name="photo_attachment_ids" widget="many2many_binary" readonly="state == 'resolved'"/>
+                    </group>
+
+                    <group string="Corrective Action &amp; Resolution" invisible="state != 'resolved' and not resolution_notes">
+                        <field name="resolution_notes" placeholder="State engineering remedy, safety clearance, permit received, or resumption details..." readonly="state == 'resolved'"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_issue_list" model="ir.ui.view">
+        <field name="name">contractor.site.issue.list</field>
+        <field name="model">contractor.site.issue</field>
+        <field name="arch" type="xml">
+            <list string="Site Issues &amp; Obstructions" default_order="issue_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="issue_date"/>
+                <field name="issue_type"/>
+                <field name="severity" widget="badge"
+                       decoration-warning="severity == 'high'"
+                       decoration-danger="severity == 'material_safety_critical'"/>
+                <field name="description"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'open'"
+                       decoration-warning="state == 'escalated'"
+                       decoration-success="state == 'resolved'"/>
+                <field name="dpr_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_site_issue_search" model="ir.ui.view">
+        <field name="name">contractor.site.issue.search</field>
+        <field name="model">contractor.site.issue</field>
+        <field name="arch" type="xml">
+            <search string="Search Site Obstructions &amp; Incidents">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="dpr_id"/>
+                <field name="issue_date"/>
+                <filter string="Open" name="open" domain="[('state', '=', 'open')]"/>
+                <filter string="Escalated" name="escalated" domain="[('state', '=', 'escalated')]"/>
+                <filter string="Resolved" name="resolved" domain="[('state', '=', 'resolved')]"/>
+                <separator/>
+                <filter string="Safety Critical" name="critical" domain="[('severity', '=', 'material_safety_critical')]"/>
+                <filter string="High Severity" name="high" domain="[('severity', '=', 'high')]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Issue Type" name="group_by_type" context="{'group_by': 'issue_type'}"/>
+                    <filter string="Severity" name="group_by_severity" context="{'group_by': 'severity'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Issue Date" name="group_by_date" context="{'group_by': 'issue_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_site_issue" model="ir.actions.act_window">
+        <field name="name">Site Obstructions &amp; Incidents</field>
+        <field name="res_model">contractor.site.issue</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_site_issue_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Log daily site obstructions, safety events, and technical queries with immediate management escalations.
+            </p>
+        </field>
+    </record>
+</odoo>
+

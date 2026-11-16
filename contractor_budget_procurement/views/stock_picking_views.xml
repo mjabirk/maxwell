@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_inherit_contractor" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.contractor</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_approve_over_delivery"
+                        string="Authorize Excess Delivery"
+                        type="object"
+                        class="btn-warning"
+                        invisible="not over_delivery_detected or over_delivery_approved"
+                        groups="contractor_core.group_contractor_manager"/>
+            </xpath>
+
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not over_delivery_detected">
+                    <strong>GRN Over-Delivery Detected:</strong> Received quantities exceed purchase order quantities beyond company tolerance.
+                    Manager Authorized: <field name="over_delivery_approved" readonly="1" class="oe_inline"/>.
+                    <span invisible="not over_delivery_approved">
+                        (Approved by: <field name="over_delivery_approved_by" readonly="1" class="oe_inline"/> - Reason: <field name="over_delivery_reason" readonly="1" class="oe_inline"/>)
+                    </span>
+                </div>
+                <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_emergency_purchase">
+                    <strong>EMERGENCY PURCHASE RECEIPT:</strong> This delivery is associated with an authorized Emergency Purchase.
+                    Classification: <field name="emergency_reason_code" readonly="1" class="oe_inline"/>.
+                </div>
+            </xpath>
+
+            <xpath expr="//field[@name='picking_type_id']" position="after">
+                <field name="project_id" readonly="state in ('done', 'cancel')"/>
+            </xpath>
+
+            <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="after">
+                <field name="project_id" optional="show" readonly="state in ('done', 'cancel')"/>
+            </xpath>
+
+            <xpath expr="//field[@name='move_ids']/list/field[@name='quantity']" position="after">
+                <field name="rejected_qty" optional="show"/>
+                <field name="rejection_action" optional="show"/>
+                <field name="rejection_reason" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="vpicktree_inherit_contractor" model="ir.ui.view">
+        <field name="name">stock.picking.list.inherit.contractor</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="project_id" optional="show" readonly="state in ('cancel', 'done')"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_picking_internal_search_inherit_contractor" model="ir.ui.view">
+        <field name="name">stock.picking.internal.search.inherit.contractor</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="project_id"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Project Code" name="groupby_project_id" domain="[]" context="{'group_by': 'project_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

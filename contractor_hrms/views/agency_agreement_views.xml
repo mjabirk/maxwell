@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Agency Agreement Form View -->
+    <record id="view_contractor_agency_agreement_form" model="ir.ui.view">
+        <field name="name">contractor.agency.agreement.form</field>
+        <field name="model">contractor.agency.agreement</field>
+        <field name="arch" type="xml">
+            <form string="Manpower Supply Agreement">
+                <header>
+                    <button name="action_activate"
+                            string="Activate SLA Agreement"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_terminate"
+                            string="Terminate Agreement"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'active'"
+                            confirm="Are you sure you want to permanently terminate this Manpower Supply Agreement?"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,terminated"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="SLA Agreement Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Agency &amp; Period Details">
+                            <field name="agency_id" readonly="state != 'draft'"/>
+                            <field name="agreement_date" readonly="state != 'draft'"/>
+                            <field name="start_date" readonly="state != 'draft'"/>
+                            <field name="end_date" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Billing Terms &amp; Quota">
+                            <field name="rate_type" widget="radio" readonly="state != 'draft'"/>
+                            <field name="agreed_rate" readonly="state != 'draft'"/>
+                            <field name="payment_terms"/>
+                            <field name="worker_count"/>
+                            <field name="employee_count" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Deployed Agency Operatives" name="deployed_operatives">
+                            <field name="employee_ids" readonly="1">
+                                <list string="Deployed Operatives">
+                                    <field name="name"/>
+                                    <field name="job_title"/>
+                                    <field name="department_id"/>
+                                    <field name="effective_hourly_rate"/>
+                                    <field name="assigned_tool_count"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Contract Documents &amp; SLA Terms" name="contract_documents">
+                            <group>
+                                <field name="contract_attachment_ids" widget="many2many_binary" readonly="state in ('active', 'expired', 'terminated')"/>
+                            </group>
+                            <separator string="SLA Terms &amp; Overtime Rules"/>
+                            <field name="notes" readonly="state in ('active', 'expired', 'terminated')" placeholder="Enter terms regarding overtime multipliers, attendance confirmation cutoffs, and dispute protocols..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Agency Agreement List View -->
+    <record id="view_contractor_agency_agreement_list" model="ir.ui.view">
+        <field name="name">contractor.agency.agreement.list</field>
+        <field name="model">contractor.agency.agreement</field>
+        <field name="arch" type="xml">
+            <list string="Manpower Supply Agreements" decoration-success="state == 'active'" decoration-muted="state in ('expired', 'terminated')">
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="rate_type"/>
+                <field name="agreed_rate"/>
+                <field name="worker_count"/>
+                <field name="employee_count"/>
+                <field name="state" widget="badge" decoration-success="state == 'active'" decoration-warning="state == 'draft'" decoration-danger="state == 'terminated'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_agency_agreement_search" model="ir.ui.view">
+        <field name="name">contractor.agency.agreement.search</field>
+        <field name="model">contractor.agency.agreement</field>
+        <field name="arch" type="xml">
+            <search string="Search Manpower Supply Agreements">
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Active" name="active" domain="[('state', '=', 'active')]"/>
+                <filter string="Expired" name="expired" domain="[('state', '=', 'expired')]"/>
+                <filter string="Terminated" name="terminated" domain="[('state', '=', 'terminated')]"/>
+                <separator/>
+                <filter string="Hourly Rate" name="hourly" domain="[('rate_type', '=', 'hourly')]"/>
+                <filter string="Daily Rate" name="daily" domain="[('rate_type', '=', 'daily')]"/>
+                <group>
+                    <filter string="Agency" name="group_by_agency" context="{'group_by': 'agency_id'}"/>
+                    <filter string="Rate Type" name="group_by_rate_type" context="{'group_by': 'rate_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Agency Agreements -->
+    <record id="action_contractor_agency_agreement" model="ir.actions.act_window">
+        <field name="name">Manpower Supply Agreements</field>
+        <field name="res_model">contractor.agency.agreement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_agency_agreement_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Establish a new Manpower Supply SLA Agreement with an approved agency partner.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

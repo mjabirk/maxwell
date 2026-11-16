@@ -1,0 +1,997 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Project Profitability and Cost Variance List View -->
+    <record id="view_contractor_report_project_profitability_list" model="ir.ui.view">
+        <field name="name">contractor.report.project.profitability.list</field>
+        <field name="model">contractor.report.project.profitability</field>
+        <field name="arch" type="xml">
+            <list string="Project Profitability &amp; Cost Variance" create="false" edit="false" delete="false">
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="total_approved_budget"/>
+                <field name="committed_amount"/>
+                <field name="actual_cost_amount"/>
+                <field name="billed_amount"/>
+                <field name="gross_margin"/>
+                <field name="margin_erosion_pct"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Project Profitability and Cost Variance Pivot View -->
+    <record id="view_contractor_report_project_profitability_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.project.profitability.pivot</field>
+        <field name="model">contractor.report.project.profitability</field>
+        <field name="arch" type="xml">
+            <pivot string="Project Profitability &amp; Cost Variance">
+                <field name="project_id" type="row"/>
+                <field name="partner_id" type="col"/>
+                <field name="gross_margin" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Project Profitability and Cost Variance Graph View -->
+    <record id="view_contractor_report_project_profitability_graph" model="ir.ui.view">
+        <field name="name">contractor.report.project.profitability.graph</field>
+        <field name="model">contractor.report.project.profitability</field>
+        <field name="arch" type="xml">
+            <graph string="Project Profitability &amp; Cost Variance" type="bar">
+                <field name="project_id"/>
+                <field name="gross_margin" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Project Profitability and Cost Variance Search View -->
+    <record id="view_contractor_report_project_profitability_search" model="ir.ui.view">
+        <field name="name">contractor.report.project.profitability.search</field>
+        <field name="model">contractor.report.project.profitability</field>
+        <field name="arch" type="xml">
+            <search string="Project Profitability &amp; Cost Variance">
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Project Profitability and Cost Variance Action -->
+    <record id="action_contractor_report_project_profitability" model="ir.actions.act_window">
+        <field name="name">Project Profitability &amp; Cost Variance</field>
+        <field name="res_model">contractor.report.project.profitability</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_project_profitability_search"/>
+    </record>
+
+    <!-- PoC WIP and Over/Under-Billing Schedule List View -->
+    <record id="view_contractor_report_wip_over_under_billing_list" model="ir.ui.view">
+        <field name="name">contractor.report.wip.over.under.billing.list</field>
+        <field name="model">contractor.report.wip.over.under.billing</field>
+        <field name="arch" type="xml">
+            <list string="PoC WIP &amp; Over/Under-Billing Schedule" create="false" edit="false" delete="false">
+                <field name="period_date"/>
+                <field name="wip_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="revised_contract_value"/>
+                <field name="certified_progress_pct"/>
+                <field name="earned_revenue_to_date"/>
+                <field name="billed_to_date"/>
+                <field name="variance_amount"/>
+                <field name="wip_classification"/>
+                <field name="adjustment_amount"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- PoC WIP and Over/Under-Billing Schedule Pivot View -->
+    <record id="view_contractor_report_wip_over_under_billing_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.wip.over.under.billing.pivot</field>
+        <field name="model">contractor.report.wip.over.under.billing</field>
+        <field name="arch" type="xml">
+            <pivot string="PoC WIP &amp; Over/Under-Billing Schedule">
+                <field name="project_id" type="row"/>
+                <field name="wip_classification" type="col"/>
+                <field name="adjustment_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- PoC WIP and Over/Under-Billing Schedule Graph View -->
+    <record id="view_contractor_report_wip_over_under_billing_graph" model="ir.ui.view">
+        <field name="name">contractor.report.wip.over.under.billing.graph</field>
+        <field name="model">contractor.report.wip.over.under.billing</field>
+        <field name="arch" type="xml">
+            <graph string="PoC WIP &amp; Over/Under-Billing Schedule" type="bar">
+                <field name="project_id"/>
+                <field name="adjustment_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- PoC WIP and Over/Under-Billing Schedule Search View -->
+    <record id="view_contractor_report_wip_over_under_billing_search" model="ir.ui.view">
+        <field name="name">contractor.report.wip.over.under.billing.search</field>
+        <field name="model">contractor.report.wip.over.under.billing</field>
+        <field name="arch" type="xml">
+            <search string="PoC WIP &amp; Over/Under-Billing Schedule">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="wip_classification"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="WIP Classification" name="group_by_wip_classification" context="{'group_by': 'wip_classification'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- PoC WIP and Over/Under-Billing Schedule Action -->
+    <record id="action_contractor_report_wip_over_under_billing" model="ir.actions.act_window">
+        <field name="name">PoC WIP &amp; Over/Under-Billing Schedule</field>
+        <field name="res_model">contractor.report.wip.over.under.billing</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_wip_over_under_billing_search"/>
+    </record>
+
+    <!-- Retention Money and DLP Expiry Ageing List View -->
+    <record id="view_contractor_report_retention_dlp_list" model="ir.ui.view">
+        <field name="name">contractor.report.retention.dlp.list</field>
+        <field name="model">contractor.report.retention.dlp</field>
+        <field name="arch" type="xml">
+            <list string="Retention Money &amp; DLP Expiry Ageing" create="false" edit="false" delete="false">
+                <field name="dlp_expiry_date"/>
+                <field name="retention_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="retention_type"/>
+                <field name="contract_amount"/>
+                <field name="retention_pct"/>
+                <field name="retention_amount"/>
+                <field name="days_to_dlp"/>
+                <field name="is_current_classification"/>
+                <field name="snags_rectified_confirmed"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Retention Money and DLP Expiry Ageing Pivot View -->
+    <record id="view_contractor_report_retention_dlp_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.retention.dlp.pivot</field>
+        <field name="model">contractor.report.retention.dlp</field>
+        <field name="arch" type="xml">
+            <pivot string="Retention Money &amp; DLP Expiry Ageing">
+                <field name="project_id" type="row"/>
+                <field name="retention_type" type="col"/>
+                <field name="retention_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Retention Money and DLP Expiry Ageing Graph View -->
+    <record id="view_contractor_report_retention_dlp_graph" model="ir.ui.view">
+        <field name="name">contractor.report.retention.dlp.graph</field>
+        <field name="model">contractor.report.retention.dlp</field>
+        <field name="arch" type="xml">
+            <graph string="Retention Money &amp; DLP Expiry Ageing" type="bar">
+                <field name="project_id"/>
+                <field name="retention_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Retention Money and DLP Expiry Ageing Search View -->
+    <record id="view_contractor_report_retention_dlp_search" model="ir.ui.view">
+        <field name="name">contractor.report.retention.dlp.search</field>
+        <field name="model">contractor.report.retention.dlp</field>
+        <field name="arch" type="xml">
+            <search string="Retention Money &amp; DLP Expiry Ageing">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="retention_type"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Contracting Party" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Retention Type" name="group_by_retention_type" context="{'group_by': 'retention_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Retention Money and DLP Expiry Ageing Action -->
+    <record id="action_contractor_report_retention_dlp" model="ir.actions.act_window">
+        <field name="name">Retention Money &amp; DLP Expiry Ageing</field>
+        <field name="res_model">contractor.report.retention.dlp</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_retention_dlp_search"/>
+    </record>
+
+    <!-- Bank Rec Status and Variance Tracker List View -->
+    <record id="view_contractor_report_bank_rec_status_list" model="ir.ui.view">
+        <field name="name">contractor.report.bank.rec.status.list</field>
+        <field name="model">contractor.report.bank.rec.status</field>
+        <field name="arch" type="xml">
+            <list string="Bank Rec Status &amp; Variance Tracker" create="false" edit="false" delete="false">
+                <field name="statement_date"/>
+                <field name="reconciliation_id"/>
+                <field name="name"/>
+                <field name="journal_id"/>
+                <field name="gl_balance"/>
+                <field name="closing_balance"/>
+                <field name="unmatched_payments_total"/>
+                <field name="unmatched_receipts_total"/>
+                <field name="reconciled_difference"/>
+                <field name="is_balanced"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Bank Rec Status and Variance Tracker Pivot View -->
+    <record id="view_contractor_report_bank_rec_status_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.bank.rec.status.pivot</field>
+        <field name="model">contractor.report.bank.rec.status</field>
+        <field name="arch" type="xml">
+            <pivot string="Bank Rec Status &amp; Variance Tracker">
+                <field name="journal_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="reconciled_difference" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Bank Rec Status and Variance Tracker Graph View -->
+    <record id="view_contractor_report_bank_rec_status_graph" model="ir.ui.view">
+        <field name="name">contractor.report.bank.rec.status.graph</field>
+        <field name="model">contractor.report.bank.rec.status</field>
+        <field name="arch" type="xml">
+            <graph string="Bank Rec Status &amp; Variance Tracker" type="bar">
+                <field name="journal_id"/>
+                <field name="reconciled_difference" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Bank Rec Status and Variance Tracker Search View -->
+    <record id="view_contractor_report_bank_rec_status_search" model="ir.ui.view">
+        <field name="name">contractor.report.bank.rec.status.search</field>
+        <field name="model">contractor.report.bank.rec.status</field>
+        <field name="arch" type="xml">
+            <search string="Bank Rec Status &amp; Variance Tracker">
+                <field name="name"/>
+                <field name="journal_id"/>
+                <group>
+                    <filter string="Bank Journal" name="group_by_journal_id" context="{'group_by': 'journal_id'}"/>
+                    <filter string="Balanced Status" name="group_by_is_balanced" context="{'group_by': 'is_balanced'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Bank Rec Status and Variance Tracker Action -->
+    <record id="action_contractor_report_bank_rec_status" model="ir.actions.act_window">
+        <field name="name">Bank Rec Status &amp; Variance Tracker</field>
+        <field name="res_model">contractor.report.bank.rec.status</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_bank_rec_status_search"/>
+    </record>
+
+    <!-- AR Aging and Milestone Escalation Log List View -->
+    <record id="view_contractor_report_ar_ageing_escalation_list" model="ir.ui.view">
+        <field name="name">contractor.report.ar.ageing.escalation.list</field>
+        <field name="model">contractor.report.ar.ageing.escalation</field>
+        <field name="arch" type="xml">
+            <list string="AR Aging &amp; Milestone Escalation Log" create="false" edit="false" delete="false">
+                <field name="invoice_date"/>
+                <field name="invoice_date_due"/>
+                <field name="move_id"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="amount_total"/>
+                <field name="amount_residual"/>
+                <field name="days_overdue"/>
+                <field name="ageing_bucket"/>
+                <field name="is_escalated"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- AR Aging and Milestone Escalation Log Pivot View -->
+    <record id="view_contractor_report_ar_ageing_escalation_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.ar.ageing.escalation.pivot</field>
+        <field name="model">contractor.report.ar.ageing.escalation</field>
+        <field name="arch" type="xml">
+            <pivot string="AR Aging &amp; Milestone Escalation Log">
+                <field name="partner_id" type="row"/>
+                <field name="ageing_bucket" type="col"/>
+                <field name="amount_residual" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- AR Aging and Milestone Escalation Log Graph View -->
+    <record id="view_contractor_report_ar_ageing_escalation_graph" model="ir.ui.view">
+        <field name="name">contractor.report.ar.ageing.escalation.graph</field>
+        <field name="model">contractor.report.ar.ageing.escalation</field>
+        <field name="arch" type="xml">
+            <graph string="AR Aging &amp; Milestone Escalation Log" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_residual" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- AR Aging and Milestone Escalation Log Search View -->
+    <record id="view_contractor_report_ar_ageing_escalation_search" model="ir.ui.view">
+        <field name="name">contractor.report.ar.ageing.escalation.search</field>
+        <field name="model">contractor.report.ar.ageing.escalation</field>
+        <field name="arch" type="xml">
+            <search string="AR Aging &amp; Milestone Escalation Log">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Client" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Aging Bracket" name="group_by_ageing_bucket" context="{'group_by': 'ageing_bucket'}"/>
+                    <filter string="Overdue Escalation" name="group_by_is_escalated" context="{'group_by': 'is_escalated'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- AR Aging and Milestone Escalation Log Action -->
+    <record id="action_contractor_report_ar_ageing_escalation" model="ir.actions.act_window">
+        <field name="name">AR Aging &amp; Milestone Escalation Log</field>
+        <field name="res_model">contractor.report.ar.ageing.escalation</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_ar_ageing_escalation_search"/>
+    </record>
+
+    <!-- AP Aging and Trade Payables Schedule List View -->
+    <record id="view_contractor_report_ap_ageing_list" model="ir.ui.view">
+        <field name="name">contractor.report.ap.ageing.list</field>
+        <field name="model">contractor.report.ap.ageing</field>
+        <field name="arch" type="xml">
+            <list string="AP Aging &amp; Trade Payables Schedule" create="false" edit="false" delete="false">
+                <field name="invoice_date"/>
+                <field name="invoice_date_due"/>
+                <field name="move_id"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <field name="amount_total"/>
+                <field name="amount_residual"/>
+                <field name="days_overdue"/>
+                <field name="ageing_bucket"/>
+                <field name="is_match_hold"/>
+                <field name="three_way_match_status"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- AP Aging and Trade Payables Schedule Pivot View -->
+    <record id="view_contractor_report_ap_ageing_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.ap.ageing.pivot</field>
+        <field name="model">contractor.report.ap.ageing</field>
+        <field name="arch" type="xml">
+            <pivot string="AP Aging &amp; Trade Payables Schedule">
+                <field name="partner_id" type="row"/>
+                <field name="ageing_bucket" type="col"/>
+                <field name="amount_residual" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- AP Aging and Trade Payables Schedule Graph View -->
+    <record id="view_contractor_report_ap_ageing_graph" model="ir.ui.view">
+        <field name="name">contractor.report.ap.ageing.graph</field>
+        <field name="model">contractor.report.ap.ageing</field>
+        <field name="arch" type="xml">
+            <graph string="AP Aging &amp; Trade Payables Schedule" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_residual" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- AP Aging and Trade Payables Schedule Search View -->
+    <record id="view_contractor_report_ap_ageing_search" model="ir.ui.view">
+        <field name="name">contractor.report.ap.ageing.search</field>
+        <field name="model">contractor.report.ap.ageing</field>
+        <field name="arch" type="xml">
+            <search string="AP Aging &amp; Trade Payables Schedule">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="project_id"/>
+                <group>
+                    <filter string="Vendor" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Aging Bracket" name="group_by_ageing_bucket" context="{'group_by': 'ageing_bucket'}"/>
+                    <filter string="Match Hold" name="group_by_is_match_hold" context="{'group_by': 'is_match_hold'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- AP Aging and Trade Payables Schedule Action -->
+    <record id="action_contractor_report_ap_ageing" model="ir.actions.act_window">
+        <field name="name">AP Aging &amp; Trade Payables Schedule</field>
+        <field name="res_model">contractor.report.ap.ageing</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_ap_ageing_search"/>
+    </record>
+
+    <!-- Related Party Transaction (RPT) Register List View -->
+    <record id="view_contractor_report_rpt_log_list" model="ir.ui.view">
+        <field name="name">contractor.report.rpt.log.list</field>
+        <field name="model">contractor.report.rpt.log</field>
+        <field name="arch" type="xml">
+            <list string="Related Party Transaction (RPT) Register" create="false" edit="false" delete="false">
+                <field name="invoice_date"/>
+                <field name="move_id"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="rpt_id"/>
+                <field name="rpt_nature"/>
+                <field name="is_arms_length"/>
+                <field name="rpt_manager_approved"/>
+                <field name="amount_total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Related Party Transaction (RPT) Register Pivot View -->
+    <record id="view_contractor_report_rpt_log_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.rpt.log.pivot</field>
+        <field name="model">contractor.report.rpt.log</field>
+        <field name="arch" type="xml">
+            <pivot string="Related Party Transaction (RPT) Register">
+                <field name="partner_id" type="row"/>
+                <field name="rpt_nature" type="col"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Related Party Transaction (RPT) Register Graph View -->
+    <record id="view_contractor_report_rpt_log_graph" model="ir.ui.view">
+        <field name="name">contractor.report.rpt.log.graph</field>
+        <field name="model">contractor.report.rpt.log</field>
+        <field name="arch" type="xml">
+            <graph string="Related Party Transaction (RPT) Register" type="bar">
+                <field name="partner_id"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Related Party Transaction (RPT) Register Search View -->
+    <record id="view_contractor_report_rpt_log_search" model="ir.ui.view">
+        <field name="name">contractor.report.rpt.log.search</field>
+        <field name="model">contractor.report.rpt.log</field>
+        <field name="arch" type="xml">
+            <search string="Related Party Transaction (RPT) Register">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="rpt_id"/>
+                <field name="rpt_nature"/>
+                <group>
+                    <filter string="Counterparty" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Nature of Flow" name="group_by_rpt_nature" context="{'group_by': 'rpt_nature'}"/>
+                    <filter string="Arm&apos;s Length Certified" name="group_by_is_arms_length" context="{'group_by': 'is_arms_length'}"/>
+                    <filter string="Manager Approved" name="group_by_rpt_manager_approved" context="{'group_by': 'rpt_manager_approved'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Related Party Transaction (RPT) Register Action -->
+    <record id="action_contractor_report_rpt_log" model="ir.actions.act_window">
+        <field name="name">Related Party Transaction (RPT) Register</field>
+        <field name="res_model">contractor.report.rpt.log</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_rpt_log_search"/>
+    </record>
+
+    <!-- Partner and Shareholder Current Account List View -->
+    <record id="view_contractor_report_partner_current_account_list" model="ir.ui.view">
+        <field name="name">contractor.report.partner.current.account.list</field>
+        <field name="model">contractor.report.partner.current.account</field>
+        <field name="arch" type="xml">
+            <list string="Partner &amp; Shareholder Current Account" create="false" edit="false" delete="false">
+                <field name="account_record_id"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="rpt_id"/>
+                <field name="total_injections"/>
+                <field name="total_drawings"/>
+                <field name="net_partner_balance"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Partner and Shareholder Current Account Pivot View -->
+    <record id="view_contractor_report_partner_current_account_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.partner.current.account.pivot</field>
+        <field name="model">contractor.report.partner.current.account</field>
+        <field name="arch" type="xml">
+            <pivot string="Partner &amp; Shareholder Current Account">
+                <field name="partner_id" type="row"/>
+                <field name="rpt_id" type="col"/>
+                <field name="net_partner_balance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Partner and Shareholder Current Account Graph View -->
+    <record id="view_contractor_report_partner_current_account_graph" model="ir.ui.view">
+        <field name="name">contractor.report.partner.current.account.graph</field>
+        <field name="model">contractor.report.partner.current.account</field>
+        <field name="arch" type="xml">
+            <graph string="Partner &amp; Shareholder Current Account" type="bar">
+                <field name="partner_id"/>
+                <field name="net_partner_balance" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Partner and Shareholder Current Account Search View -->
+    <record id="view_contractor_report_partner_current_account_search" model="ir.ui.view">
+        <field name="name">contractor.report.partner.current.account.search</field>
+        <field name="model">contractor.report.partner.current.account</field>
+        <field name="arch" type="xml">
+            <search string="Partner &amp; Shareholder Current Account">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <group>
+                    <filter string="Partner / Shareholder" name="group_by_partner_id" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Partner and Shareholder Current Account Action -->
+    <record id="action_contractor_report_partner_current_account" model="ir.actions.act_window">
+        <field name="name">Partner &amp; Shareholder Current Account</field>
+        <field name="res_model">contractor.report.partner.current.account</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_partner_current_account_search"/>
+    </record>
+
+    <!-- Petty Cash Float Reconciliation Sheet List View -->
+    <record id="view_contractor_report_petty_cash_rec_list" model="ir.ui.view">
+        <field name="name">contractor.report.petty.cash.rec.list</field>
+        <field name="model">contractor.report.petty.cash.rec</field>
+        <field name="arch" type="xml">
+            <list string="Petty Cash Float Reconciliation Sheet" create="false" edit="false" delete="false">
+                <field name="float_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_id"/>
+                <field name="float_limit"/>
+                <field name="current_balance"/>
+                <field name="spent_amount"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Petty Cash Float Reconciliation Sheet Pivot View -->
+    <record id="view_contractor_report_petty_cash_rec_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.petty.cash.rec.pivot</field>
+        <field name="model">contractor.report.petty.cash.rec</field>
+        <field name="arch" type="xml">
+            <pivot string="Petty Cash Float Reconciliation Sheet">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="current_balance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Petty Cash Float Reconciliation Sheet Graph View -->
+    <record id="view_contractor_report_petty_cash_rec_graph" model="ir.ui.view">
+        <field name="name">contractor.report.petty.cash.rec.graph</field>
+        <field name="model">contractor.report.petty.cash.rec</field>
+        <field name="arch" type="xml">
+            <graph string="Petty Cash Float Reconciliation Sheet" type="bar">
+                <field name="project_id"/>
+                <field name="current_balance" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Petty Cash Float Reconciliation Sheet Search View -->
+    <record id="view_contractor_report_petty_cash_rec_search" model="ir.ui.view">
+        <field name="name">contractor.report.petty.cash.rec.search</field>
+        <field name="model">contractor.report.petty.cash.rec</field>
+        <field name="arch" type="xml">
+            <search string="Petty Cash Float Reconciliation Sheet">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Cashier" name="group_by_custodian_id" context="{'group_by': 'custodian_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Petty Cash Float Reconciliation Sheet Action -->
+    <record id="action_contractor_report_petty_cash_rec" model="ir.actions.act_window">
+        <field name="name">Petty Cash Float Reconciliation Sheet</field>
+        <field name="res_model">contractor.report.petty.cash.rec</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_petty_cash_rec_search"/>
+    </record>
+
+    <!-- Fixed Asset Depreciation Schedule List View -->
+    <record id="view_contractor_report_nca_depreciation_list" model="ir.ui.view">
+        <field name="name">contractor.report.nca.depreciation.list</field>
+        <field name="model">contractor.report.nca.depreciation</field>
+        <field name="arch" type="xml">
+            <list string="Fixed Asset Depreciation Schedule" create="false" edit="false" delete="false">
+                <field name="acquisition_date"/>
+                <field name="asset_id"/>
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_employee_id"/>
+                <field name="purchase_value"/>
+                <field name="cumulative_depreciation"/>
+                <field name="book_value"/>
+                <field name="depreciation_method"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Fixed Asset Depreciation Schedule Pivot View -->
+    <record id="view_contractor_report_nca_depreciation_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.nca.depreciation.pivot</field>
+        <field name="model">contractor.report.nca.depreciation</field>
+        <field name="arch" type="xml">
+            <pivot string="Fixed Asset Depreciation Schedule">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="book_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Fixed Asset Depreciation Schedule Graph View -->
+    <record id="view_contractor_report_nca_depreciation_graph" model="ir.ui.view">
+        <field name="name">contractor.report.nca.depreciation.graph</field>
+        <field name="model">contractor.report.nca.depreciation</field>
+        <field name="arch" type="xml">
+            <graph string="Fixed Asset Depreciation Schedule" type="bar">
+                <field name="project_id"/>
+                <field name="book_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Fixed Asset Depreciation Schedule Search View -->
+    <record id="view_contractor_report_nca_depreciation_search" model="ir.ui.view">
+        <field name="name">contractor.report.nca.depreciation.search</field>
+        <field name="model">contractor.report.nca.depreciation</field>
+        <field name="arch" type="xml">
+            <search string="Fixed Asset Depreciation Schedule">
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="custodian_employee_id"/>
+                <group>
+                    <filter string="Project Site" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Method" name="group_by_depreciation_method" context="{'group_by': 'depreciation_method'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Fixed Asset Depreciation Schedule Action -->
+    <record id="action_contractor_report_nca_depreciation" model="ir.actions.act_window">
+        <field name="name">Fixed Asset Depreciation Schedule</field>
+        <field name="res_model">contractor.report.nca.depreciation</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_nca_depreciation_search"/>
+    </record>
+
+    <!-- Loan Facility and Covenant Compliance List View -->
+    <record id="view_contractor_report_loan_covenant_list" model="ir.ui.view">
+        <field name="name">contractor.report.loan.covenant.list</field>
+        <field name="model">contractor.report.loan.covenant</field>
+        <field name="arch" type="xml">
+            <list string="Loan Facility &amp; Covenant Compliance" create="false" edit="false" delete="false">
+                <field name="maturity_date"/>
+                <field name="facility_id"/>
+                <field name="name"/>
+                <field name="lender_id"/>
+                <field name="is_related_party_lender"/>
+                <field name="loan_type"/>
+                <field name="principal_amount"/>
+                <field name="outstanding_balance"/>
+                <field name="interest_rate_pct"/>
+                <field name="start_date"/>
+                <field name="days_to_maturity"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Loan Facility and Covenant Compliance Pivot View -->
+    <record id="view_contractor_report_loan_covenant_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.loan.covenant.pivot</field>
+        <field name="model">contractor.report.loan.covenant</field>
+        <field name="arch" type="xml">
+            <pivot string="Loan Facility &amp; Covenant Compliance">
+                <field name="lender_id" type="row"/>
+                <field name="loan_type" type="col"/>
+                <field name="outstanding_balance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Loan Facility and Covenant Compliance Graph View -->
+    <record id="view_contractor_report_loan_covenant_graph" model="ir.ui.view">
+        <field name="name">contractor.report.loan.covenant.graph</field>
+        <field name="model">contractor.report.loan.covenant</field>
+        <field name="arch" type="xml">
+            <graph string="Loan Facility &amp; Covenant Compliance" type="bar">
+                <field name="lender_id"/>
+                <field name="outstanding_balance" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Loan Facility and Covenant Compliance Search View -->
+    <record id="view_contractor_report_loan_covenant_search" model="ir.ui.view">
+        <field name="name">contractor.report.loan.covenant.search</field>
+        <field name="model">contractor.report.loan.covenant</field>
+        <field name="arch" type="xml">
+            <search string="Loan Facility &amp; Covenant Compliance">
+                <field name="name"/>
+                <field name="lender_id"/>
+                <field name="loan_type"/>
+                <group>
+                    <filter string="Lender" name="group_by_lender_id" context="{'group_by': 'lender_id'}"/>
+                    <filter string="Facility Type" name="group_by_loan_type" context="{'group_by': 'loan_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Loan Facility and Covenant Compliance Action -->
+    <record id="action_contractor_report_loan_covenant" model="ir.actions.act_window">
+        <field name="name">Loan Facility &amp; Covenant Compliance</field>
+        <field name="res_model">contractor.report.loan.covenant</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_loan_covenant_search"/>
+    </record>
+
+    <!-- 10-Point Period-End Close Checklist List View -->
+    <record id="view_contractor_report_month_end_checklist_list" model="ir.ui.view">
+        <field name="name">contractor.report.month.end.checklist.list</field>
+        <field name="model">contractor.report.month.end.checklist</field>
+        <field name="arch" type="xml">
+            <list string="10-Point Period-End Close Checklist" create="false" edit="false" delete="false">
+                <field name="date_end"/>
+                <field name="close_id"/>
+                <field name="name"/>
+                <field name="period_type"/>
+                <field name="date_start"/>
+                <field name="completion_percentage"/>
+                <field name="all_gates_cleared"/>
+                <field name="state"/>
+                <field name="locked_by_id"/>
+                <field name="lock_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- 10-Point Period-End Close Checklist Pivot View -->
+    <record id="view_contractor_report_month_end_checklist_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.month.end.checklist.pivot</field>
+        <field name="model">contractor.report.month.end.checklist</field>
+        <field name="arch" type="xml">
+            <pivot string="10-Point Period-End Close Checklist">
+                <field name="period_type" type="row"/>
+                <field name="state" type="col"/>
+                <field name="completion_percentage" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 10-Point Period-End Close Checklist Graph View -->
+    <record id="view_contractor_report_month_end_checklist_graph" model="ir.ui.view">
+        <field name="name">contractor.report.month.end.checklist.graph</field>
+        <field name="model">contractor.report.month.end.checklist</field>
+        <field name="arch" type="xml">
+            <graph string="10-Point Period-End Close Checklist" type="bar">
+                <field name="period_type"/>
+                <field name="completion_percentage" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- 10-Point Period-End Close Checklist Search View -->
+    <record id="view_contractor_report_month_end_checklist_search" model="ir.ui.view">
+        <field name="name">contractor.report.month.end.checklist.search</field>
+        <field name="model">contractor.report.month.end.checklist</field>
+        <field name="arch" type="xml">
+            <search string="10-Point Period-End Close Checklist">
+                <field name="name"/>
+                <field name="period_type"/>
+                <field name="state"/>
+                <group>
+                    <filter string="Close Type" name="group_by_period_type" context="{'group_by': 'period_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="All Gates Cleared" name="group_by_all_gates_cleared" context="{'group_by': 'all_gates_cleared'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- 10-Point Period-End Close Checklist Action -->
+    <record id="action_contractor_report_month_end_checklist" model="ir.actions.act_window">
+        <field name="name">10-Point Period-End Close Checklist</field>
+        <field name="res_model">contractor.report.month.end.checklist</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_month_end_checklist_search"/>
+    </record>
+
+    <!-- External Audit Query and Adjustment Tracker List View -->
+    <record id="view_contractor_report_audit_query_log_list" model="ir.ui.view">
+        <field name="name">contractor.report.audit.query.log.list</field>
+        <field name="model">contractor.report.audit.query.log</field>
+        <field name="arch" type="xml">
+            <list string="External Audit Query &amp; Adjustment Tracker" create="false" edit="false" delete="false">
+                <field name="query_id"/>
+                <field name="name"/>
+                <field name="period_close_id"/>
+                <field name="query_ref"/>
+                <field name="auditor_firm"/>
+                <field name="status"/>
+                <field name="has_audit_adjustment"/>
+                <field name="adjustment_amount"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- External Audit Query and Adjustment Tracker Pivot View -->
+    <record id="view_contractor_report_audit_query_log_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.audit.query.log.pivot</field>
+        <field name="model">contractor.report.audit.query.log</field>
+        <field name="arch" type="xml">
+            <pivot string="External Audit Query &amp; Adjustment Tracker">
+                <field name="auditor_firm" type="row"/>
+                <field name="status" type="col"/>
+                <field name="adjustment_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- External Audit Query and Adjustment Tracker Graph View -->
+    <record id="view_contractor_report_audit_query_log_graph" model="ir.ui.view">
+        <field name="name">contractor.report.audit.query.log.graph</field>
+        <field name="model">contractor.report.audit.query.log</field>
+        <field name="arch" type="xml">
+            <graph string="External Audit Query &amp; Adjustment Tracker" type="pie">
+                <field name="auditor_firm"/>
+                <field name="adjustment_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- External Audit Query and Adjustment Tracker Search View -->
+    <record id="view_contractor_report_audit_query_log_search" model="ir.ui.view">
+        <field name="name">contractor.report.audit.query.log.search</field>
+        <field name="model">contractor.report.audit.query.log</field>
+        <field name="arch" type="xml">
+            <search string="External Audit Query &amp; Adjustment Tracker">
+                <field name="name"/>
+                <field name="query_ref"/>
+                <field name="auditor_firm"/>
+                <group>
+                    <filter string="Audit Firm" name="group_by_auditor_firm" context="{'group_by': 'auditor_firm'}"/>
+                    <filter string="Inquiry Status" name="group_by_status" context="{'group_by': 'status'}"/>
+                    <filter string="Adjustment Entry Required" name="group_by_has_audit_adjustment" context="{'group_by': 'has_audit_adjustment'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- External Audit Query and Adjustment Tracker Action -->
+    <record id="action_contractor_report_audit_query_log" model="ir.actions.act_window">
+        <field name="name">External Audit Query &amp; Adjustment Tracker</field>
+        <field name="res_model">contractor.report.audit.query.log</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_audit_query_log_search"/>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 70. Monthly Financial Pack & Executive KPI Summary                -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_report_monthly_financial_pack_list" model="ir.ui.view">
+        <field name="name">contractor.report.monthly.financial.pack.list</field>
+        <field name="model">contractor.report.monthly.financial.pack</field>
+        <field name="arch" type="xml">
+            <list string="Monthly Financial Close Pack" decoration-success="state == 'locked'" decoration-warning="state == 'in_review'">
+                <field name="name"/>
+                <field name="period_type"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="completion_percentage"/>
+                <field name="all_gates_cleared"/>
+                <field name="invoiced_revenue" sum="Total Invoiced"/>
+                <field name="vendor_bills_ap" sum="Total Vendor Bills"/>
+                <field name="payroll_disbursed" sum="Total Payroll"/>
+                <field name="provisions_posted" sum="Total Provisions"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_monthly_financial_pack_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.monthly.financial.pack.pivot</field>
+        <field name="model">contractor.report.monthly.financial.pack</field>
+        <field name="arch" type="xml">
+            <pivot string="Monthly Financial Close Pack">
+                <field name="date_end" type="row"/>
+                <field name="invoiced_revenue" type="measure"/>
+                <field name="vendor_bills_ap" type="measure"/>
+                <field name="payroll_disbursed" type="measure"/>
+                <field name="provisions_posted" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_monthly_financial_pack_graph" model="ir.ui.view">
+        <field name="name">contractor.report.monthly.financial.pack.graph</field>
+        <field name="model">contractor.report.monthly.financial.pack</field>
+        <field name="arch" type="xml">
+            <graph string="Monthly Financial Close Pack" type="bar">
+                <field name="name"/>
+                <field name="invoiced_revenue" type="measure"/>
+                <field name="vendor_bills_ap" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_monthly_financial_pack_search" model="ir.ui.view">
+        <field name="name">contractor.report.monthly.financial.pack.search</field>
+        <field name="model">contractor.report.monthly.financial.pack</field>
+        <field name="arch" type="xml">
+            <search string="Monthly Financial Close Pack">
+                <field name="name"/>
+                <field name="period_type"/>
+                <group>
+                    <filter string="Period Type" name="group_by_period_type" context="{'group_by': 'period_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_report_monthly_financial_pack" model="ir.actions.act_window">
+        <field name="name">Monthly Financial Pack &amp; Close KPIs</field>
+        <field name="res_model">contractor.report.monthly.financial.pack</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_monthly_financial_pack_search"/>
+    </record>
+</odoo>

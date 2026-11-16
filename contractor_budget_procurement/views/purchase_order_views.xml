@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="purchase_order_form_inherit_contractor" model="ir.ui.view">
+        <field name="name">purchase.order.form.inherit.contractor</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Header Approval Actions -->
+            <xpath expr="//header" position="inside">
+                <button name="action_request_md_approval"
+                        string="Request MD Approval"
+                        type="object"
+                        class="btn-warning"
+                        invisible="not requires_md_approval or md_approval_state == 'approved' or state not in ('draft', 'sent')"/>
+                <button name="action_md_approve_po"
+                        string="MD Approve PO"
+                        type="object"
+                        class="btn-success"
+                        invisible="not requires_md_approval or md_approval_state == 'approved'"
+                        groups="contractor_core.group_contractor_md"/>
+                <button name="action_approve_emergency_purchase"
+                        string="Authorize Emergency Purchase"
+                        type="object"
+                        class="btn-warning"
+                        invisible="not is_emergency_purchase or emergency_manager_approved"
+                        groups="contractor_core.group_contractor_manager"/>
+                <button name="action_md_accept_emergency_review"
+                        string="Accept Emergency Audit"
+                        type="object"
+                        class="btn-outline-success"
+                        invisible="not is_emergency_purchase or md_post_event_review_state != 'pending'"
+                        groups="contractor_core.group_contractor_md"/>
+                <button name="action_md_flag_emergency_exception"
+                        string="Flag Audit Exception"
+                        type="object"
+                        class="btn-outline-danger"
+                        invisible="not is_emergency_purchase or md_post_event_review_state != 'pending'"
+                        groups="contractor_core.group_contractor_md"/>
+            </xpath>
+
+            <!-- Alert Banners -->
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_emergency_purchase">
+                    <strong>EMERGENCY PURCHASE:</strong> Bypasses standard MR &amp; 3-Vendor RFQ under Classification:
+                    <field name="emergency_reason_code" readonly="1" class="oe_inline"/>.
+                    Manager Authorized: <field name="emergency_manager_approved" readonly="1" class="oe_inline"/>.
+                    Audit Status: <field name="md_post_event_review_state" readonly="1" class="oe_inline"/>.
+                </div>
+                <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not requires_md_approval or md_approval_state == 'approved'">
+                    <strong>Executive Clearance Required:</strong> Value meets or exceeds PO MD Approval Threshold.
+                    Managing Director sign-off is mandatory before order confirmation.
+                </div>
+            </xpath>
+
+            <!-- Procurement Lineage Fields -->
+            <xpath expr="//field[@name='partner_ref']" position="after">
+                <field name="project_id" readonly="state in ('purchase', 'done', 'cancel')"/>
+                <field name="requisition_id" readonly="state in ('purchase', 'done', 'cancel')"/>
+                <field name="comparative_statement_id" readonly="state in ('purchase', 'done', 'cancel')"/>
+                <field name="requires_md_approval" invisible="1"/>
+                <field name="md_approval_state" widget="badge"
+                       decoration-info="md_approval_state == 'pending'"
+                       decoration-success="md_approval_state == 'approved'"
+                       decoration-danger="md_approval_state == 'declined'"
+                       invisible="not requires_md_approval"/>
+            </xpath>
+
+            <!-- Notebook Tab for Emergency Governance & Audit -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Contractor Governance &amp; Emergency Audit" name="page_governance">
+                    <group>
+                        <group string="Emergency Purchase Authorization">
+                            <field name="is_emergency_purchase" widget="boolean_toggle" readonly="state in ('purchase', 'done', 'cancel')"/>
+                            <field name="emergency_reason_code" invisible="not is_emergency_purchase" readonly="state in ('purchase', 'done', 'cancel')"/>
+                            <field name="emergency_explanation" invisible="not is_emergency_purchase" readonly="state in ('purchase', 'done', 'cancel')"/>
+                            <field name="emergency_manager_approved" readonly="1" invisible="not is_emergency_purchase"/>
+                            <field name="emergency_approver_id" readonly="1" invisible="not is_emergency_purchase"/>
+                            <field name="emergency_approval_date" readonly="1" invisible="not is_emergency_purchase"/>
+                        </group>
+                        <group string="Executive Audit &amp; Version History">
+                            <field name="md_post_event_review_state" widget="badge"
+                                   decoration-warning="md_post_event_review_state == 'pending'"
+                                   decoration-success="md_post_event_review_state == 'reviewed'"
+                                   decoration-danger="md_post_event_review_state == 'exception_flagged'"
+                                   invisible="not is_emergency_purchase"/>
+                            <field name="md_reviewed_by" readonly="1" invisible="not is_emergency_purchase or not md_reviewed_by"/>
+                            <field name="md_review_date" readonly="1" invisible="not is_emergency_purchase or not md_review_date"/>
+                            <field name="md_review_notes" invisible="not is_emergency_purchase" readonly="1"/>
+                            <field name="version_count" readonly="1"/>
+                            <field name="version_number" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Purchase Order List view with badges -->
+    <record id="purchase_order_kpis_tree_inherit_contractor" model="ir.ui.view">
+        <field name="name">purchase.order.list.inherit.contractor</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_kpis_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount_total']" position="after">
+                <field name="project_id" optional="show"/>
+                <field name="is_emergency_purchase" widget="badge" decoration-danger="is_emergency_purchase" invisible="not is_emergency_purchase"/>
+                <field name="requires_md_approval" invisible="1"/>
+                <field name="md_approval_state" widget="badge" decoration-warning="md_approval_state == 'pending'" decoration-success="md_approval_state == 'approved'" invisible="not requires_md_approval"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_tree_inherit_contractor" model="ir.ui.view">
+        <field name="name">purchase.order.tree.inherit.contractor</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="project_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_view_tree_inherit_contractor" model="ir.ui.view">
+        <field name="name">purchase.order.view.tree.inherit.contractor</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="project_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

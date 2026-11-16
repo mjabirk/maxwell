@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Employee Exit & EOSB Settlement Form View -->
+    <record id="view_contractor_employee_exit_form" model="ir.ui.view">
+        <field name="name">contractor.employee.exit.form</field>
+        <field name="model">contractor.employee.exit</field>
+        <field name="arch" type="xml">
+            <form string="Employee Final Settlement &amp; EOSB">
+                <header>
+                    <button name="action_hr_prepare"
+                            string="Submit by HR"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_hr_officer"/>
+                    <button name="action_pull_pending_entitlements_and_deductions"
+                            string="Auto-Pull Leave, Tickets &amp; Advances"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_hr_officer"/>
+                    <button name="action_accountant_approve"
+                            string="Audit &amp; Approve"
+                            type="object"
+                            class="btn btn-success"
+                            invisible="state != 'hr_prepared'"
+                            groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_accountant"/>
+                    <button name="action_authorize_tool_exception"
+                            string="Authorize Tool Clearance Exception"
+                            type="object"
+                            class="btn btn-warning"
+                            invisible="tool_clearance_status != 'unreturned' or state in ('released', 'cancelled')"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_release_settlement"
+                            string="Release Settlement &amp; Revoke Access"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state != 'accountant_approved'"
+                            confirm="Are you sure you want to release this Final Settlement, post its GL entry, and archive the employee?"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,hr_prepared,accountant_approved,released"/>
+                </header>
+                <sheet>
+                    <!-- Tool Clearance Hard-Stop Banner -->
+                    <div class="alert alert-danger" role="alert" invisible="tool_clearance_status != 'unreturned'">
+                        <strong>Tool Custody Clearance Hard-Stop:</strong> Operative has outstanding tools in field custody.
+                        Settlement audit and final payout release are blocked until all tools are checked back into stores or a Manager Tool Clearance Exception is authorized.
+                    </div>
+
+                    <div class="alert alert-warning" role="alert" invisible="tool_clearance_status != 'manager_override'">
+                        <strong>Tool Exception Authorized:</strong> Tool clearance requirement was waived by Contractor Management.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Exit Settlement Reference"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Separation &amp; Employment Details">
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="workforce_category"/>
+                            <field name="exit_type" readonly="state != 'draft'"/>
+                            <field name="notice_status" readonly="state != 'draft'"/>
+                            <field name="join_date" readonly="state != 'draft'"/>
+                            <field name="last_working_day" readonly="state != 'draft'"/>
+                            <field name="years_of_service" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Tool Clearance Gate">
+                            <field name="unreturned_tool_count" readonly="1"/>
+                            <field name="tool_clearance_status" widget="badge" decoration-success="tool_clearance_status == 'cleared'" decoration-danger="tool_clearance_status == 'unreturned'" decoration-warning="tool_clearance_status == 'manager_override'"/>
+                            <field name="tool_exception_manager_id" invisible="not tool_exception_manager_id" readonly="1"/>
+                            <field name="tool_exception_reason" invisible="not tool_exception_manager_id" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Departure Justification">
+                        <field name="reason" placeholder="Document reason for employee departure / termination..." readonly="state != 'draft'"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Statutory EOSB &amp; Settlement Breakdown" name="eosb_settlement">
+                            <group>
+                                <group string="Gross Entitlements &amp; Accruals">
+                                    <field name="basic_salary" readonly="1"/>
+                                    <field name="monthly_gross" readonly="1"/>
+                                    <field name="eosb_amount" readonly="1" class="fw-bold"/>
+                                    <field name="unpaid_salary_amount" readonly="state in ('accountant_approved', 'released')"/>
+                                    <field name="unused_leave_salary" readonly="state in ('accountant_approved', 'released')"/>
+                                    <field name="pending_ticket_allowance" readonly="state in ('accountant_approved', 'released')"/>
+                                </group>
+                                <group string="Recoveries &amp; Net Settlement">
+                                    <field name="employee_advances_loans" readonly="state in ('accountant_approved', 'released')"/>
+                                    <field name="damaged_lost_tool_deductions" readonly="state in ('accountant_approved', 'released')"/>
+                                    <field name="net_settlement_amount" class="fw-bold fs-4 text-primary" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Authorizations &amp; Accounting Move" name="exit_audit">
+                            <group>
+                                <group string="Sign-Offs">
+                                    <field name="prepared_by"/>
+                                    <field name="accountant_id"/>
+                                    <field name="manager_id"/>
+                                </group>
+                                <group string="Accounting Integration">
+                                    <field name="account_move_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Employee Exit List View -->
+    <record id="view_contractor_employee_exit_list" model="ir.ui.view">
+        <field name="name">contractor.employee.exit.list</field>
+        <field name="model">contractor.employee.exit</field>
+        <field name="arch" type="xml">
+            <list string="Employee Final Settlements" decoration-success="state == 'released'" decoration-warning="state in ('hr_prepared', 'accountant_approved')">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="workforce_category"/>
+                <field name="exit_type"/>
+                <field name="last_working_day"/>
+                <field name="years_of_service"/>
+                <field name="tool_clearance_status" widget="badge" decoration-success="tool_clearance_status == 'cleared'" decoration-danger="tool_clearance_status == 'unreturned'" decoration-warning="tool_clearance_status == 'manager_override'"/>
+                <field name="net_settlement_amount" sum="Total Settlement"/>
+                <field name="state" widget="badge" decoration-success="state == 'released'" decoration-warning="state == 'accountant_approved'" decoration-info="state == 'hr_prepared'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_employee_exit_search" model="ir.ui.view">
+        <field name="name">contractor.employee.exit.search</field>
+        <field name="model">contractor.employee.exit</field>
+        <field name="arch" type="xml">
+            <search string="Search Employee Exit &amp; EOSB Settlements">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="last_working_day"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="HR Prepared" name="hr_prepared" domain="[('state', '=', 'hr_prepared')]"/>
+                <filter string="Accountant Approved" name="accountant_approved" domain="[('state', '=', 'accountant_approved')]"/>
+                <filter string="Released" name="released" domain="[('state', '=', 'released')]"/>
+                <filter string="Cancelled" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter string="Unreturned Tools" name="unreturned_tools" domain="[('tool_clearance_status', '=', 'unreturned')]"/>
+                <filter string="Tools Cleared" name="tools_cleared" domain="[('tool_clearance_status', '=', 'cleared')]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Exit Type" name="group_by_exit_type" context="{'group_by': 'exit_type'}"/>
+                    <filter string="Tool Clearance" name="group_by_clearance" context="{'group_by': 'tool_clearance_status'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Employee Exit Settlements -->
+    <record id="action_contractor_employee_exit" model="ir.actions.act_window">
+        <field name="name">Employee Exit &amp; EOSB Settlements</field>
+        <field name="res_model">contractor.employee.exit</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_employee_exit_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Process an employee departure, statutory EOSB calculation, and tool clearance handoff.
+            </p>
+        </field>
+    </record>
+
+</odoo>
+

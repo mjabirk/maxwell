@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_comparative_statement_form" model="ir.ui.view">
+        <field name="name">contractor.comparative.statement.form</field>
+        <field name="model">contractor.comparative.statement</field>
+        <field name="arch" type="xml">
+            <form string="Comparative Statement (3-Vendor Evaluation Matrix)">
+                <header>
+                    <button name="action_submit"
+                            string="Submit Evaluation Matrix"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_pm_approve"
+                            string="Project Manager Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted' or approval_tier != 'pm'"
+                            groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager"/>
+                    <button name="action_manager_approve"
+                            string="Manager Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted' or requires_md_approval"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_md_approve"
+                            string="Managing Director Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'submitted' or not requires_md_approval"
+                            groups="contractor_core.group_contractor_md"/>
+                    <button name="action_generate_purchase_orders"
+                            string="Award &amp; Generate Purchase Order(s)"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ('pm_approved', 'manager_approved', 'md_approved')"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('submitted', 'pm_approved', 'manager_approved')"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,pm_approved,manager_approved,md_approved,pos_created"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_purchase_orders"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-credit-card"
+                                invisible="purchase_order_count == 0">
+                            <field name="purchase_order_count" widget="statinfo" string="Awarded POs"/>
+                        </button>
+                    </div>
+
+                    <div class="alert alert-info py-2 mb-3" role="alert" invisible="not requires_md_approval">
+                        <strong>Executive Sign-Off Threshold Triggered:</strong>
+                        Awarded procurement value meets or exceeds the company PO MD Approval Threshold.
+                        Sign-off by the Managing Director is required prior to awarding purchase orders.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Comparative Statement Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Requisition &amp; Project">
+                            <field name="requisition_id" readonly="state != 'draft'"/>
+                            <field name="project_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Evaluation &amp; Threshold Governance">
+                            <field name="vendor_count" readonly="1"/>
+                            <field name="lowest_quote_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="selected_quote_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="approval_tier" readonly="1"/>
+                            <field name="requires_md_approval" readonly="1"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                        </group>
+                    </group>
+
+                    <group string="3-Vendor RFQ Rule &amp; Sole-Source Exemption Gate">
+                        <field name="is_sole_source" widget="boolean_toggle" readonly="state != 'draft'"/>
+                        <field name="sole_source_reason" placeholder="Mandatory technical explanation for proprietary sole-source procurement..." invisible="not is_sole_source" required="is_sole_source" readonly="state != 'draft'"/>
+                        <field name="sole_source_attachment_ids" widget="many2many_binary" invisible="not is_sole_source" readonly="state != 'draft'"/>
+                        <field name="fewer_quotes_reason" placeholder="Justification for evaluating fewer than 3 independent vendor quotes..." invisible="is_sole_source or vendor_count &gt;= 3" readonly="state != 'draft'"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Competitive Vendor Quotes Matrix" name="page_matrix">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list string="Bids" editable="bottom">
+                                    <field name="vendor_id"/>
+                                    <field name="product_id"/>
+                                    <field name="description"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="quoted_price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Bid"/>
+                                    <field name="delivery_days"/>
+                                    <field name="payment_terms"/>
+                                    <field name="spec_compliant" widget="boolean"/>
+                                    <field name="compliance_notes"/>
+                                    <field name="is_selected" widget="boolean"/>
+                                    <field name="selection_justification" placeholder="Mandatory if non-lowest bid selected..."/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_comparative_statement_list" model="ir.ui.view">
+        <field name="name">contractor.comparative.statement.list</field>
+        <field name="model">contractor.comparative.statement</field>
+        <field name="arch" type="xml">
+            <list string="Comparative Statements" default_order="create_date desc">
+                <field name="name"/>
+                <field name="requisition_id"/>
+                <field name="project_id"/>
+                <field name="vendor_count"/>
+                <field name="lowest_quote_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="selected_quote_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state in ('manager_approved', 'md_approved', 'pos_created')"
+                       decoration-danger="state == 'declined'"/>
+                <field name="requires_md_approval" widget="boolean"/>
+                <field name="is_sole_source" widget="boolean"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_comparative_statement_search" model="ir.ui.view">
+        <field name="name">contractor.comparative.statement.search</field>
+        <field name="model">contractor.comparative.statement</field>
+        <field name="arch" type="xml">
+            <search string="Search Comparative Statements">
+                <field name="name"/>
+                <field name="requisition_id"/>
+                <field name="project_id"/>
+                <filter string="Pending Approval" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Sole Source" name="filter_sole_source" domain="[('is_sole_source', '=', True)]"/>
+                <filter string="MD Approval Required" name="filter_md_required" domain="[('requires_md_approval', '=', True)]"/>
+                <group>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_comparative_statement" model="ir.actions.act_window">
+        <field name="name">Comparative Statements (CS)</field>
+        <field name="res_model">contractor.comparative.statement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_comparative_statement_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a 3-vendor comparative statement matrix to evaluate competitive supplier bids.
+            </p>
+        </field>
+    </record>
+</odoo>
+

@@ -1,0 +1,1473 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- DPR Compliance and Submission Timeliness List View -->
+    <record id="view_contractor_report_dpr_compliance_list" model="ir.ui.view">
+        <field name="name">contractor.report.dpr.compliance.list</field>
+        <field name="model">contractor.report.dpr.compliance</field>
+        <field name="arch" type="xml">
+            <list string="DPR Compliance &amp; Submission Timeliness" create="false" edit="false" delete="false">
+                <field name="report_date"/>
+                <field name="dpr_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="site_engineer_id"/>
+                <field name="create_date"/>
+                <field name="approval_date"/>
+                <field name="state"/>
+                <field name="is_late"/>
+                <field name="late_amendment_approved"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- DPR Compliance and Submission Timeliness Pivot View -->
+    <record id="view_contractor_report_dpr_compliance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.dpr.compliance.pivot</field>
+        <field name="model">contractor.report.dpr.compliance</field>
+        <field name="arch" type="xml">
+            <pivot string="DPR Compliance &amp; Submission Timeliness">
+                <field name="project_id" type="row"/>
+                <field name="is_late" type="col"/>
+                <field name="id" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- DPR Compliance and Submission Timeliness Graph View -->
+    <record id="view_contractor_report_dpr_compliance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.dpr.compliance.graph</field>
+        <field name="model">contractor.report.dpr.compliance</field>
+        <field name="arch" type="xml">
+            <graph string="DPR Compliance &amp; Submission Timeliness" type="bar">
+                <field name="project_id"/>
+                <field name="id" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- DPR Compliance and Submission Timeliness Search View -->
+    <record id="view_contractor_report_dpr_compliance_search" model="ir.ui.view">
+        <field name="name">contractor.report.dpr.compliance.search</field>
+        <field name="model">contractor.report.dpr.compliance</field>
+        <field name="arch" type="xml">
+            <search string="DPR Compliance &amp; Submission Timeliness">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="site_engineer_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Site Engineer" name="group_by_site_engineer_id" context="{'group_by': 'site_engineer_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Submitted Late" name="group_by_is_late" context="{'group_by': 'is_late'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- DPR Compliance and Submission Timeliness Action -->
+    <record id="action_contractor_report_dpr_compliance" model="ir.actions.act_window">
+        <field name="name">DPR Compliance &amp; Submission Timeliness</field>
+        <field name="res_model">contractor.report.dpr.compliance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_dpr_compliance_search"/>
+    </record>
+
+    <!-- Site Attendance and Workforce Cost Breakdown List View -->
+    <record id="view_contractor_report_site_attendance_cost_list" model="ir.ui.view">
+        <field name="name">contractor.report.site.attendance.cost.list</field>
+        <field name="model">contractor.report.site.attendance.cost</field>
+        <field name="arch" type="xml">
+            <list string="Site Attendance &amp; Workforce Cost Breakdown" create="false" edit="false" delete="false">
+                <field name="attendance_date"/>
+                <field name="attendance_id"/>
+                <field name="project_id"/>
+                <field name="employee_id"/>
+                <field name="worker_category"/>
+                <field name="job_title_id"/>
+                <field name="scheduled_hours"/>
+                <field name="regular_hours"/>
+                <field name="overtime_hours"/>
+                <field name="regular_cost"/>
+                <field name="ot_cost"/>
+                <field name="total_cost"/>
+                <field name="attendance_status"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Site Attendance and Workforce Cost Breakdown Pivot View -->
+    <record id="view_contractor_report_site_attendance_cost_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.site.attendance.cost.pivot</field>
+        <field name="model">contractor.report.site.attendance.cost</field>
+        <field name="arch" type="xml">
+            <pivot string="Site Attendance &amp; Workforce Cost Breakdown">
+                <field name="project_id" type="row"/>
+                <field name="worker_category" type="col"/>
+                <field name="total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Site Attendance and Workforce Cost Breakdown Graph View -->
+    <record id="view_contractor_report_site_attendance_cost_graph" model="ir.ui.view">
+        <field name="name">contractor.report.site.attendance.cost.graph</field>
+        <field name="model">contractor.report.site.attendance.cost</field>
+        <field name="arch" type="xml">
+            <graph string="Site Attendance &amp; Workforce Cost Breakdown" type="bar">
+                <field name="project_id"/>
+                <field name="total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Site Attendance and Workforce Cost Breakdown Search View -->
+    <record id="view_contractor_report_site_attendance_cost_search" model="ir.ui.view">
+        <field name="name">contractor.report.site.attendance.cost.search</field>
+        <field name="model">contractor.report.site.attendance.cost</field>
+        <field name="arch" type="xml">
+            <search string="Site Attendance &amp; Workforce Cost Breakdown">
+                <field name="attendance_id"/>
+                <field name="project_id"/>
+                <field name="employee_id"/>
+                <field name="job_title_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Category" name="group_by_worker_category" context="{'group_by': 'worker_category'}"/>
+                    <filter string="Trade" name="group_by_job_title_id" context="{'group_by': 'job_title_id'}"/>
+                    <filter string="Status" name="group_by_attendance_status" context="{'group_by': 'attendance_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Site Attendance and Workforce Cost Breakdown Action -->
+    <record id="action_contractor_report_site_attendance_cost" model="ir.actions.act_window">
+        <field name="name">Site Attendance &amp; Workforce Cost Breakdown</field>
+        <field name="res_model">contractor.report.site.attendance.cost</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_site_attendance_cost_search"/>
+    </record>
+
+    <!-- Daily Site Material Consumption Variance List View -->
+    <record id="view_contractor_report_material_variance_list" model="ir.ui.view">
+        <field name="name">contractor.report.material.variance.list</field>
+        <field name="model">contractor.report.material.variance</field>
+        <field name="arch" type="xml">
+            <list string="Daily Site Material Consumption Variance" create="false" edit="false" delete="false">
+                <field name="consumption_date"/>
+                <field name="consumption_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <field name="cost_head"/>
+                <field name="issued_to_site_qty"/>
+                <field name="previously_consumed_qty"/>
+                <field name="consumed_today_qty"/>
+                <field name="remaining_site_stock_qty"/>
+                <field name="unit_cost"/>
+                <field name="subtotal_cost"/>
+                <field name="variance_pct"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Daily Site Material Consumption Variance Pivot View -->
+    <record id="view_contractor_report_material_variance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.material.variance.pivot</field>
+        <field name="model">contractor.report.material.variance</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Site Material Consumption Variance">
+                <field name="project_id" type="row"/>
+                <field name="cost_head" type="col"/>
+                <field name="subtotal_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Daily Site Material Consumption Variance Graph View -->
+    <record id="view_contractor_report_material_variance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.material.variance.graph</field>
+        <field name="model">contractor.report.material.variance</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Site Material Consumption Variance" type="bar">
+                <field name="project_id"/>
+                <field name="subtotal_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Daily Site Material Consumption Variance Search View -->
+    <record id="view_contractor_report_material_variance_search" model="ir.ui.view">
+        <field name="name">contractor.report.material.variance.search</field>
+        <field name="model">contractor.report.material.variance</field>
+        <field name="arch" type="xml">
+            <search string="Daily Site Material Consumption Variance">
+                <field name="consumption_id"/>
+                <field name="project_id"/>
+                <field name="product_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Cost Head" name="group_by_cost_head" context="{'group_by': 'cost_head'}"/>
+                    <filter string="Material" name="group_by_product_id" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Daily Site Material Consumption Variance Action -->
+    <record id="action_contractor_report_material_variance" model="ir.actions.act_window">
+        <field name="name">Daily Site Material Consumption Variance</field>
+        <field name="res_model">contractor.report.material.variance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_material_variance_search"/>
+    </record>
+
+    <!-- Site Incident, Delay and Safety Obstruction Log List View -->
+    <record id="view_contractor_report_site_issues_list" model="ir.ui.view">
+        <field name="name">contractor.report.site.issues.list</field>
+        <field name="model">contractor.report.site.issues</field>
+        <field name="arch" type="xml">
+            <list string="Site Incident, Delay &amp; Safety Obstruction Log" create="false" edit="false" delete="false">
+                <field name="issue_date"/>
+                <field name="issue_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="issue_type"/>
+                <field name="severity"/>
+                <field name="state"/>
+                <field name="days_open"/>
+                <field name="resolved_by"/>
+                <field name="resolved_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Site Incident, Delay and Safety Obstruction Log Pivot View -->
+    <record id="view_contractor_report_site_issues_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.site.issues.pivot</field>
+        <field name="model">contractor.report.site.issues</field>
+        <field name="arch" type="xml">
+            <pivot string="Site Incident, Delay &amp; Safety Obstruction Log">
+                <field name="project_id" type="row"/>
+                <field name="severity" type="col"/>
+                <field name="days_open" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Site Incident, Delay and Safety Obstruction Log Graph View -->
+    <record id="view_contractor_report_site_issues_graph" model="ir.ui.view">
+        <field name="name">contractor.report.site.issues.graph</field>
+        <field name="model">contractor.report.site.issues</field>
+        <field name="arch" type="xml">
+            <graph string="Site Incident, Delay &amp; Safety Obstruction Log" type="pie">
+                <field name="severity"/>
+                <field name="days_open" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Site Incident, Delay and Safety Obstruction Log Search View -->
+    <record id="view_contractor_report_site_issues_search" model="ir.ui.view">
+        <field name="name">contractor.report.site.issues.search</field>
+        <field name="model">contractor.report.site.issues</field>
+        <field name="arch" type="xml">
+            <search string="Site Incident, Delay &amp; Safety Obstruction Log">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="issue_type"/>
+                <field name="severity"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Category" name="group_by_issue_type" context="{'group_by': 'issue_type'}"/>
+                    <filter string="Severity" name="group_by_severity" context="{'group_by': 'severity'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Site Incident, Delay and Safety Obstruction Log Action -->
+    <record id="action_contractor_report_site_issues" model="ir.actions.act_window">
+        <field name="name">Site Incident, Delay &amp; Safety Obstruction Log</field>
+        <field name="res_model">contractor.report.site.issues</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_site_issues_search"/>
+    </record>
+
+    <!-- Daily Cost Posting Reconciliation List View -->
+    <record id="view_contractor_report_daily_cost_reconciliation_list" model="ir.ui.view">
+        <field name="name">contractor.report.daily.cost.reconciliation.list</field>
+        <field name="model">contractor.report.daily.cost.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Daily Cost Posting Reconciliation" create="false" edit="false" delete="false">
+                <field name="cost_date"/>
+                <field name="dcp_id"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="labour_cost_total"/>
+                <field name="material_cost_total"/>
+                <field name="subcontractor_cost_total"/>
+                <field name="grand_total_cost"/>
+                <field name="state"/>
+                <field name="account_move_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Daily Cost Posting Reconciliation Pivot View -->
+    <record id="view_contractor_report_daily_cost_reconciliation_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.daily.cost.reconciliation.pivot</field>
+        <field name="model">contractor.report.daily.cost.reconciliation</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Cost Posting Reconciliation">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="grand_total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Daily Cost Posting Reconciliation Graph View -->
+    <record id="view_contractor_report_daily_cost_reconciliation_graph" model="ir.ui.view">
+        <field name="name">contractor.report.daily.cost.reconciliation.graph</field>
+        <field name="model">contractor.report.daily.cost.reconciliation</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Cost Posting Reconciliation" type="bar">
+                <field name="project_id"/>
+                <field name="grand_total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Daily Cost Posting Reconciliation Search View -->
+    <record id="view_contractor_report_daily_cost_reconciliation_search" model="ir.ui.view">
+        <field name="name">contractor.report.daily.cost.reconciliation.search</field>
+        <field name="model">contractor.report.daily.cost.reconciliation</field>
+        <field name="arch" type="xml">
+            <search string="Daily Cost Posting Reconciliation">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="state"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Daily Cost Posting Reconciliation Action -->
+    <record id="action_contractor_report_daily_cost_reconciliation" model="ir.actions.act_window">
+        <field name="name">Daily Cost Posting Reconciliation</field>
+        <field name="res_model">contractor.report.daily.cost.reconciliation</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_daily_cost_reconciliation_search"/>
+    </record>
+
+    <!-- 48h Locked Entries Late Amendment Register List View -->
+    <record id="view_contractor_report_late_amended_entries_list" model="ir.ui.view">
+        <field name="name">contractor.report.late.amended.entries.list</field>
+        <field name="model">contractor.report.late.amended.entries</field>
+        <field name="arch" type="xml">
+            <list string="48h Locked Entries Late Amendment Register" create="false" edit="false" delete="false">
+                <field name="amendment_date"/>
+                <field name="doc_source"/>
+                <field name="doc_name"/>
+                <field name="project_id"/>
+                <field name="work_date"/>
+                <field name="late_amendment_reason"/>
+                <field name="late_amendment_approver_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- 48h Locked Entries Late Amendment Register Pivot View -->
+    <record id="view_contractor_report_late_amended_entries_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.late.amended.entries.pivot</field>
+        <field name="model">contractor.report.late.amended.entries</field>
+        <field name="arch" type="xml">
+            <pivot string="48h Locked Entries Late Amendment Register">
+                <field name="project_id" type="row"/>
+                <field name="doc_source" type="col"/>
+                <field name="res_id" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- 48h Locked Entries Late Amendment Register Graph View -->
+    <record id="view_contractor_report_late_amended_entries_graph" model="ir.ui.view">
+        <field name="name">contractor.report.late.amended.entries.graph</field>
+        <field name="model">contractor.report.late.amended.entries</field>
+        <field name="arch" type="xml">
+            <graph string="48h Locked Entries Late Amendment Register" type="bar">
+                <field name="project_id"/>
+                <field name="res_id" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- 48h Locked Entries Late Amendment Register Search View -->
+    <record id="view_contractor_report_late_amended_entries_search" model="ir.ui.view">
+        <field name="name">contractor.report.late.amended.entries.search</field>
+        <field name="model">contractor.report.late.amended.entries</field>
+        <field name="arch" type="xml">
+            <search string="48h Locked Entries Late Amendment Register">
+                <field name="doc_name"/>
+                <field name="project_id"/>
+                <field name="late_amendment_approver_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Document Source" name="group_by_doc_source" context="{'group_by': 'doc_source'}"/>
+                    <filter string="Authorized PM" name="group_by_late_amendment_approver_id" context="{'group_by': 'late_amendment_approver_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- 48h Locked Entries Late Amendment Register Action -->
+    <record id="action_contractor_report_late_amended_entries" model="ir.actions.act_window">
+        <field name="name">48h Locked Entries Late Amendment Register</field>
+        <field name="res_model">contractor.report.late.amended.entries</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_late_amended_entries_search"/>
+    </record>
+
+    <!-- Next-Day Site Schedule vs Actual Attendance List View -->
+    <record id="view_contractor_report_schedule_vs_actual_list" model="ir.ui.view">
+        <field name="name">contractor.report.schedule.vs.actual.list</field>
+        <field name="model">contractor.report.schedule.vs.actual</field>
+        <field name="arch" type="xml">
+            <list string="Next-Day Site Schedule vs Actual Attendance" create="false" edit="false" delete="false">
+                <field name="schedule_date"/>
+                <field name="project_id"/>
+                <field name="employee_id"/>
+                <field name="worker_category"/>
+                <field name="job_title_id"/>
+                <field name="planned_shift_hours"/>
+                <field name="actual_hours"/>
+                <field name="is_no_show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Next-Day Site Schedule vs Actual Attendance Pivot View -->
+    <record id="view_contractor_report_schedule_vs_actual_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.schedule.vs.actual.pivot</field>
+        <field name="model">contractor.report.schedule.vs.actual</field>
+        <field name="arch" type="xml">
+            <pivot string="Next-Day Site Schedule vs Actual Attendance">
+                <field name="project_id" type="row"/>
+                <field name="is_no_show" type="col"/>
+                <field name="planned_shift_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Next-Day Site Schedule vs Actual Attendance Graph View -->
+    <record id="view_contractor_report_schedule_vs_actual_graph" model="ir.ui.view">
+        <field name="name">contractor.report.schedule.vs.actual.graph</field>
+        <field name="model">contractor.report.schedule.vs.actual</field>
+        <field name="arch" type="xml">
+            <graph string="Next-Day Site Schedule vs Actual Attendance" type="bar">
+                <field name="project_id"/>
+                <field name="actual_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Next-Day Site Schedule vs Actual Attendance Search View -->
+    <record id="view_contractor_report_schedule_vs_actual_search" model="ir.ui.view">
+        <field name="name">contractor.report.schedule.vs.actual.search</field>
+        <field name="model">contractor.report.schedule.vs.actual</field>
+        <field name="arch" type="xml">
+            <search string="Next-Day Site Schedule vs Actual Attendance">
+                <field name="project_id"/>
+                <field name="employee_id"/>
+                <field name="job_title_id"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Category" name="group_by_worker_category" context="{'group_by': 'worker_category'}"/>
+                    <filter string="No-Show" name="group_by_is_no_show" context="{'group_by': 'is_no_show'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Next-Day Site Schedule vs Actual Attendance Action -->
+    <record id="action_contractor_report_schedule_vs_actual" model="ir.actions.act_window">
+        <field name="name">Next-Day Site Schedule vs Actual Attendance</field>
+        <field name="res_model">contractor.report.schedule.vs.actual</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_schedule_vs_actual_search"/>
+    </record>
+
+    <!-- Employee Wage and Billing Rate History Audit List View -->
+    <record id="view_contractor_report_employee_rate_history_list" model="ir.ui.view">
+        <field name="name">contractor.report.employee.rate.history.list</field>
+        <field name="model">contractor.report.employee.rate.history</field>
+        <field name="arch" type="xml">
+            <list string="Employee Wage &amp; Billing Rate History Audit" create="false" edit="false" delete="false">
+                <field name="effective_date"/>
+                <field name="effective_to"/>
+                <field name="employee_id"/>
+                <field name="classification"/>
+                <field name="system_hourly_rate"/>
+                <field name="override_hourly_rate"/>
+                <field name="effective_hourly_rate"/>
+                <field name="has_override"/>
+                <field name="reason"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Employee Wage and Billing Rate History Audit Pivot View -->
+    <record id="view_contractor_report_employee_rate_history_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.employee.rate.history.pivot</field>
+        <field name="model">contractor.report.employee.rate.history</field>
+        <field name="arch" type="xml">
+            <pivot string="Employee Wage &amp; Billing Rate History Audit">
+                <field name="employee_id" type="row"/>
+                <field name="classification" type="col"/>
+                <field name="effective_hourly_rate" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Employee Wage and Billing Rate History Audit Graph View -->
+    <record id="view_contractor_report_employee_rate_history_graph" model="ir.ui.view">
+        <field name="name">contractor.report.employee.rate.history.graph</field>
+        <field name="model">contractor.report.employee.rate.history</field>
+        <field name="arch" type="xml">
+            <graph string="Employee Wage &amp; Billing Rate History Audit" type="bar">
+                <field name="employee_id"/>
+                <field name="effective_hourly_rate" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Employee Wage and Billing Rate History Audit Search View -->
+    <record id="view_contractor_report_employee_rate_history_search" model="ir.ui.view">
+        <field name="name">contractor.report.employee.rate.history.search</field>
+        <field name="model">contractor.report.employee.rate.history</field>
+        <field name="arch" type="xml">
+            <search string="Employee Wage &amp; Billing Rate History Audit">
+                <field name="employee_id"/>
+                <field name="classification"/>
+                <group>
+                    <filter string="Classification" name="group_by_classification" context="{'group_by': 'classification'}"/>
+                    <filter string="Override Active" name="group_by_has_override" context="{'group_by': 'has_override'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Employee Wage and Billing Rate History Audit Action -->
+    <record id="action_contractor_report_employee_rate_history" model="ir.actions.act_window">
+        <field name="name">Employee Wage &amp; Billing Rate History Audit</field>
+        <field name="res_model">contractor.report.employee.rate.history</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_employee_rate_history_search"/>
+    </record>
+
+    <!-- Daily Labour Deployment and Cost by Project List View -->
+    <record id="view_contractor_report_daily_labour_by_project_list" model="ir.ui.view">
+        <field name="name">contractor.report.daily.labour.by.project.list</field>
+        <field name="model">contractor.report.daily.labour.by.project</field>
+        <field name="arch" type="xml">
+            <list string="Daily Labour Deployment &amp; Cost by Project" create="false" edit="false" delete="false">
+                <field name="attendance_date"/>
+                <field name="project_id"/>
+                <field name="worker_category"/>
+                <field name="headcount"/>
+                <field name="regular_hours"/>
+                <field name="overtime_hours"/>
+                <field name="total_hours"/>
+                <field name="total_labour_cost"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Daily Labour Deployment and Cost by Project Pivot View -->
+    <record id="view_contractor_report_daily_labour_by_project_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.daily.labour.by.project.pivot</field>
+        <field name="model">contractor.report.daily.labour.by.project</field>
+        <field name="arch" type="xml">
+            <pivot string="Daily Labour Deployment &amp; Cost by Project">
+                <field name="project_id" type="row"/>
+                <field name="worker_category" type="col"/>
+                <field name="total_labour_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Daily Labour Deployment and Cost by Project Graph View -->
+    <record id="view_contractor_report_daily_labour_by_project_graph" model="ir.ui.view">
+        <field name="name">contractor.report.daily.labour.by.project.graph</field>
+        <field name="model">contractor.report.daily.labour.by.project</field>
+        <field name="arch" type="xml">
+            <graph string="Daily Labour Deployment &amp; Cost by Project" type="bar">
+                <field name="project_id"/>
+                <field name="total_labour_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Daily Labour Deployment and Cost by Project Search View -->
+    <record id="view_contractor_report_daily_labour_by_project_search" model="ir.ui.view">
+        <field name="name">contractor.report.daily.labour.by.project.search</field>
+        <field name="model">contractor.report.daily.labour.by.project</field>
+        <field name="arch" type="xml">
+            <search string="Daily Labour Deployment &amp; Cost by Project">
+                <field name="project_id"/>
+                <field name="worker_category"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Category" name="group_by_worker_category" context="{'group_by': 'worker_category'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Daily Labour Deployment and Cost by Project Action -->
+    <record id="action_contractor_report_daily_labour_by_project" model="ir.actions.act_window">
+        <field name="name">Daily Labour Deployment &amp; Cost by Project</field>
+        <field name="res_model">contractor.report.daily.labour.by.project</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_daily_labour_by_project_search"/>
+    </record>
+
+    <!-- Overtime Hours and Premium Cost Analysis List View -->
+    <record id="view_contractor_report_overtime_analysis_list" model="ir.ui.view">
+        <field name="name">contractor.report.overtime.analysis.list</field>
+        <field name="model">contractor.report.overtime.analysis</field>
+        <field name="arch" type="xml">
+            <list string="Overtime Hours &amp; Premium Cost Analysis" create="false" edit="false" delete="false">
+                <field name="attendance_date"/>
+                <field name="project_id"/>
+                <field name="job_title_id"/>
+                <field name="worker_category"/>
+                <field name="overtime_hours"/>
+                <field name="ot_multiplier"/>
+                <field name="ot_cost"/>
+                <field name="ot_approved"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Overtime Hours and Premium Cost Analysis Pivot View -->
+    <record id="view_contractor_report_overtime_analysis_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.overtime.analysis.pivot</field>
+        <field name="model">contractor.report.overtime.analysis</field>
+        <field name="arch" type="xml">
+            <pivot string="Overtime Hours &amp; Premium Cost Analysis">
+                <field name="project_id" type="row"/>
+                <field name="job_title_id" type="col"/>
+                <field name="ot_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Overtime Hours and Premium Cost Analysis Graph View -->
+    <record id="view_contractor_report_overtime_analysis_graph" model="ir.ui.view">
+        <field name="name">contractor.report.overtime.analysis.graph</field>
+        <field name="model">contractor.report.overtime.analysis</field>
+        <field name="arch" type="xml">
+            <graph string="Overtime Hours &amp; Premium Cost Analysis" type="bar">
+                <field name="project_id"/>
+                <field name="ot_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Overtime Hours and Premium Cost Analysis Search View -->
+    <record id="view_contractor_report_overtime_analysis_search" model="ir.ui.view">
+        <field name="name">contractor.report.overtime.analysis.search</field>
+        <field name="model">contractor.report.overtime.analysis</field>
+        <field name="arch" type="xml">
+            <search string="Overtime Hours &amp; Premium Cost Analysis">
+                <field name="project_id"/>
+                <field name="job_title_id"/>
+                <field name="worker_category"/>
+                <group>
+                    <filter string="Project" name="group_by_project_id" context="{'group_by': 'project_id'}"/>
+                    <filter string="Trade" name="group_by_job_title_id" context="{'group_by': 'job_title_id'}"/>
+                    <filter string="Category" name="group_by_worker_category" context="{'group_by': 'worker_category'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Overtime Hours and Premium Cost Analysis Action -->
+    <record id="action_contractor_report_overtime_analysis" model="ir.actions.act_window">
+        <field name="name">Overtime Hours &amp; Premium Cost Analysis</field>
+        <field name="res_model">contractor.report.overtime.analysis</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_overtime_analysis_search"/>
+    </record>
+
+    <!-- Tool Custody and Physical Location Register List View -->
+    <record id="view_contractor_report_tool_register_list" model="ir.ui.view">
+        <field name="name">contractor.report.tool.register.list</field>
+        <field name="model">contractor.report.tool.register</field>
+        <field name="arch" type="xml">
+            <list string="Tool Custody &amp; Physical Location Register" create="false" edit="false" delete="false">
+                <field name="tool_code"/>
+                <field name="name"/>
+                <field name="tool_type"/>
+                <field name="condition"/>
+                <field name="status"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <field name="purchase_date"/>
+                <field name="purchase_value"/>
+                <field name="deduction_amount"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Tool Custody and Physical Location Register Pivot View -->
+    <record id="view_contractor_report_tool_register_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.tool.register.pivot</field>
+        <field name="model">contractor.report.tool.register</field>
+        <field name="arch" type="xml">
+            <pivot string="Tool Custody &amp; Physical Location Register">
+                <field name="tool_type" type="row"/>
+                <field name="status" type="col"/>
+                <field name="purchase_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Tool Custody and Physical Location Register Graph View -->
+    <record id="view_contractor_report_tool_register_graph" model="ir.ui.view">
+        <field name="name">contractor.report.tool.register.graph</field>
+        <field name="model">contractor.report.tool.register</field>
+        <field name="arch" type="xml">
+            <graph string="Tool Custody &amp; Physical Location Register" type="bar">
+                <field name="tool_type"/>
+                <field name="purchase_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Tool Custody and Physical Location Register Search View -->
+    <record id="view_contractor_report_tool_register_search" model="ir.ui.view">
+        <field name="name">contractor.report.tool.register.search</field>
+        <field name="model">contractor.report.tool.register</field>
+        <field name="arch" type="xml">
+            <search string="Tool Custody &amp; Physical Location Register">
+                <field name="tool_code"/>
+                <field name="name"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <group>
+                    <filter string="Tool Type" name="group_by_tool_type" context="{'group_by': 'tool_type'}"/>
+                    <filter string="Condition" name="group_by_condition" context="{'group_by': 'condition'}"/>
+                    <filter string="Status" name="group_by_status" context="{'group_by': 'status'}"/>
+                    <filter string="Project" name="group_by_current_project_id" context="{'group_by': 'current_project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Tool Custody and Physical Location Register Action -->
+    <record id="action_contractor_report_tool_register" model="ir.actions.act_window">
+        <field name="name">Tool Custody &amp; Physical Location Register</field>
+        <field name="res_model">contractor.report.tool.register</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_tool_register_search"/>
+    </record>
+
+    <!-- Unreturned and Damaged Tools by Operative List View -->
+    <record id="view_contractor_report_unreturned_tools_list" model="ir.ui.view">
+        <field name="name">contractor.report.unreturned.tools.list</field>
+        <field name="model">contractor.report.unreturned.tools</field>
+        <field name="arch" type="xml">
+            <list string="Unreturned &amp; Damaged Tools by Operative" create="false" edit="false" delete="false">
+                <field name="tool_code"/>
+                <field name="name"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <field name="condition"/>
+                <field name="status"/>
+                <field name="purchase_value"/>
+                <field name="deduction_amount"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Unreturned and Damaged Tools by Operative Pivot View -->
+    <record id="view_contractor_report_unreturned_tools_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.unreturned.tools.pivot</field>
+        <field name="model">contractor.report.unreturned.tools</field>
+        <field name="arch" type="xml">
+            <pivot string="Unreturned &amp; Damaged Tools by Operative">
+                <field name="current_project_id" type="row"/>
+                <field name="condition" type="col"/>
+                <field name="purchase_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Unreturned and Damaged Tools by Operative Graph View -->
+    <record id="view_contractor_report_unreturned_tools_graph" model="ir.ui.view">
+        <field name="name">contractor.report.unreturned.tools.graph</field>
+        <field name="model">contractor.report.unreturned.tools</field>
+        <field name="arch" type="xml">
+            <graph string="Unreturned &amp; Damaged Tools by Operative" type="bar">
+                <field name="current_project_id"/>
+                <field name="purchase_value" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Unreturned and Damaged Tools by Operative Search View -->
+    <record id="view_contractor_report_unreturned_tools_search" model="ir.ui.view">
+        <field name="name">contractor.report.unreturned.tools.search</field>
+        <field name="model">contractor.report.unreturned.tools</field>
+        <field name="arch" type="xml">
+            <search string="Unreturned &amp; Damaged Tools by Operative">
+                <field name="tool_code"/>
+                <field name="name"/>
+                <field name="current_employee_id"/>
+                <field name="current_project_id"/>
+                <group>
+                    <filter string="Operative" name="group_by_current_employee_id" context="{'group_by': 'current_employee_id'}"/>
+                    <filter string="Project" name="group_by_current_project_id" context="{'group_by': 'current_project_id'}"/>
+                    <filter string="Condition" name="group_by_condition" context="{'group_by': 'condition'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Unreturned and Damaged Tools by Operative Action -->
+    <record id="action_contractor_report_unreturned_tools" model="ir.actions.act_window">
+        <field name="name">Unreturned &amp; Damaged Tools by Operative</field>
+        <field name="res_model">contractor.report.unreturned.tools</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_unreturned_tools_search"/>
+    </record>
+
+    <!-- Manpower Agency Reconciliation and Hours Audit List View -->
+    <record id="view_contractor_report_agency_reconciliation_list" model="ir.ui.view">
+        <field name="name">contractor.report.agency.reconciliation.list</field>
+        <field name="model">contractor.report.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Manpower Agency Reconciliation &amp; Hours Audit" create="false" edit="false" delete="false">
+                <field name="date_end"/>
+                <field name="recon_id"/>
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="agreement_id"/>
+                <field name="date_start"/>
+                <field name="erp_total_hours"/>
+                <field name="agency_invoiced_hours"/>
+                <field name="variance_hours"/>
+                <field name="variance_amount"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Manpower Agency Reconciliation and Hours Audit Pivot View -->
+    <record id="view_contractor_report_agency_reconciliation_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.agency.reconciliation.pivot</field>
+        <field name="model">contractor.report.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <pivot string="Manpower Agency Reconciliation &amp; Hours Audit">
+                <field name="agency_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="variance_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Manpower Agency Reconciliation and Hours Audit Graph View -->
+    <record id="view_contractor_report_agency_reconciliation_graph" model="ir.ui.view">
+        <field name="name">contractor.report.agency.reconciliation.graph</field>
+        <field name="model">contractor.report.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <graph string="Manpower Agency Reconciliation &amp; Hours Audit" type="bar">
+                <field name="agency_id"/>
+                <field name="variance_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Manpower Agency Reconciliation and Hours Audit Search View -->
+    <record id="view_contractor_report_agency_reconciliation_search" model="ir.ui.view">
+        <field name="name">contractor.report.agency.reconciliation.search</field>
+        <field name="model">contractor.report.agency.reconciliation</field>
+        <field name="arch" type="xml">
+            <search string="Manpower Agency Reconciliation &amp; Hours Audit">
+                <field name="name"/>
+                <field name="agency_id"/>
+                <field name="agreement_id"/>
+                <group>
+                    <filter string="Agency" name="group_by_agency_id" context="{'group_by': 'agency_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Manpower Agency Reconciliation and Hours Audit Action -->
+    <record id="action_contractor_report_agency_reconciliation" model="ir.actions.act_window">
+        <field name="name">Manpower Agency Reconciliation &amp; Hours Audit</field>
+        <field name="res_model">contractor.report.agency.reconciliation</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_agency_reconciliation_search"/>
+    </record>
+
+    <!-- Payroll Summary by Workforce Track List View -->
+    <record id="view_contractor_report_payroll_summary_list" model="ir.ui.view">
+        <field name="name">contractor.report.payroll.summary.list</field>
+        <field name="model">contractor.report.payroll.summary</field>
+        <field name="arch" type="xml">
+            <list string="Payroll Summary by Workforce Track" create="false" edit="false" delete="false">
+                <field name="date_end"/>
+                <field name="payroll_track"/>
+                <field name="name"/>
+                <field name="date_start"/>
+                <field name="total_disbursement"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Payroll Summary by Workforce Track Pivot View -->
+    <record id="view_contractor_report_payroll_summary_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.payroll.summary.pivot</field>
+        <field name="model">contractor.report.payroll.summary</field>
+        <field name="arch" type="xml">
+            <pivot string="Payroll Summary by Workforce Track">
+                <field name="payroll_track" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_disbursement" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Payroll Summary by Workforce Track Graph View -->
+    <record id="view_contractor_report_payroll_summary_graph" model="ir.ui.view">
+        <field name="name">contractor.report.payroll.summary.graph</field>
+        <field name="model">contractor.report.payroll.summary</field>
+        <field name="arch" type="xml">
+            <graph string="Payroll Summary by Workforce Track" type="bar">
+                <field name="payroll_track"/>
+                <field name="total_disbursement" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Payroll Summary by Workforce Track Search View -->
+    <record id="view_contractor_report_payroll_summary_search" model="ir.ui.view">
+        <field name="name">contractor.report.payroll.summary.search</field>
+        <field name="model">contractor.report.payroll.summary</field>
+        <field name="arch" type="xml">
+            <search string="Payroll Summary by Workforce Track">
+                <field name="name"/>
+                <field name="payroll_track"/>
+                <group>
+                    <filter string="Track" name="group_by_payroll_track" context="{'group_by': 'payroll_track'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Payroll Summary by Workforce Track Action -->
+    <record id="action_contractor_report_payroll_summary" model="ir.actions.act_window">
+        <field name="name">Payroll Summary by Workforce Track</field>
+        <field name="res_model">contractor.report.payroll.summary</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_payroll_summary_search"/>
+    </record>
+
+    <!-- Annual Leave Utilization vs Blackout Periods List View -->
+    <record id="view_contractor_report_leave_utilization_list" model="ir.ui.view">
+        <field name="name">contractor.report.leave.utilization.list</field>
+        <field name="model">contractor.report.leave.utilization</field>
+        <field name="arch" type="xml">
+            <list string="Annual Leave Utilization vs Blackout Periods" create="false" edit="false" delete="false">
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="leave_id"/>
+                <field name="employee_id"/>
+                <field name="holiday_status_id"/>
+                <field name="number_of_days"/>
+                <field name="is_critical_project_period"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Annual Leave Utilization vs Blackout Periods Pivot View -->
+    <record id="view_contractor_report_leave_utilization_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.leave.utilization.pivot</field>
+        <field name="model">contractor.report.leave.utilization</field>
+        <field name="arch" type="xml">
+            <pivot string="Annual Leave Utilization vs Blackout Periods">
+                <field name="employee_id" type="row"/>
+                <field name="holiday_status_id" type="col"/>
+                <field name="number_of_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Annual Leave Utilization vs Blackout Periods Graph View -->
+    <record id="view_contractor_report_leave_utilization_graph" model="ir.ui.view">
+        <field name="name">contractor.report.leave.utilization.graph</field>
+        <field name="model">contractor.report.leave.utilization</field>
+        <field name="arch" type="xml">
+            <graph string="Annual Leave Utilization vs Blackout Periods" type="pie">
+                <field name="holiday_status_id"/>
+                <field name="number_of_days" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Annual Leave Utilization vs Blackout Periods Search View -->
+    <record id="view_contractor_report_leave_utilization_search" model="ir.ui.view">
+        <field name="name">contractor.report.leave.utilization.search</field>
+        <field name="model">contractor.report.leave.utilization</field>
+        <field name="arch" type="xml">
+            <search string="Annual Leave Utilization vs Blackout Periods">
+                <field name="employee_id"/>
+                <field name="holiday_status_id"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee_id" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Leave Type" name="group_by_holiday_status_id" context="{'group_by': 'holiday_status_id'}"/>
+                    <filter string="Blackout Window" name="group_by_is_critical_project_period" context="{'group_by': 'is_critical_project_period'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Annual Leave Utilization vs Blackout Periods Action -->
+    <record id="action_contractor_report_leave_utilization" model="ir.actions.act_window">
+        <field name="name">Annual Leave Utilization vs Blackout Periods</field>
+        <field name="res_model">contractor.report.leave.utilization</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_leave_utilization_search"/>
+    </record>
+
+    <!-- Leave Salary Advance and Entitlement Payout List View -->
+    <record id="view_contractor_report_leave_salary_payout_list" model="ir.ui.view">
+        <field name="name">contractor.report.leave.salary.payout.list</field>
+        <field name="model">contractor.report.leave.salary.payout</field>
+        <field name="arch" type="xml">
+            <list string="Leave Salary Advance &amp; Entitlement Payout" create="false" edit="false" delete="false">
+                <field name="create_date"/>
+                <field name="request_id"/>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="leave_days"/>
+                <field name="daily_salary_rate"/>
+                <field name="leave_salary_amount"/>
+                <field name="approved_amount"/>
+                <field name="payout_method"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Leave Salary Advance and Entitlement Payout Pivot View -->
+    <record id="view_contractor_report_leave_salary_payout_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.leave.salary.payout.pivot</field>
+        <field name="model">contractor.report.leave.salary.payout</field>
+        <field name="arch" type="xml">
+            <pivot string="Leave Salary Advance &amp; Entitlement Payout">
+                <field name="employee_id" type="row"/>
+                <field name="payout_method" type="col"/>
+                <field name="approved_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Leave Salary Advance and Entitlement Payout Graph View -->
+    <record id="view_contractor_report_leave_salary_payout_graph" model="ir.ui.view">
+        <field name="name">contractor.report.leave.salary.payout.graph</field>
+        <field name="model">contractor.report.leave.salary.payout</field>
+        <field name="arch" type="xml">
+            <graph string="Leave Salary Advance &amp; Entitlement Payout" type="bar">
+                <field name="employee_id"/>
+                <field name="approved_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Leave Salary Advance and Entitlement Payout Search View -->
+    <record id="view_contractor_report_leave_salary_payout_search" model="ir.ui.view">
+        <field name="name">contractor.report.leave.salary.payout.search</field>
+        <field name="model">contractor.report.leave.salary.payout</field>
+        <field name="arch" type="xml">
+            <search string="Leave Salary Advance &amp; Entitlement Payout">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <group>
+                    <filter string="Payout Method" name="group_by_payout_method" context="{'group_by': 'payout_method'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Leave Salary Advance and Entitlement Payout Action -->
+    <record id="action_contractor_report_leave_salary_payout" model="ir.actions.act_window">
+        <field name="name">Leave Salary Advance &amp; Entitlement Payout</field>
+        <field name="res_model">contractor.report.leave.salary.payout</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_leave_salary_payout_search"/>
+    </record>
+
+    <!-- Air Ticket Allowance Schedule and Due Dates List View -->
+    <record id="view_contractor_report_ticket_allowance_due_list" model="ir.ui.view">
+        <field name="name">contractor.report.ticket.allowance.due.list</field>
+        <field name="model">contractor.report.ticket.allowance.due</field>
+        <field name="arch" type="xml">
+            <list string="Air Ticket Allowance Schedule &amp; Due Dates" create="false" edit="false" delete="false">
+                <field name="request_date"/>
+                <field name="request_id"/>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="disbursement_type"/>
+                <field name="allowance_amount"/>
+                <field name="is_early_release"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Air Ticket Allowance Schedule and Due Dates Pivot View -->
+    <record id="view_contractor_report_ticket_allowance_due_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.ticket.allowance.due.pivot</field>
+        <field name="model">contractor.report.ticket.allowance.due</field>
+        <field name="arch" type="xml">
+            <pivot string="Air Ticket Allowance Schedule &amp; Due Dates">
+                <field name="employee_id" type="row"/>
+                <field name="disbursement_type" type="col"/>
+                <field name="allowance_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Air Ticket Allowance Schedule and Due Dates Graph View -->
+    <record id="view_contractor_report_ticket_allowance_due_graph" model="ir.ui.view">
+        <field name="name">contractor.report.ticket.allowance.due.graph</field>
+        <field name="model">contractor.report.ticket.allowance.due</field>
+        <field name="arch" type="xml">
+            <graph string="Air Ticket Allowance Schedule &amp; Due Dates" type="bar">
+                <field name="employee_id"/>
+                <field name="allowance_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Air Ticket Allowance Schedule and Due Dates Search View -->
+    <record id="view_contractor_report_ticket_allowance_due_search" model="ir.ui.view">
+        <field name="name">contractor.report.ticket.allowance.due.search</field>
+        <field name="model">contractor.report.ticket.allowance.due</field>
+        <field name="arch" type="xml">
+            <search string="Air Ticket Allowance Schedule &amp; Due Dates">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <group>
+                    <filter string="Disbursement Method" name="group_by_disbursement_type" context="{'group_by': 'disbursement_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Early Release" name="group_by_is_early_release" context="{'group_by': 'is_early_release'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Air Ticket Allowance Schedule and Due Dates Action -->
+    <record id="action_contractor_report_ticket_allowance_due" model="ir.actions.act_window">
+        <field name="name">Air Ticket Allowance Schedule &amp; Due Dates</field>
+        <field name="res_model">contractor.report.ticket.allowance.due</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_ticket_allowance_due_search"/>
+    </record>
+
+    <!-- End-of-Service Gratuity (EOSB) Liability List View -->
+    <record id="view_contractor_report_eosb_liability_list" model="ir.ui.view">
+        <field name="name">contractor.report.eosb.liability.list</field>
+        <field name="model">contractor.report.eosb.liability</field>
+        <field name="arch" type="xml">
+            <list string="End-of-Service Gratuity (EOSB) Liability" create="false" edit="false" delete="false">
+                <field name="join_date"/>
+                <field name="employee_id"/>
+                <field name="job_id"/>
+                <field name="department_id"/>
+                <field name="service_years"/>
+                <field name="monthly_basic_salary"/>
+                <field name="accrued_eosb_liability"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- End-of-Service Gratuity (EOSB) Liability Pivot View -->
+    <record id="view_contractor_report_eosb_liability_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.eosb.liability.pivot</field>
+        <field name="model">contractor.report.eosb.liability</field>
+        <field name="arch" type="xml">
+            <pivot string="End-of-Service Gratuity (EOSB) Liability">
+                <field name="department_id" type="row"/>
+                <field name="job_id" type="col"/>
+                <field name="accrued_eosb_liability" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- End-of-Service Gratuity (EOSB) Liability Graph View -->
+    <record id="view_contractor_report_eosb_liability_graph" model="ir.ui.view">
+        <field name="name">contractor.report.eosb.liability.graph</field>
+        <field name="model">contractor.report.eosb.liability</field>
+        <field name="arch" type="xml">
+            <graph string="End-of-Service Gratuity (EOSB) Liability" type="bar">
+                <field name="department_id"/>
+                <field name="accrued_eosb_liability" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- End-of-Service Gratuity (EOSB) Liability Search View -->
+    <record id="view_contractor_report_eosb_liability_search" model="ir.ui.view">
+        <field name="name">contractor.report.eosb.liability.search</field>
+        <field name="model">contractor.report.eosb.liability</field>
+        <field name="arch" type="xml">
+            <search string="End-of-Service Gratuity (EOSB) Liability">
+                <field name="employee_id"/>
+                <field name="job_id"/>
+                <field name="department_id"/>
+                <group>
+                    <filter string="Department" name="group_by_department_id" context="{'group_by': 'department_id'}"/>
+                    <filter string="Designation" name="group_by_job_id" context="{'group_by': 'job_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- End-of-Service Gratuity (EOSB) Liability Action -->
+    <record id="action_contractor_report_eosb_liability" model="ir.actions.act_window">
+        <field name="name">End-of-Service Gratuity (EOSB) Liability</field>
+        <field name="res_model">contractor.report.eosb.liability</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_eosb_liability_search"/>
+    </record>
+
+    <!-- Employee Exit and Final Settlement Register List View -->
+    <record id="view_contractor_report_final_settlement_list" model="ir.ui.view">
+        <field name="name">contractor.report.final.settlement.list</field>
+        <field name="model">contractor.report.final.settlement</field>
+        <field name="arch" type="xml">
+            <list string="Employee Exit &amp; Final Settlement Register" create="false" edit="false" delete="false">
+                <field name="last_working_day"/>
+                <field name="exit_id"/>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="workforce_category"/>
+                <field name="exit_type"/>
+                <field name="years_of_service"/>
+                <field name="eosb_amount"/>
+                <field name="damaged_lost_tool_deductions"/>
+                <field name="net_settlement_amount"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Employee Exit and Final Settlement Register Pivot View -->
+    <record id="view_contractor_report_final_settlement_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.final.settlement.pivot</field>
+        <field name="model">contractor.report.final.settlement</field>
+        <field name="arch" type="xml">
+            <pivot string="Employee Exit &amp; Final Settlement Register">
+                <field name="workforce_category" type="row"/>
+                <field name="exit_type" type="col"/>
+                <field name="net_settlement_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Employee Exit and Final Settlement Register Graph View -->
+    <record id="view_contractor_report_final_settlement_graph" model="ir.ui.view">
+        <field name="name">contractor.report.final.settlement.graph</field>
+        <field name="model">contractor.report.final.settlement</field>
+        <field name="arch" type="xml">
+            <graph string="Employee Exit &amp; Final Settlement Register" type="pie">
+                <field name="exit_type"/>
+                <field name="net_settlement_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Employee Exit and Final Settlement Register Search View -->
+    <record id="view_contractor_report_final_settlement_search" model="ir.ui.view">
+        <field name="name">contractor.report.final.settlement.search</field>
+        <field name="model">contractor.report.final.settlement</field>
+        <field name="arch" type="xml">
+            <search string="Employee Exit &amp; Final Settlement Register">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="workforce_category"/>
+                <field name="exit_type"/>
+                <group>
+                    <filter string="Category" name="group_by_workforce_category" context="{'group_by': 'workforce_category'}"/>
+                    <filter string="Exit Type" name="group_by_exit_type" context="{'group_by': 'exit_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Employee Exit and Final Settlement Register Action -->
+    <record id="action_contractor_report_final_settlement" model="ir.actions.act_window">
+        <field name="name">Employee Exit &amp; Final Settlement Register</field>
+        <field name="res_model">contractor.report.final.settlement</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_final_settlement_search"/>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 68. Site Labour Budget vs Actual Cost Variance                    -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_report_labour_budget_variance_list" model="ir.ui.view">
+        <field name="name">contractor.report.labour.budget.variance.list</field>
+        <field name="model">contractor.report.labour.budget.variance</field>
+        <field name="arch" type="xml">
+            <list string="Site Labour Budget vs Actual Variance" decoration-danger="variance_pct &gt; 0" decoration-success="variance_pct &lt;= 0">
+                <field name="project_id"/>
+                <field name="budget_id"/>
+                <field name="baseline_budget" sum="Baseline"/>
+                <field name="vo_addition_amount" sum="VO Additions"/>
+                <field name="revision_addition_amount" sum="Revisions"/>
+                <field name="total_approved_budget" sum="Approved Budget"/>
+                <field name="committed_amount" sum="Committed"/>
+                <field name="actual_cost_amount" sum="Actual Cost"/>
+                <field name="remaining_budget" sum="Remaining"/>
+                <field name="variance_pct"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_labour_budget_variance_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.labour.budget.variance.pivot</field>
+        <field name="model">contractor.report.labour.budget.variance</field>
+        <field name="arch" type="xml">
+            <pivot string="Site Labour Budget vs Actual Variance">
+                <field name="project_id" type="row"/>
+                <field name="total_approved_budget" type="measure"/>
+                <field name="committed_amount" type="measure"/>
+                <field name="actual_cost_amount" type="measure"/>
+                <field name="remaining_budget" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_labour_budget_variance_graph" model="ir.ui.view">
+        <field name="name">contractor.report.labour.budget.variance.graph</field>
+        <field name="model">contractor.report.labour.budget.variance</field>
+        <field name="arch" type="xml">
+            <graph string="Site Labour Budget vs Actual Variance" type="bar">
+                <field name="project_id"/>
+                <field name="total_approved_budget" type="measure"/>
+                <field name="actual_cost_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_labour_budget_variance_search" model="ir.ui.view">
+        <field name="name">contractor.report.labour.budget.variance.search</field>
+        <field name="model">contractor.report.labour.budget.variance</field>
+        <field name="arch" type="xml">
+            <search string="Site Labour Budget vs Actual Variance">
+                <field name="project_id"/>
+                <field name="budget_id"/>
+                <filter string="Overrun Alert" name="overrun" domain="[('variance_pct', '&gt;', 0)]"/>
+                <group>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_report_labour_budget_variance" model="ir.actions.act_window">
+        <field name="name">Site Labour Budget vs Actual Variance</field>
+        <field name="res_model">contractor.report.labour.budget.variance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_labour_budget_variance_search"/>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 69. Employee Advances & Personal Loans Ledger                     -->
+    <!-- ================================================================= -->
+    <record id="view_contractor_report_employee_advances_list" model="ir.ui.view">
+        <field name="name">contractor.report.employee.advances.list</field>
+        <field name="model">contractor.report.employee.advances</field>
+        <field name="arch" type="xml">
+            <list string="Employee Advances &amp; Loans Ledger" decoration-warning="state == 'disbursed'" decoration-success="state in ('recovered', 'deducted_at_exit')">
+                <field name="name"/>
+                <field name="request_date"/>
+                <field name="employee_id"/>
+                <field name="advance_type"/>
+                <field name="advance_amount" sum="Total Advanced"/>
+                <field name="monthly_installment"/>
+                <field name="recovered_amount" sum="Total Recovered"/>
+                <field name="outstanding_balance" sum="Total Outstanding"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_employee_advances_pivot" model="ir.ui.view">
+        <field name="name">contractor.report.employee.advances.pivot</field>
+        <field name="model">contractor.report.employee.advances</field>
+        <field name="arch" type="xml">
+            <pivot string="Employee Advances &amp; Loans Ledger">
+                <field name="employee_id" type="row"/>
+                <field name="advance_type" type="col"/>
+                <field name="outstanding_balance" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_employee_advances_graph" model="ir.ui.view">
+        <field name="name">contractor.report.employee.advances.graph</field>
+        <field name="model">contractor.report.employee.advances</field>
+        <field name="arch" type="xml">
+            <graph string="Employee Advances &amp; Loans Ledger" type="bar">
+                <field name="advance_type"/>
+                <field name="outstanding_balance" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_contractor_report_employee_advances_search" model="ir.ui.view">
+        <field name="name">contractor.report.employee.advances.search</field>
+        <field name="model">contractor.report.employee.advances</field>
+        <field name="arch" type="xml">
+            <search string="Employee Advances &amp; Loans Ledger">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <filter string="Outstanding" name="outstanding" domain="[('outstanding_balance', '&gt;', 0)]"/>
+                <group>
+                    <filter string="Employee" name="group_by_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Category" name="group_by_type" context="{'group_by': 'advance_type'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_report_employee_advances" model="ir.actions.act_window">
+        <field name="name">Employee Advances &amp; Personal Loans Ledger</field>
+        <field name="res_model">contractor.report.employee.advances</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="view_contractor_report_employee_advances_search"/>
+    </record>
+</odoo>

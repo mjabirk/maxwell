@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Warehouse Classification Extension -->
+    <record id="view_warehouse_inherit_contractor" model="ir.ui.view">
+        <field name="name">stock.warehouse.inherit.contractor</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='code']" position="after">
+                <field name="warehouse_type"/>
+                <field name="project_id" invisible="warehouse_type != 'project_site'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Stock Transfer Note Form -->
+    <record id="view_contractor_stock_transfer_note_form" model="ir.ui.view">
+        <field name="name">contractor.stock.transfer.note.form</field>
+        <field name="model">contractor.stock.transfer.note</field>
+        <field name="arch" type="xml">
+            <form string="Inter-Project Stock Transfer Note (STN)">
+                <header>
+                    <button name="action_submit"
+                            string="Submit to Donor Engineer"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_donor_approve"
+                            string="Donor Engineer Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'pending_donor_approval'"/>
+                    <button name="action_manager_approve"
+                            string="Contractor Manager Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'donor_approved'"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_execute_transfer"
+                            string="Execute Transfer &amp; Shift Cost"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'approved'"
+                            confirm="Are you sure you want to execute this inter-project stock transfer and reallocate project costs? This action cannot be undone."
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('pending_donor_approval', 'donor_approved', 'approved')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,pending_donor_approval,donor_approved,approved,transferred"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="STN Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Donor (Origin) Project &amp; Store">
+                            <field name="donor_project_id" readonly="state != 'draft'"/>
+                            <field name="donor_location_id" readonly="state != 'draft'"/>
+                            <field name="donor_engineer_id" readonly="state != 'draft'"/>
+                            <field name="requester_id"/>
+                        </group>
+                        <group string="Receiving (Destination) Project &amp; Store">
+                            <field name="receiving_project_id" readonly="state != 'draft'"/>
+                            <field name="receiving_location_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="manager_id" readonly="1" invisible="not manager_id"/>
+                            <field name="transfer_date" readonly="1" invisible="not transfer_date"/>
+                            <field name="picking_id" readonly="1" invisible="not picking_id"/>
+                            <field name="account_move_id" readonly="1" invisible="not account_move_id"/>
+                        </group>
+                    </group>
+                    <group string="Transfer Governance &amp; Purpose">
+                        <field name="reason" placeholder="Document reason for inter-project transfer (e.g. surplus materials utilization, site critical substitution)..." readonly="state != 'draft'"/>
+                    </group>
+                    <notebook>
+                        <page string="Transfer Materials" name="page_lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list string="Transfer Lines" editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="available_qty" readonly="1"/>
+                                    <field name="original_purchase_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transfer Cost"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Stock Transfer Note List -->
+    <record id="view_contractor_stock_transfer_note_list" model="ir.ui.view">
+        <field name="name">contractor.stock.transfer.note.list</field>
+        <field name="model">contractor.stock.transfer.note</field>
+        <field name="arch" type="xml">
+            <list string="Stock Transfer Notes" default_order="create_date desc">
+                <field name="name"/>
+                <field name="donor_project_id"/>
+                <field name="receiving_project_id"/>
+                <field name="donor_engineer_id"/>
+                <field name="total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transferred"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ('pending_donor_approval', 'donor_approved')"
+                       decoration-success="state in ('approved', 'transferred')"
+                       decoration-danger="state == 'declined'"/>
+                <field name="transfer_date"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Consolidated Stock Availability Wizard Form -->
+    <record id="view_contractor_stock_availability_wizard_form" model="ir.ui.view">
+        <field name="name">contractor.stock.availability.wizard.form</field>
+        <field name="model">contractor.stock.availability.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Consolidated Stock Availability Across Stores">
+                <group>
+                    <group>
+                        <field name="product_id"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                    <group string="Inventory Summary">
+                        <field name="total_central_on_hand" readonly="1"/>
+                        <field name="total_site_on_hand" readonly="1"/>
+                        <field name="total_net_available" readonly="1" class="oe_subtotal_footer_separator"/>
+                    </group>
+                </group>
+                <notebook>
+                    <page string="Store-by-Store Breakdown" name="page_stores">
+                        <field name="line_ids" readonly="1">
+                            <list string="Store Locations">
+                                <field name="warehouse_id"/>
+                                <field name="warehouse_type" widget="badge"
+                                       decoration-info="warehouse_type == 'central'"
+                                       decoration-warning="warehouse_type == 'project_site'"/>
+                                <field name="location_id"/>
+                                <field name="project_id"/>
+                                <field name="quantity" sum="Total On Hand"/>
+                                <field name="reserved_quantity" sum="Total Reserved"/>
+                                <field name="net_available_qty" sum="Total Net Available" decoration-bf="1" decoration-success="net_available_qty &gt; 0"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+                <footer>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_contractor_stock_transfer_note_search" model="ir.ui.view">
+        <field name="name">contractor.stock.transfer.note.search</field>
+        <field name="model">contractor.stock.transfer.note</field>
+        <field name="arch" type="xml">
+            <search string="Search Stock Transfers">
+                <field name="name"/>
+                <field name="donor_project_id"/>
+                <field name="receiving_project_id"/>
+                <field name="requester_id"/>
+                <filter string="Pending Donor Approval" name="filter_pending_donor" domain="[('state', '=', 'pending_donor_approval')]"/>
+                <filter string="Transferred" name="filter_transferred" domain="[('state', '=', 'transferred')]"/>
+                <group>
+                    <filter string="Donor Project" name="group_donor_project" domain="[]" context="{'group_by': 'donor_project_id'}"/>
+                    <filter string="Receiving Project" name="group_receiving_project" domain="[]" context="{'group_by': 'receiving_project_id'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_contractor_stock_transfer_note" model="ir.actions.act_window">
+        <field name="name">Inter-Project Stock Transfers (STN)</field>
+        <field name="res_model">contractor.stock.transfer.note</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_stock_transfer_note_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create an Inter-Project Stock Transfer Note (STN).
+            </p>
+        </field>
+    </record>
+
+    <record id="action_contractor_stock_availability_wizard" model="ir.actions.act_window">
+        <field name="name">Check Consolidated Stock Availability</field>
+        <field name="res_model">contractor.stock.availability.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
+

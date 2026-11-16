@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_stock_adjustment_note_form" model="ir.ui.view">
+        <field name="name">contractor.stock.adjustment.note.form</field>
+        <field name="model">contractor.stock.adjustment.note</field>
+        <field name="arch" type="xml">
+            <form string="Physical Stock Count &amp; Adjustment Note (SAN)">
+                <header>
+                    <button name="action_submit_investigation"
+                            string="Submit for Investigation"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_co_verify"
+                            string="Co-Verify Physical Count"
+                            type="object"
+                            class="btn-info"
+                            invisible="state not in ('draft', 'investigation') or site_engineer_verified_by"
+                            groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager"/>
+                    <button name="action_manager_approve"
+                            string="Manager Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'investigation' or requires_md_approval"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <button name="action_md_approve"
+                            string="Managing Director Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'investigation' or not requires_md_approval"
+                            groups="contractor_core.group_contractor_md"/>
+                    <button name="action_apply_adjustment"
+                            string="Apply Inventory Reconciliation"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ('manager_approved', 'md_approved')"
+                            confirm="Are you sure you want to apply this physical stock adjustment to inventory? This action cannot be undone."
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('investigation', 'manager_approved')"
+                            confirm="Are you sure you want to decline this physical stock adjustment note?"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,investigation,manager_approved,md_approved,adjusted"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="not requires_md_approval">
+                        <strong>Executive Discrepancy Threshold Exceeded:</strong>
+                        Total absolute inventory discrepancy exceeds the company threshold.
+                        Managing Director authorization is mandatory before stock reconciliation can be posted.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="SAN Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Store Location &amp; Scope">
+                            <field name="warehouse_id" readonly="state != 'draft'"/>
+                            <field name="location_id" readonly="state != 'draft'"/>
+                            <field name="project_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Audit Schedule &amp; Clearance">
+                            <field name="count_date" readonly="state != 'draft'"/>
+                            <field name="requires_md_approval" readonly="1"/>
+                            <field name="site_engineer_verified_by" readonly="1" invisible="not site_engineer_verified_by"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="approval_date" readonly="1" invisible="not approval_date"/>
+                        </group>
+                    </group>
+
+                    <group string="Investigation Findings &amp; Root Cause">
+                        <field name="investigation_report" placeholder="Document physical count recount notes, root cause for shrinkage or unrecorded surplus..." readonly="state in ('adjusted', 'declined')"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Counted Stock Lines" name="page_lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list string="Counted Items" editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="system_qty" readonly="1"/>
+                                    <field name="counted_qty"/>
+                                    <field name="variance_qty" readonly="1" decoration-danger="variance_qty &lt; 0" decoration-success="variance_qty &gt; 0"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="variance_value" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Net Variance" decoration-danger="variance_value &lt; 0" decoration-success="variance_value &gt; 0"/>
+                                    <field name="variance_reason"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="total_variance_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                <field name="total_abs_variance_value" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_stock_adjustment_note_list" model="ir.ui.view">
+        <field name="name">contractor.stock.adjustment.note.list</field>
+        <field name="model">contractor.stock.adjustment.note</field>
+        <field name="arch" type="xml">
+            <list string="Physical Stock Adjustment Notes" default_order="create_date desc">
+                <field name="name"/>
+                <field name="warehouse_id"/>
+                <field name="location_id"/>
+                <field name="count_date"/>
+                <field name="total_variance_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_abs_variance_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'investigation'"
+                       decoration-success="state in ('manager_approved', 'md_approved', 'adjusted')"
+                       decoration-danger="state == 'declined'"/>
+                <field name="requires_md_approval" widget="boolean"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_stock_adjustment_note_search" model="ir.ui.view">
+        <field name="name">contractor.stock.adjustment.note.search</field>
+        <field name="model">contractor.stock.adjustment.note</field>
+        <field name="arch" type="xml">
+            <search string="Search Stock Adjustment Notes">
+                <field name="name"/>
+                <field name="warehouse_id"/>
+                <field name="location_id"/>
+                <field name="project_id"/>
+                <filter string="Under Investigation" name="filter_investigation" domain="[('state', '=', 'investigation')]"/>
+                <filter string="MD Approval Required" name="filter_md_required" domain="[('requires_md_approval', '=', True)]"/>
+                <filter string="Adjusted" name="filter_adjusted" domain="[('state', '=', 'adjusted')]"/>
+                <group>
+                    <filter string="Warehouse" name="group_warehouse" domain="[]" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="Count Date" name="group_count_date" domain="[]" context="{'group_by': 'count_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_stock_adjustment_note" model="ir.actions.act_window">
+        <field name="name">Physical Stock Adjustment Notes (SAN)</field>
+        <field name="res_model">contractor.stock.adjustment.note</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_stock_adjustment_note_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record physical stock count audits, investigate inventory variances, and apply approved reconciliation.
+            </p>
+        </field>
+    </record>
+</odoo>
+

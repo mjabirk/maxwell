@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_project_budget_form" model="ir.ui.view">
+        <field name="name">contractor.project.budget.form</field>
+        <field name="model">contractor.project.budget</field>
+        <field name="arch" type="xml">
+            <form string="Project Master Budget">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Budget Title"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Project Reference">
+                            <field name="project_id"/>
+                            <field name="sale_order_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Financial Position">
+                            <field name="contract_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="total_revised_contract_value" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                            <field name="total_baseline_budget" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="total_vo_budget" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="total_revised_budget" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Baseline Cost Items (4 Blocks)" name="page_baseline_lines">
+                            <field name="line_ids">
+                                <list string="Baseline Budget Lines" editable="bottom">
+                                    <field name="block_type"/>
+                                    <field name="name"/>
+                                    <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="planned_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Baseline"/>
+                                    <field name="notes"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Integrated Variation Orders (VO 1, VO 2...)" name="page_vo_lines">
+                            <div class="alert alert-secondary py-2" role="alert">
+                                <strong>Traceable Variation Segregation:</strong>
+                                Accepted VOs are recorded as separate, indexed line items below without blending into the original baseline lines.
+                            </div>
+                            <field name="vo_line_ids">
+                                <list string="Integrated Variation Orders" create="0" delete="0" edit="0">
+                                    <field name="vo_sequence" decoration-bf="1"/>
+                                    <field name="vo_id"/>
+                                    <field name="name"/>
+                                    <field name="planned_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total VO Cost"/>
+                                    <field name="billed_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total VO Billed"/>
+                                    <field name="schedule_impact_days"/>
+                                    <field name="integration_date"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_project_budget_list" model="ir.ui.view">
+        <field name="name">contractor.project.budget.list</field>
+        <field name="model">contractor.project.budget</field>
+        <field name="arch" type="xml">
+            <list string="Project Budgets" default_order="create_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="contract_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_revised_contract_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_baseline_budget" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_vo_budget" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_revised_budget" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_project_budget_search" model="ir.ui.view">
+        <field name="name">contractor.project.budget.search</field>
+        <field name="model">contractor.project.budget</field>
+        <field name="arch" type="xml">
+            <search string="Search Project Master Budgets">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="sale_order_id"/>
+                <group>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Company" name="group_company" domain="[]" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_project_budget" model="ir.actions.act_window">
+        <field name="name">Project Master Budgets</field>
+        <field name="res_model">contractor.project.budget</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_project_budget_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No project budgets created yet.
+            </p>
+            <p>
+                Project budgets are automatically initialized upon Customer Acceptance and conversion of quotations.
+            </p>
+        </field>
+    </record>
+</odoo>
+

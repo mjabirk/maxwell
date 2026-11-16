@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="purchase_order_form_maxwell_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.form.maxwell.inherit</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Maxwell Print Details" name="maxwell_print_details">
+                    <group>
+                        <group string="LPO &amp; Supplier Details">
+                            <field name="supplier_vendor_id"/>
+                            <field name="lpo_reference"/>
+                            <field name="lpo_received_date"/>
+                            <field name="payment_due_date"/>
+                        </group>
+                        <group string="Customer &amp; Execution Details">
+                            <field name="maxwell_customer_id"/>
+                            <field name="quote_reference_no"/>
+                            <field name="work_completed_date"/>
+                            <field name="prepared_by_designation"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

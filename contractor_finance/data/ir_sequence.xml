@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Non-Current Fixed Asset Sequence -->
+    <record id="seq_contractor_fixed_asset" model="ir.sequence">
+        <field name="name">Contractor Fixed Asset Code</field>
+        <field name="code">contractor.fixed.asset</field>
+        <field name="prefix">NCA/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Asset Physical Verification Sequence -->
+    <record id="seq_contractor_asset_verification" model="ir.sequence">
+        <field name="name">Asset Physical Verification</field>
+        <field name="code">contractor.asset.verification</field>
+        <field name="prefix">VERIF/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Client & Subcontractor Retention Register Sequence -->
+    <record id="seq_contractor_retention_register" model="ir.sequence">
+        <field name="name">Contractor Retention Register</field>
+        <field name="code">contractor.retention.register</field>
+        <field name="prefix">RET/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Bank Reconciliation Sheet Sequence -->
+    <record id="seq_contractor_bank_reconciliation" model="ir.sequence">
+        <field name="name">Bank Reconciliation Sheet</field>
+        <field name="code">contractor.bank.reconciliation</field>
+        <field name="prefix">BREC/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Petty Cash Voucher Sequence -->
+    <record id="seq_contractor_petty_cash_voucher" model="ir.sequence">
+        <field name="name">Petty Cash Voucher</field>
+        <field name="code">contractor.petty.cash.voucher</field>
+        <field name="prefix">PCV/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Loan & Financing Facility Sequence -->
+    <record id="seq_contractor_loan_facility" model="ir.sequence">
+        <field name="name">Loan &amp; Financing Facility</field>
+        <field name="code">contractor.loan.facility</field>
+        <field name="prefix">LOAN/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Accounting Provision Sequence -->
+    <record id="seq_contractor_accounting_provision" model="ir.sequence">
+        <field name="name">Accounting Provision</field>
+        <field name="code">contractor.accounting.provision</field>
+        <field name="prefix">PROV/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Project PoC WIP Schedule Sequence -->
+    <record id="seq_contractor_project_wip_schedule" model="ir.sequence">
+        <field name="name">Project PoC WIP Schedule</field>
+        <field name="code">contractor.project.wip.schedule</field>
+        <field name="prefix">WIP/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Period Close Checklist Sequence -->
+    <record id="seq_contractor_period_close" model="ir.sequence">
+        <field name="name">Period Close Checklist</field>
+        <field name="code">contractor.period.close</field>
+        <field name="prefix">CLOSE/%(range_year)s/</field>
+        <field name="padding">3</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- External Audit Query Sequence -->
+    <record id="seq_contractor_audit_query" model="ir.sequence">
+        <field name="name">External Audit Query</field>
+        <field name="code">contractor.audit.query</field>
+        <field name="prefix">AUD/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Employee Advance & Loan Sequence -->
+    <record id="seq_contractor_employee_advance" model="ir.sequence">
+        <field name="name">Employee Advance &amp; Personal Loan</field>
+        <field name="code">contractor.employee.advance</field>
+        <field name="prefix">ADV/%(range_year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>
+

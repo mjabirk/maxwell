@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_leftover_disposition_form" model="ir.ui.view">
+        <field name="name">contractor.leftover.disposition.form</field>
+        <field name="model">contractor.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <form string="Leftover Material Disposition">
+                <header>
+                    <button name="action_submit"
+                            string="Submit Disposition Plan"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_verify"
+                            string="Verify Quantities &amp; Condition"
+                            type="object"
+                            class="btn-info"
+                            invisible="state != 'submitted'"
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager"/>
+                    <button name="action_manager_approve"
+                            string="Manager / PM Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state not in ('submitted', 'verified') or requires_md_approval"
+                            groups="contractor_core.group_contractor_manager,contractor_core.group_contractor_project_manager"/>
+                    <button name="action_md_approve"
+                            string="Managing Director Approve"
+                            type="object"
+                            class="btn-success"
+                            invisible="state not in ('submitted', 'verified') or not requires_md_approval"
+                            groups="contractor_core.group_contractor_md"/>
+                    <button name="action_execute"
+                            string="Execute Disposition &amp; Transfer"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ('approved', 'md_approved')"
+                            confirm="Are you sure you want to execute this leftover material disposition and validate the stock transfer? This action cannot be undone."
+                            groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_manager"/>
+                    <button name="action_decline"
+                            string="Decline"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state not in ('submitted', 'verified', 'approved', 'md_approved')"
+                            confirm="Are you sure you want to decline this leftover disposition?"
+                            groups="contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,verified,approved,md_approved,executed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Disposition Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Source Project &amp; Strategy">
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="disposition_type" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Destination &amp; Execution">
+                            <field name="target_warehouse_id" invisible="disposition_type != 'return_to_store'" required="disposition_type == 'return_to_store'" readonly="state != 'draft'"/>
+                            <field name="target_project_id" invisible="disposition_type != 'transfer_to_project'" required="disposition_type == 'transfer_to_project'" readonly="state != 'draft'"/>
+                            <field name="verified_by_id" readonly="1" invisible="not verified_by_id"/>
+                            <field name="approver_id" readonly="1" invisible="not approver_id"/>
+                            <field name="execution_date" readonly="1" invisible="not execution_date"/>
+                            <field name="picking_id" readonly="1" invisible="not picking_id"/>
+                            <field name="cost_adjustment_move_id" readonly="1" invisible="not cost_adjustment_move_id"/>
+                            <field name="requires_md_approval" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Surplus Materials List" name="page_lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list string="Surplus Materials" editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Surplus"/>
+                                    <field name="disposition_reason"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="total_value" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_contractor_leftover_disposition_list" model="ir.ui.view">
+        <field name="name">contractor.leftover.disposition.list</field>
+        <field name="model">contractor.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <list string="Surplus Stock Dispositions" default_order="create_date desc">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="disposition_type" widget="badge"/>
+                <field name="total_value" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Surplus Value"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state in ('approved', 'executed')"
+                       decoration-danger="state == 'declined'"/>
+                <field name="execution_date"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_leftover_disposition_search" model="ir.ui.view">
+        <field name="name">contractor.leftover.disposition.search</field>
+        <field name="model">contractor.leftover.disposition</field>
+        <field name="arch" type="xml">
+            <search string="Search Leftover Dispositions">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="target_project_id"/>
+                <field name="disposition_type"/>
+                <filter string="Submitted" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Executed" name="filter_executed" domain="[('state', '=', 'executed')]"/>
+                <group>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Disposition Type" name="group_type" domain="[]" context="{'group_by': 'disposition_type'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_leftover_disposition" model="ir.actions.act_window">
+        <field name="name">Leftover Stock Dispositions</field>
+        <field name="res_model">contractor.leftover.disposition</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_leftover_disposition_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage leftover material returns, inter-project transfers, or write-offs upon project milestone completion.
+            </p>
+        </field>
+    </record>
+</odoo>
+
