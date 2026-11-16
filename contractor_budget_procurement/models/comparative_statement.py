@@ -423,6 +423,24 @@ class ContractorComparativeStatement(models.Model):
                 })
 
             po = self.env['purchase.order'].create(po_vals)
+            vendor_invites = self.env['contractor.rfq.vendor.invite'].sudo().search([
+                ('requisition_id', '=', self.requisition_id.id),
+                ('vendor_id', '=', vendor.id),
+                ('state', 'in', ('submitted', 'approved')),
+            ])
+            po_att_ids = []
+            for inv in vendor_invites:
+                po_att_ids.extend(inv._copy_attachments_to_record(po))
+            if po_att_ids:
+                po.message_post(
+                    body=Markup(_(
+                        "<strong>Approved Vendor Quotation Attached:</strong> "
+                        "Linked vendor quotation document(s) from RFQ Invite(s): %s."
+                    )) % ", ".join(vendor_invites.mapped('name')),
+                    attachment_ids=list(dict.fromkeys(po_att_ids)),
+                    message_type='notification',
+                    subtype_xmlid='mail.mt_note',
+                )
             created_pos |= po
 
         self.write({

@@ -21,6 +21,8 @@
         'views/stock_transfer_note_views.xml',
         'views/material_requisition_views.xml',
         'views/comparative_statement_views.xml',
+        'views/vendor_rfq_portal_views.xml',
+        'views/rfq_portal_templates.xml',
         'views/purchase_order_views.xml',
         'views/stock_picking_views.xml',
         'views/account_payment_views.xml',

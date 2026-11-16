@@ -19,6 +19,12 @@
               action="action_contractor_material_requisition"
               sequence="10"/>
 
+    <menuitem id="menu_contractor_rfq_vendor_invites"
+              name="Vendor RFQ Invitations (Portal)"
+              parent="menu_contractor_procurement"
+              action="action_contractor_rfq_vendor_invite"
+              sequence="15"/>
+
     <menuitem id="menu_contractor_comparative_statements"
               name="Comparative Statements (3-Vendor RFQ)"
               parent="menu_contractor_procurement"

@@ -53,5 +53,14 @@
         <field name="padding">4</field>
         <field name="company_id" eval="False"/>
     </record>
+
+    <!-- Sequence for Vendor RFQ Portal Invitation -->
+    <record id="seq_contractor_rfq_vendor_invite" model="ir.sequence">
+        <field name="name">Vendor RFQ Portal Invite Sequence</field>
+        <field name="code">contractor.rfq.vendor.invite</field>
+        <field name="prefix">RFQ-INV-%(range_year)s-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
 </odoo>
 

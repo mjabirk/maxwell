@@ -41,4 +41,11 @@
         <field name="global" eval="True"/>
         <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
     </record>
+
+    <record id="rule_contractor_rfq_vendor_invite_multi_company" model="ir.rule">
+        <field name="name">Vendor RFQ Portal Invite Multi-Company</field>
+        <field name="model_id" ref="model_contractor_rfq_vendor_invite"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

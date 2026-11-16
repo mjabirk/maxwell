@@ -11,6 +11,12 @@
                             type="object"
                             class="btn-primary"
                             invisible="state != 'draft'"/>
+                    <button name="action_open_send_rfq_wizard"
+                            string="Send RFQ to Vendors (Portal)"
+                            type="object"
+                            class="btn-info"
+                            invisible="state != 'draft'"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
                     <button name="action_pm_approve"
                             string="Project Manager Approve"
                             type="object"

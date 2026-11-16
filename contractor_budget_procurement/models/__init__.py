@@ -6,4 +6,5 @@ from . import comparative_statement
 from . import purchase_and_stock
 from . import emergency_purchase
 from . import procurement_ux_extensions
+from . import vendor_rfq_portal
 

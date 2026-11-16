@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vendor RFQ Invite Form View -->
+    <record id="view_contractor_rfq_vendor_invite_form" model="ir.ui.view">
+        <field name="name">contractor.rfq.vendor.invite.form</field>
+        <field name="model">contractor.rfq.vendor.invite</field>
+        <field name="arch" type="xml">
+            <form string="Vendor RFQ Portal Invitation">
+                <header>
+                    <button name="action_send_rfq_invite"
+                            string="Send / Resend Link"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ('draft', 'sent')"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
+                    <button name="action_sync_to_comparative_statement"
+                            string="Approve &amp; Sync to Comparative Statement"
+                            type="object"
+                            class="btn-success"
+                            invisible="state not in ('draft', 'sent', 'submitted')"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
+                    <button name="action_reopen_for_vendor"
+                            string="Reopen for Vendor"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state not in ('submitted', 'expired')"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent,submitted,approved,expired"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="RFQ Invite Reference"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <div class="alert alert-info py-2 mb-3" role="status" invisible="not portal_url">
+                        <strong>Zero-Login Shareable Vendor Link (Email / WhatsApp):</strong>
+                        <field name="portal_url" widget="CopyClipboardChar" readonly="1" class="w-100 mt-1"/>
+                    </div>
+
+                    <group>
+                        <group string="Requisition &amp; Vendor Details">
+                            <field name="requisition_id" readonly="state != 'draft'"/>
+                            <field name="comparative_statement_id" readonly="state == 'approved'"/>
+                            <field name="project_id"/>
+                            <field name="vendor_id" readonly="state != 'draft'"/>
+                            <field name="vendor_email" readonly="state in ('approved', 'expired')"/>
+                            <field name="deadline_date" readonly="state in ('approved', 'expired')"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Vendor Commercial Bid">
+                            <field name="vendor_reference"/>
+                            <field name="delivery_days"/>
+                            <field name="payment_terms"/>
+                            <field name="submitted_datetime" readonly="1" invisible="not submitted_datetime"/>
+                            <field name="total_quoted_amount" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </group>
+
+                    <group string="Vendor Quotation Documents &amp; Remarks">
+                        <field name="quotation_attachment_ids" widget="many2many_binary"/>
+                        <field name="vendor_notes" placeholder="Vendor commercial terms, validity, or technical exclusions..."/>
+                    </group>
+
+                    <notebook>
+                        <page string="Quoted Line Items" name="page_quoted_lines">
+                            <field name="line_ids" readonly="state == 'approved'">
+                                <list string="Quoted Items" editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="description"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="quoted_price" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="subtotal" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Quoted"/>
+                                    <field name="vendor_line_note"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vendor RFQ Invite List View -->
+    <record id="view_contractor_rfq_vendor_invite_list" model="ir.ui.view">
+        <field name="name">contractor.rfq.vendor.invite.list</field>
+        <field name="model">contractor.rfq.vendor.invite</field>
+        <field name="arch" type="xml">
+            <list string="Vendor RFQ Invitations" default_order="create_date desc">
+                <field name="name"/>
+                <field name="requisition_id"/>
+                <field name="project_id"/>
+                <field name="vendor_id"/>
+                <field name="vendor_email" optional="show"/>
+                <field name="deadline_date"/>
+                <field name="delivery_days" optional="show"/>
+                <field name="total_quoted_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Quoted"/>
+                <field name="submitted_datetime" optional="show"/>
+                <field name="portal_url" widget="CopyClipboardChar" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state in ('draft', 'sent')"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'expired'"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vendor RFQ Invite Search View -->
+    <record id="view_contractor_rfq_vendor_invite_search" model="ir.ui.view">
+        <field name="name">contractor.rfq.vendor.invite.search</field>
+        <field name="model">contractor.rfq.vendor.invite</field>
+        <field name="arch" type="xml">
+            <search string="Search Vendor RFQ Invitations">
+                <field name="name"/>
+                <field name="requisition_id"/>
+                <field name="project_id"/>
+                <field name="vendor_id"/>
+                <filter string="Sent to Vendor" name="filter_sent" domain="[('state', '=', 'sent')]"/>
+                <filter string="Quotation Received" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Awarded / Synced to CS" name="filter_approved" domain="[('state', '=', 'approved')]"/>
+                <group>
+                    <filter string="Material Requisition" name="group_mr" domain="[]" context="{'group_by': 'requisition_id'}"/>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Vendor" name="group_vendor" domain="[]" context="{'group_by': 'vendor_id'}"/>
+                    <filter string="Status" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_rfq_vendor_invite" model="ir.actions.act_window">
+        <field name="name">Vendor RFQ Invitations (Portal)</field>
+        <field name="res_model">contractor.rfq.vendor.invite</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_contractor_rfq_vendor_invite_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Invite vendors to submit unit prices and signed PDF quotes directly via zero-login portal links.
+            </p>
+        </field>
+    </record>
+
+    <!-- Multi-Vendor Send RFQ Wizard Form -->
+    <record id="view_contractor_rfq_send_wizard_form" model="ir.ui.view">
+        <field name="name">contractor.rfq.send.wizard.form</field>
+        <field name="model">contractor.rfq.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send RFQ to Vendors (Portal)">
+                <group>
+                    <field name="requisition_id" readonly="1"/>
+                    <field name="comparative_statement_id" invisible="1"/>
+                    <field name="deadline_date"/>
+                    <field name="send_email" widget="boolean_toggle"/>
+                    <field name="vendor_ids" widget="many2many_tags" placeholder="Select one or more supplier companies..."/>
+                </group>
+                <footer>
+                    <button name="action_send_invitations"
+                            string="Generate &amp; Send Portal Invitations"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -22,6 +22,12 @@
                             type="object"
                             class="btn-primary"
                             invisible="state not in ('approved', 'cs_in_progress')"/>
+                    <button name="action_open_send_rfq_wizard"
+                            string="Send RFQ to Vendors (Portal)"
+                            type="object"
+                            class="btn-info"
+                            invisible="state not in ('approved', 'cs_in_progress')"
+                            groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
                     <button name="action_create_direct_po"
                             string="Create Direct PO (Below RFQ Threshold)"
                             type="object"
@@ -43,6 +49,13 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <button name="action_view_rfq_invites"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-envelope-open-o"
+                                invisible="rfq_invite_count == 0">
+                            <field name="rfq_invite_count" widget="statinfo" string="Vendor Quotes"/>
+                        </button>
                         <button name="action_view_comparative_statements"
                                 type="object"
                                 class="oe_stat_button"

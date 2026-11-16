@@ -57,3 +57,19 @@ access_san_line_admin,contractor.stock.adjustment.note.line.admin,model_contract
 access_stock_avail_wiz,contractor.stock.availability.wizard.user,model_contractor_stock_availability_wizard,base.group_user,1,1,1,1
 access_stock_avail_line,contractor.stock.availability.line.user,model_contractor_stock_availability_line,base.group_user,1,1,1,1
 
+access_rfq_invite_user,contractor.rfq.vendor.invite.user,model_contractor_rfq_vendor_invite,base.group_user,1,0,0,0
+access_rfq_invite_proc,contractor.rfq.vendor.invite.proc,model_contractor_rfq_vendor_invite,contractor_core.group_contractor_procurement_officer,1,1,1,0
+access_rfq_invite_mgr,contractor.rfq.vendor.invite.mgr,model_contractor_rfq_vendor_invite,contractor_core.group_contractor_manager,1,1,1,0
+access_rfq_invite_md,contractor.rfq.vendor.invite.md,model_contractor_rfq_vendor_invite,contractor_core.group_contractor_md,1,1,1,0
+access_rfq_invite_admin,contractor.rfq.vendor.invite.admin,model_contractor_rfq_vendor_invite,base.group_system,1,1,1,1
+
+access_rfq_invite_line_user,contractor.rfq.vendor.invite.line.user,model_contractor_rfq_vendor_invite_line,base.group_user,1,0,0,0
+access_rfq_invite_line_proc,contractor.rfq.vendor.invite.line.proc,model_contractor_rfq_vendor_invite_line,contractor_core.group_contractor_procurement_officer,1,1,1,1
+access_rfq_invite_line_mgr,contractor.rfq.vendor.invite.line.mgr,model_contractor_rfq_vendor_invite_line,contractor_core.group_contractor_manager,1,1,1,1
+access_rfq_invite_line_admin,contractor.rfq.vendor.invite.line.admin,model_contractor_rfq_vendor_invite_line,base.group_system,1,1,1,1
+
+access_rfq_send_wizard_user,contractor.rfq.send.wizard.user,model_contractor_rfq_send_wizard,base.group_user,1,0,0,0
+access_rfq_send_wizard_proc,contractor.rfq.send.wizard.proc,model_contractor_rfq_send_wizard,contractor_core.group_contractor_procurement_officer,1,1,1,1
+access_rfq_send_wizard_mgr,contractor.rfq.send.wizard.mgr,model_contractor_rfq_send_wizard,contractor_core.group_contractor_manager,1,1,1,1
+access_rfq_send_wizard_admin,contractor.rfq.send.wizard.admin,model_contractor_rfq_send_wizard,base.group_system,1,1,1,1
+
