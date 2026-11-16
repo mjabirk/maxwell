@@ -151,6 +151,8 @@
                     <group string="Inventory Summary">
                         <field name="total_central_on_hand" readonly="1"/>
                         <field name="total_site_on_hand" readonly="1"/>
+                        <field name="total_free_on_hand" readonly="1"/>
+                        <field name="total_project_on_hand" readonly="1"/>
                         <field name="total_net_available" readonly="1" class="oe_subtotal_footer_separator"/>
                     </group>
                 </group>
@@ -163,6 +165,7 @@
                                        decoration-info="warehouse_type == 'central'"
                                        decoration-warning="warehouse_type == 'project_site'"/>
                                 <field name="location_id"/>
+                                <field name="stock_type" widget="badge" decoration-info="stock_type == 'free_stock'" decoration-warning="stock_type == 'project_allocated'"/>
                                 <field name="project_id"/>
                                 <field name="quantity" sum="Total On Hand"/>
                                 <field name="reserved_quantity" sum="Total Reserved"/>

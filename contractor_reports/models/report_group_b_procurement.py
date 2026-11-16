@@ -976,7 +976,7 @@ class ContractorReportFreeVsProjectStock(models.Model):
             JOIN product_template pt ON pt.id = pp.product_tmpl_id
             JOIN stock_location sl ON sl.id = sq.location_id
             LEFT JOIN stock_warehouse sw ON sw.id = sl.warehouse_id
-            LEFT JOIN project_project proj ON proj.id = COALESCE(sl.project_id, sw.project_id)
+            LEFT JOIN project_project proj ON proj.id = COALESCE(sq.project_id, sl.project_id, sw.project_id)
             LEFT JOIN res_company rc ON rc.id = sq.company_id
             WHERE sl.usage = 'internal'
               AND (sq.quantity != 0 OR sq.reserved_quantity != 0)

@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
 from markupsafe import Markup
+from psycopg2 import Error
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.fields import Domain
+
+_logger = logging.getLogger(__name__)
 
 
 # =========================================================================
@@ -1470,4 +1475,243 @@ class ContractorStockAdjustmentNoteLine(models.Model):
         if any(line.san_id.state == 'adjusted' for line in self):
             raise UserError(_("Lines of an adjusted Stock Adjustment Note cannot be deleted."))
         return super().unlink()
+
+
+# =========================================================================
+# 5. Single-Location Project-Tagged Quant Segregation
+# =========================================================================
+class StockQuant(models.Model):
+    _inherit = 'stock.quant'
+
+    project_id = fields.Many2one(
+        'project.project',
+        string='Allocated Project',
+        index=True,
+        help='Project ownership tag allowing Free Stock and multiple Project Stocks to coexist in one warehouse location.',
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        ctx = self.env.context
+        has_ctx_proj = 'quant_project_id' in ctx
+        ctx_proj = (ctx.get('quant_project_id') or False) if has_ctx_proj else False
+        for vals in vals_list:
+            if 'project_id' not in vals:
+                if has_ctx_proj:
+                    vals['project_id'] = ctx_proj
+                elif vals.get('location_id'):
+                    loc = self.env['stock.location'].sudo().browse(vals['location_id'])
+                    if getattr(loc, 'project_id', False):
+                        vals['project_id'] = loc.project_id.id
+        quants = super().create(vals_list)
+        quants_cache = ctx.get('quants_cache')
+        if quants_cache is not None:
+            for q in quants:
+                key = (q.product_id.id, q.location_id.id, q.lot_id.id, q.package_id.id, q.owner_id.id)
+                quants_cache[key] |= q
+        return quants
+
+    def _resolve_context_project_filter(self, location_id, strict):
+        ctx = self.env.context
+        if 'quant_project_id' in ctx:
+            return True, (ctx.get('quant_project_id') or False)
+        if 'allowed_quant_project_ids' in ctx:
+            return False, None
+        if strict and location_id:
+            loc_proj = getattr(location_id, 'project_id', False)
+            return True, (loc_proj.id if loc_proj else False)
+        return False, None
+
+    def _get_gather_domain(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, strict=False):
+        domain = super()._get_gather_domain(
+            product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict
+        )
+        ctx = self.env.context
+        has_exact, exact_proj = self._resolve_context_project_filter(location_id, strict)
+        if has_exact:
+            domain &= Domain('project_id', '=', exact_proj)
+        elif 'allowed_quant_project_ids' in ctx:
+            allowed = list(ctx.get('allowed_quant_project_ids') or [False])
+            domain &= Domain('project_id', 'in', allowed)
+        return domain
+
+    def _gather(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, qty=0):
+        res = super()._gather(
+            product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict, qty=qty
+        )
+        ctx = self.env.context
+        has_exact, exact_proj = self._resolve_context_project_filter(location_id, strict)
+        if has_exact:
+            return res.filtered(lambda q: (q.project_id.id or False) == exact_proj)
+        if 'allowed_quant_project_ids' in ctx:
+            allowed = ctx.get('allowed_quant_project_ids') or [False]
+            allowed_set = set(allowed)
+            res = res.filtered(lambda q: (q.project_id.id or False) in allowed_set)
+            prefer_proj = ctx.get('prefer_quant_project_id')
+            if prefer_proj:
+                res = res.sorted(key=lambda q: (0 if q.project_id.id == prefer_proj else 1, q.id))
+        return res
+
+    @api.model
+    def _merge_quants(self):
+        """Override core quant merge to keep Free Stock and per-Project quants segregated."""
+        params = []
+        query = """WITH
+                        dupes AS (
+                            SELECT min(id) as to_update_quant_id,
+                                (array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)] as to_delete_quant_ids,
+                                GREATEST(0, SUM(reserved_quantity)) as reserved_quantity,
+                                SUM(inventory_quantity) as inventory_quantity,
+                                SUM(quantity) as quantity,
+                                MIN(in_date) as in_date
+                            FROM stock_quant
+        """
+        if self._ids:
+            query += """
+                            WHERE
+                                location_id in %s
+                                AND product_id in %s
+            """
+            params = [tuple(self.location_id.ids), tuple(self.product_id.ids)]
+        query += """
+                            GROUP BY product_id, company_id, location_id, lot_id, package_id, owner_id, project_id
+                            HAVING count(id) > 1
+                        ),
+                        _up AS (
+                            UPDATE stock_quant q
+                                SET quantity = d.quantity,
+                                    reserved_quantity = d.reserved_quantity,
+                                    inventory_quantity = d.inventory_quantity,
+                                    in_date = d.in_date
+                            FROM dupes d
+                            WHERE d.to_update_quant_id = q.id
+                        )
+                   DELETE FROM stock_quant WHERE id in (SELECT unnest(to_delete_quant_ids) from dupes)
+        """
+        try:
+            with self.env.cr.savepoint():
+                self.env.cr.execute(query, params)
+                self.env.invalidate_all()
+        except Error as e:
+            _logger.info('an error occurred while merging quants: %s', e.pgerror)
+
+
+class StockMoveProjectQuant(models.Model):
+    _inherit = 'stock.move'
+
+    source_project_id = fields.Many2one(
+        'project.project',
+        string='Source Project Tag',
+        copy=False,
+        help='Optional explicit source project quant tag when transferring from a shared location (e.g., STN).',
+    )
+    restrict_source_project = fields.Boolean(
+        string='Strict Source Project Matching',
+        default=False,
+        copy=False,
+        help='When True, reservation and consumption match only stock.quant rows with source_project_id.',
+    )
+
+    def _get_reservation_project_context(self, location_id):
+        self.ensure_one()
+        if self.restrict_source_project:
+            return {'quant_project_id': self.source_project_id.id or False}
+        if getattr(location_id, 'project_id', False):
+            return {'quant_project_id': location_id.project_id.id}
+        if self.project_id:
+            return {
+                'allowed_quant_project_ids': [self.project_id.id, False],
+                'prefer_quant_project_id': self.project_id.id,
+            }
+        return {'quant_project_id': False}
+
+    def _update_reserved_quantity_vals(self, need, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
+        proj_ctx = self._get_reservation_project_context(location_id)
+        return super(StockMoveProjectQuant, self.with_context(**proj_ctx))._update_reserved_quantity_vals(
+            need, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict
+        )
+
+    def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
+        vals = super()._prepare_move_line_vals(quantity=quantity, reserved_quant=reserved_quant)
+        if reserved_quant is not None:
+            vals['source_project_id'] = reserved_quant.project_id.id if reserved_quant.project_id else False
+            vals['source_quant_pinned'] = True
+        elif self.restrict_source_project:
+            vals['source_project_id'] = self.source_project_id.id or False
+            vals['source_quant_pinned'] = True
+        return vals
+
+
+class StockMoveLineProjectQuant(models.Model):
+    _inherit = 'stock.move.line'
+
+    source_project_id = fields.Many2one(
+        'project.project',
+        string='Source Project Quant',
+        copy=False,
+    )
+    source_quant_pinned = fields.Boolean(
+        string='Source Quant Pinned',
+        default=False,
+        copy=False,
+    )
+
+    def _resolve_effective_source_project_id(self):
+        self.ensure_one()
+        move = self.move_id
+        if self.source_quant_pinned:
+            return self.source_project_id.id or False
+        if move and move.restrict_source_project:
+            return move.source_project_id.id or False
+        if self.location_id and getattr(self.location_id, 'project_id', False):
+            return self.location_id.project_id.id
+        if move and move.project_id and self.location_id and self.location_id.usage == 'internal':
+            has_proj_quant = self.env['stock.quant'].sudo().search_count([
+                ('product_id', '=', self.product_id.id),
+                ('location_id', '=', self.location_id.id),
+                ('project_id', '=', move.project_id.id),
+                '|', ('quantity', '>', 0), ('reserved_quantity', '>', 0),
+            ], limit=1)
+            if has_proj_quant:
+                return move.project_id.id
+        return False
+
+    def _resolve_effective_dest_project_id(self, location):
+        self.ensure_one()
+        if not location or location.usage != 'internal':
+            return False
+        move = self.move_id
+        picking = move.picking_id if move else self.picking_id
+        is_central = (
+            getattr(move, 'is_central_stock_purchase', False)
+            or getattr(picking, 'is_central_stock_purchase', False)
+        )
+        if is_central:
+            return False
+        return (
+            (location.project_id.id if getattr(location, 'project_id', False) else False)
+            or (move.project_id.id if move and move.project_id else False)
+            or (picking.project_id.id if picking and picking.project_id else False)
+            or False
+        )
+
+    def _action_done(self):
+        # Pin source project tags consistently before _synchronize_quant deducts reservation + available
+        for ml in self:
+            if not ml.source_quant_pinned:
+                eff_src = ml._resolve_effective_source_project_id()
+                ml.write({
+                    'source_project_id': eff_src,
+                    'source_quant_pinned': True,
+                })
+        return super()._action_done()
+
+    def _synchronize_quant(self, quantity, location, action="available", in_date=False, **quants_value):
+        if location and location.id == self.location_dest_id.id and quantity > 0 and action == "available":
+            target_proj = self._resolve_effective_dest_project_id(location)
+        else:
+            target_proj = self._resolve_effective_source_project_id()
+        return super(StockMoveLineProjectQuant, self.with_context(quant_project_id=target_proj))._synchronize_quant(
+            quantity, location, action=action, in_date=in_date, **quants_value
+        )
 

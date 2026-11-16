@@ -83,10 +83,66 @@ class ContractorStockAvailabilityWizard(models.TransientModel):
         string='Project Sites On Hand',
         compute='_compute_totals',
     )
+    total_free_on_hand = fields.Float(
+        string='Free Stock On Hand',
+        compute='_compute_totals',
+    )
+    total_project_on_hand = fields.Float(
+        string='Project-Allocated On Hand',
+        compute='_compute_totals',
+    )
     total_net_available = fields.Float(
         string='Total Net Available Stock',
         compute='_compute_totals',
     )
+
+    def _build_availability_lines_for_products(self, products, company):
+        """Groups quants by product, location, and effective project_id (Free Stock vs Project-Allocated)."""
+        lines = []
+        if not products:
+            return lines
+        internal_locations = self.env['stock.location'].search([
+            ('usage', '=', 'internal'),
+            ('company_id', 'in', [company.id, False]),
+        ])
+        for prod in products:
+            for loc in internal_locations:
+                quants = self.env['stock.quant'].search([
+                    ('product_id', '=', prod.id),
+                    ('location_id', '=', loc.id),
+                ])
+                if not quants:
+                    continue
+                wh = loc.warehouse_id
+                grouped = {}
+                for q in quants:
+                    eff_proj_id = (
+                        (q.project_id.id if q.project_id else False)
+                        or (loc.project_id.id if loc.project_id else False)
+                        or (wh.project_id.id if wh and wh.project_id else False)
+                    )
+                    bucket = grouped.setdefault(eff_proj_id, {'qty': 0.0, 'reserved': 0.0})
+                    bucket['qty'] += q.quantity
+                    bucket['reserved'] += q.reserved_quantity
+
+                # Display Free Stock (False) first, then allocated project buckets
+                sorted_keys = sorted(grouped.keys(), key=lambda pid: (0 if not pid else 1, pid or 0))
+                for eff_proj_id in sorted_keys:
+                    qty = grouped[eff_proj_id]['qty']
+                    reserved = grouped[eff_proj_id]['reserved']
+                    if qty > 0 or reserved > 0:
+                        lines.append((0, 0, {
+                            'product_id': prod.id,
+                            'location_id': loc.id,
+                            'warehouse_id': wh.id if wh else False,
+                            'warehouse_type': wh.warehouse_type if wh else 'other',
+                            'project_id': eff_proj_id,
+                            'stock_type': 'project_allocated' if eff_proj_id else 'free_stock',
+                            'quantity': qty,
+                            'reserved_quantity': reserved,
+                            'net_available_qty': qty - reserved,
+                        }))
+        return lines
 
     @api.depends('product_id', 'company_id')
     def _compute_availability_lines(self):
@@ -94,44 +150,21 @@ class ContractorStockAvailabilityWizard(models.TransientModel):
             if not wiz.product_id:
                 wiz.line_ids = [(5, 0, 0)]
                 continue
-
-            lines = []
-            # Find all internal locations linked to warehouses
-            internal_locations = self.env['stock.location'].search([
-                ('usage', '=', 'internal'),
-                ('company_id', 'in', [wiz.company_id.id, False]),
-            ])
-
-            for loc in internal_locations:
-                quants = self.env['stock.quant'].search([
-                    ('product_id', '=', wiz.product_id.id),
-                    ('location_id', '=', loc.id),
-                ])
-                qty = sum(quants.mapped('quantity'))
-                reserved = sum(quants.mapped('reserved_quantity'))
-                net = qty - reserved
-
-                if qty > 0 or reserved > 0:
-                    wh = loc.warehouse_id
-                    lines.append((0, 0, {
-                        'product_id': wiz.product_id.id,
-                        'location_id': loc.id,
-                        'warehouse_id': wh.id if wh else False,
-                        'warehouse_type': wh.warehouse_type if wh else 'other',
-                        'project_id': loc.project_id.id or (wh.project_id.id if wh and wh.project_id else False),
-                        'quantity': qty,
-                        'reserved_quantity': reserved,
-                        'net_available_qty': net,
-                    }))
-            wiz.line_ids = lines
+            wiz.line_ids = wiz._build_availability_lines_for_products(
+                wiz.product_id, wiz.company_id or self.env.company
+            )
 
     @api.depends('line_ids')
     def _compute_totals(self):
         for wiz in self:
             central_lines = wiz.line_ids.filtered(lambda l: l.warehouse_type == 'central')
             site_lines = wiz.line_ids.filtered(lambda l: l.warehouse_type == 'project_site')
+            free_lines = wiz.line_ids.filtered(lambda l: not l.project_id)
+            proj_lines = wiz.line_ids.filtered(lambda l: bool(l.project_id))
             wiz.total_central_on_hand = sum(central_lines.mapped('quantity'))
             wiz.total_site_on_hand = sum(site_lines.mapped('quantity'))
+            wiz.total_free_on_hand = sum(free_lines.mapped('quantity'))
+            wiz.total_project_on_hand = sum(proj_lines.mapped('quantity'))
             wiz.total_net_available = sum(wiz.line_ids.mapped('net_available_qty'))
 
 
@@ -167,6 +200,10 @@ class ContractorStockAvailabilityLine(models.TransientModel):
         'project.project',
         string='Assigned Project',
     )
+    stock_type = fields.Selection([
+        ('free_stock', 'Free Stock'),
+        ('project_allocated', 'Project-Allocated Stock'),
+    ], string='Allocation Type')
     quantity = fields.Float(
         string='On Hand Qty',
     )
@@ -299,13 +336,11 @@ class ContractorStockTransferNote(models.Model):
         store=True,
     )
 
-    @api.constrains('donor_project_id', 'receiving_project_id', 'donor_location_id', 'receiving_location_id')
+    @api.constrains('donor_project_id', 'receiving_project_id')
     def _check_locations(self):
         for stn in self:
             if stn.donor_project_id and stn.receiving_project_id and stn.donor_project_id == stn.receiving_project_id:
                 raise ValidationError(_("Donor Project and Receiving Project must be different for an Inter-Project Stock Transfer."))
-            if stn.donor_location_id and stn.receiving_location_id and stn.donor_location_id == stn.receiving_location_id:
-                raise ValidationError(_("Donor Location and Receiving Location cannot be identical."))
 
     @api.depends('line_ids.subtotal_cost')
     def _compute_total_cost(self):
@@ -319,6 +354,16 @@ class ContractorStockTransferNote(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('contractor.stock.transfer.note') or _('New STN')
         return super().create(vals_list)
 
+    def _get_donor_quant_domain(self, product_id):
+        self.ensure_one()
+        return [
+            '&',
+            '&', ('product_id', '=', product_id), ('location_id', '=', self.donor_location_id.id),
+            '|',
+            ('project_id', '=', self.donor_project_id.id),
+            '&', ('project_id', '=', False), ('location_id.project_id', '=', self.donor_project_id.id),
+        ]
+
     def action_submit(self):
         """Validates STN lines and requests approval from Donor Site Engineer."""
         self.ensure_one()
@@ -328,17 +373,17 @@ class ContractorStockTransferNote(models.Model):
         for line in self.line_ids:
             if line.qty <= 0:
                 raise UserError(_("Transfer quantity must be strictly greater than zero for product '%s'.") % line.product_id.display_name)
-            # Check availability at donor location
-            quant = self.env['stock.quant'].search([
-                ('product_id', '=', line.product_id.id),
-                ('location_id', '=', self.donor_location_id.id),
-            ])
+            # Check availability for donor_project_id at donor_location_id (supports shared single location)
+            quant = self.env['stock.quant'].search(self._get_donor_quant_domain(line.product_id.id))
             avail = sum(quant.mapped('quantity')) - sum(quant.mapped('reserved_quantity'))
             if line.qty > avail:
                 raise UserError(_(
-                    "Insufficient Stock at Donor Location:\n\n"
+                    "Insufficient Stock for Donor Project '%s':\n\n"
                     "Product '%s' has only %.2f units available at location '%s' (Requested: %.2f)."
-                ) % (line.product_id.display_name, avail, self.donor_location_id.display_name, line.qty))
+                ) % (
+                    self.donor_project_id.display_name, line.product_id.display_name,
+                    avail, self.donor_location_id.display_name, line.qty,
+                ))
 
         self.state = 'pending_donor_approval'
 
@@ -440,7 +485,7 @@ class ContractorStockTransferNote(models.Model):
         if not picking_type:
             raise UserError(_("No Internal Transfer operation type found in company '%s'.") % self.company_id.name)
 
-        # 2. Build stock move values
+        # 2. Build stock move values (handles both cross-location and same-location project reallocation)
         moves = []
         for line in self.line_ids:
             moves.append((0, 0, {
@@ -451,6 +496,8 @@ class ContractorStockTransferNote(models.Model):
                 'location_id': self.donor_location_id.id,
                 'location_dest_id': self.receiving_location_id.id,
                 'company_id': self.company_id.id,
+                'source_project_id': self.donor_project_id.id,
+                'restrict_source_project': True,
                 'project_id': self.receiving_project_id.id,
             }))
 
@@ -466,9 +513,16 @@ class ContractorStockTransferNote(models.Model):
         picking.action_confirm()
         picking.action_assign()
 
-        # Set quantities done
+        # Set quantities done and ensure source project attribution stays pinned for shared locations
         for move in picking.move_ids:
+            for ml in move.move_line_ids:
+                if not ml.source_quant_pinned or ml.source_project_id != self.donor_project_id:
+                    ml.write({
+                        'source_project_id': self.donor_project_id.id,
+                        'source_quant_pinned': True,
+                    })
             move.quantity = move.product_uom_qty
+            move.picked = True
 
         # Validate picking
         picking.button_validate()
@@ -495,7 +549,11 @@ class ContractorStockTransferNote(models.Model):
     def _create_analytic_cost_transfer_entry(self):
         """Creates a journal entry to shift material cost from donor project analytic account to receiving project."""
         donor_analytic = self.donor_project_id.account_id
+        if not donor_analytic and hasattr(self.donor_project_id, '_get_or_create_project_analytic_account'):
+            donor_analytic = self.donor_project_id._get_or_create_project_analytic_account()
         recv_analytic = self.receiving_project_id.account_id
+        if not recv_analytic and hasattr(self.receiving_project_id, '_get_or_create_project_analytic_account'):
+            recv_analytic = self.receiving_project_id._get_or_create_project_analytic_account()
 
         if not donor_analytic or not recv_analytic:
             return False
@@ -609,10 +667,15 @@ class ContractorStockTransferNoteLine(models.Model):
         store=True,
     )
 
-    @api.depends('product_id', 'stn_id.donor_location_id')
+    @api.depends('product_id', 'stn_id.donor_location_id', 'stn_id.donor_project_id')
     def _compute_available_qty(self):
         for line in self:
-            if line.product_id and line.stn_id.donor_location_id:
+            if line.product_id and line.stn_id.donor_location_id and line.stn_id.donor_project_id:
+                quants = self.env['stock.quant'].search(
+                    line.stn_id._get_donor_quant_domain(line.product_id.id)
+                )
+                line.available_qty = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
+            elif line.product_id and line.stn_id.donor_location_id:
                 quants = self.env['stock.quant'].search([
                     ('product_id', '=', line.product_id.id),
                     ('location_id', '=', line.stn_id.donor_location_id.id),

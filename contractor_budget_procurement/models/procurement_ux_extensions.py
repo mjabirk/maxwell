@@ -28,31 +28,7 @@ class ContractorStockAvailabilityWizardUx(models.TransientModel):
     )
 
     def _build_multi_product_lines(self, products, company):
-        lines = []
-        internal_locations = self.env['stock.location'].search([
-            ('usage', '=', 'internal'),
-            ('company_id', 'in', [company.id, False]),
-        ])
-        for prod in products:
-            for loc in internal_locations:
-                quants = self.env['stock.quant'].search([
-                    ('product_id', '=', prod.id),
-                    ('location_id', '=', loc.id),
-                ])
-                qty = sum(quants.mapped('quantity'))
-                reserved = sum(quants.mapped('reserved_quantity'))
-                if qty > 0 or reserved > 0:
-                    lines.append((0, 0, {
-                        'product_id': prod.id,
-                        'warehouse_id': loc.warehouse_id.id,
-                        'location_id': loc.id,
-                        'warehouse_type': loc.warehouse_type or 'central',
-                        'project_id': loc.project_id.id or False,
-                        'quantity': qty,
-                        'reserved_quantity': reserved,
-                        'net_available_qty': qty - reserved,
-                    }))
-        return lines
+        return self._build_availability_lines_for_products(products, company)
 
     @api.model
     def default_get(self, fields_list):
@@ -133,11 +109,6 @@ class ContractorStockAvailabilityWizardUx(models.TransientModel):
         matching_donor_lines = surplus_lines.filtered(lambda l: l.location_id == chosen.location_id)
 
         receiving_loc = self._get_receiving_location(self.receiving_project_id)
-        if chosen.location_id == receiving_loc:
-            receiving_loc = self.env['stock.location'].search([
-                ('usage', '=', 'internal'),
-                ('id', '!=', chosen.location_id.id),
-            ], limit=1)
 
         stn_lines = []
         seen_prods = set()
@@ -205,11 +176,6 @@ class ContractorStockAvailabilityLineUx(models.TransientModel):
 
         wiz = self.wizard_id
         receiving_loc = wiz._get_receiving_location(wiz.receiving_project_id)
-        if receiving_loc == self.location_id:
-            receiving_loc = self.env['stock.location'].search([
-                ('usage', '=', 'internal'),
-                ('id', '!=', self.location_id.id),
-            ], limit=1)
 
         qty_to_transfer = self.net_available_qty
         if wiz.requisition_id and self.product_id:
