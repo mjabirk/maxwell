@@ -79,7 +79,7 @@
             </xpath>
             <xpath expr="//notebook" position="before">
                 <field name="currency_id" invisible="1"/>
-                <div class="alert alert-light border py-2 mb-3" role="region" string="Project 360° Executive Health Card">
+                <div class="alert alert-light border py-2 mb-3" role="status" string="Project 360° Executive Health Card">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong>Project 360° Single-Screen Health Summary</strong>
                     </div>
