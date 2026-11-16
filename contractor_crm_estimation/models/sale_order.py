@@ -229,7 +229,7 @@ class SaleOrder(models.Model):
     )
     has_missing_new_sku_cost_basis = fields.Boolean(
         string='Missing New-SKU Cost Basis',
-        compute='_compute_has_new_sku_cost_lines',
+        compute='_compute_has_missing_new_sku_cost_basis',
     )
     min_required_margin_pct = fields.Float(
         string='Min Required Margin (%)',
@@ -271,7 +271,6 @@ class SaleOrder(models.Model):
     @api.depends(
         'est_material_line_ids.is_new_sku',
         'est_material_line_ids.requires_manager_cost_review',
-        'est_material_line_ids.cost_basis_reason',
     )
     def _compute_has_new_sku_cost_lines(self):
         for order in self:
@@ -279,6 +278,13 @@ class SaleOrder(models.Model):
                 line.is_new_sku and line.requires_manager_cost_review
                 for line in order.est_material_line_ids
             )
+
+    @api.depends(
+        'est_material_line_ids.is_new_sku',
+        'est_material_line_ids.cost_basis_reason',
+    )
+    def _compute_has_missing_new_sku_cost_basis(self):
+        for order in self:
             order.has_missing_new_sku_cost_basis = any(
                 line.is_new_sku and not (line.cost_basis_reason or '').strip()
                 for line in order.est_material_line_ids

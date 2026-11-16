@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contractor_approval_inbox_list" model="ir.ui.view">
+        <field name="name">contractor.approval.inbox.list</field>
+        <field name="model">contractor.approval.inbox</field>
+        <field name="arch" type="xml">
+            <list string="Executive Approval Inbox" create="0" edit="0" delete="0" decoration-danger="sla_status == 'breached'" decoration-warning="sla_status == 'warning'">
+                <header>
+                    <button name="action_refresh_inbox" string="Refresh Inbox" type="object" display="always" class="btn-secondary"/>
+                </header>
+                <field name="document_type" widget="badge"/>
+                <field name="name" class="fw-bold"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <field name="state_label"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="submitted_datetime"/>
+                <field name="sla_status" widget="badge"
+                       decoration-success="sla_status == 'on_track'"
+                       decoration-warning="sla_status == 'warning'"
+                       decoration-danger="sla_status == 'breached'"/>
+                <field name="currency_id" column_invisible="1"/>
+                <button name="action_open_source_document" string="Open" type="object" icon="fa-external-link" class="btn-link"/>
+                <button name="action_quick_approve" string="Approve" type="object" icon="fa-check" class="btn-success btn-sm"/>
+                <button name="action_quick_decline_or_return" string="Decline" type="object" icon="fa-times" class="btn-outline-danger btn-sm"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_contractor_approval_inbox_kanban" model="ir.ui.view">
+        <field name="name">contractor.approval.inbox.kanban</field>
+        <field name="model">contractor.approval.inbox</field>
+        <field name="arch" type="xml">
+            <kanban create="0" edit="0" delete="0" class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="document_type"/>
+                <field name="project_id"/>
+                <field name="state_label"/>
+                <field name="amount"/>
+                <field name="currency_id"/>
+                <field name="sla_status"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <field name="name" class="fw-bold fs-6"/>
+                            <field name="sla_status" widget="badge"
+                                   decoration-success="sla_status == 'on_track'"
+                                   decoration-warning="sla_status == 'warning'"
+                                   decoration-danger="sla_status == 'breached'"/>
+                        </div>
+                        <div class="text-muted small mb-1">
+                            <field name="document_type" widget="badge"/> · <field name="state_label"/>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                            <field name="project_id"/>
+                            <field name="amount" widget="monetary" class="fw-bold"/>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button name="action_quick_approve" type="object" class="btn btn-sm btn-success">Approve</button>
+                            <button name="action_quick_decline_or_return" type="object" class="btn btn-sm btn-outline-danger">Decline</button>
+                            <button name="action_open_source_document" type="object" class="btn btn-sm btn-link ms-auto">Open</button>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_contractor_approval_inbox_search" model="ir.ui.view">
+        <field name="name">contractor.approval.inbox.search</field>
+        <field name="model">contractor.approval.inbox</field>
+        <field name="arch" type="xml">
+            <search string="Search Executive Approvals">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="partner_id"/>
+                <filter string="SLA Breached" name="sla_breached" domain="[('sla_status', '=', 'breached')]"/>
+                <filter string="Nearing SLA" name="sla_warning" domain="[('sla_status', '=', 'warning')]"/>
+                <separator/>
+                <filter string="Quotations" name="type_quote" domain="[('document_type', '=', 'quotation')]"/>
+                <filter string="Material Requisitions" name="type_mr" domain="[('document_type', '=', 'mr')]"/>
+                <filter string="Purchase Orders" name="type_po" domain="[('document_type', '=', 'po')]"/>
+                <filter string="Payments" name="type_pay" domain="[('document_type', '=', 'payment')]"/>
+                <group>
+                    <filter string="Document Type" name="group_by_type" context="{'group_by': 'document_type'}"/>
+                    <filter string="SLA Status" name="group_by_sla" context="{'group_by': 'sla_status'}"/>
+                    <filter string="Project" name="group_by_project" context="{'group_by': 'project_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_contractor_approval_inbox" model="ir.actions.act_window">
+        <field name="name">Executive Approval Inbox</field>
+        <field name="res_model">contractor.approval.inbox</field>
+        <field name="view_mode">list,kanban</field>
+        <field name="search_view_id" ref="view_contractor_approval_inbox_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                All pending approval items across Contractor ERP appear here. Click Refresh Inbox to rescan.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_open_executive_approval_inbox_server" model="ir.actions.server">
+        <field name="name">Executive Approval Inbox</field>
+        <field name="model_id" ref="model_contractor_approval_inbox"/>
+        <field name="state">code</field>
+        <field name="code">action = env['contractor.approval.inbox'].action_open_inbox()</field>
+    </record>
+
+    <menuitem id="menu_contractor_approval_inbox"
+              name="Executive Approval Inbox"
+              parent="contractor_core.menu_contractor_root"
+              action="action_open_executive_approval_inbox_server"
+              sequence="1"
+              groups="contractor_core.group_contractor_manager,contractor_core.group_contractor_md,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager"/>
+</odoo>

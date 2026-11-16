@@ -67,6 +67,7 @@ Key Components:
         'views/dated_rate_history_views.xml',
         'views/reason_wizard_views.xml',
         'views/contractor_menus.xml',
+        'views/executive_approval_inbox_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

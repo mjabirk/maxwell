@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Consolidated Stock Wizard: Add receiving project, multi-SKU list, & 1-click STN actions -->
+    <record id="view_contractor_stock_availability_wizard_form_ux" model="ir.ui.view">
+        <field name="name">contractor.stock.availability.wizard.form.ux</field>
+        <field name="model">contractor.stock.availability.wizard</field>
+        <field name="inherit_id" ref="contractor_budget_procurement.view_contractor_stock_availability_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="attributes">
+                <attribute name="required">0</attribute>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="product_ids" widget="many2many_tags"/>
+                <field name="receiving_project_id"/>
+                <field name="requisition_id" readonly="1" invisible="not requisition_id"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list" position="inside">
+                <button name="action_create_stn_from_line"
+                        string="Create STN"
+                        type="object"
+                        class="btn-link"
+                        icon="fa-exchange"
+                        invisible="net_available_qty &lt;= 0"/>
+            </xpath>
+            <xpath expr="//footer" position="inside">
+                <button name="action_create_stock_transfer_note"
+                        string="Create Stock Transfer Note"
+                        type="object"
+                        class="btn-primary"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 2. Project Master Budget Lines: Add Check Consolidated Stock button -->
+    <record id="view_contractor_project_budget_form_ux_stock" model="ir.ui.view">
+        <field name="name">contractor.project.budget.form.ux.stock</field>
+        <field name="model">contractor.project.budget</field>
+        <field name="inherit_id" ref="contractor_budget_procurement.view_contractor_project_budget_form_inherit_procurement"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='line_ids']/list/field[@name='remaining_budget']" position="after">
+                <button name="action_check_consolidated_stock"
+                        type="object"
+                        string="Check Stock"
+                        icon="fa-cubes"
+                        class="btn-link"
+                        invisible="block_type != 'material'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 3. Material Requisition: Consolidated Stock button + Live Remaining Budget Bar -->
+    <record id="view_contractor_material_requisition_form_ux" model="ir.ui.view">
+        <field name="name">contractor.material.requisition.form.ux</field>
+        <field name="model">contractor.material.requisition</field>
+        <field name="inherit_id" ref="contractor_budget_procurement.view_contractor_material_requisition_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_check_consolidated_stock"
+                        string="Check Consolidated Stock"
+                        type="object"
+                        class="btn-secondary"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <div class="alert alert-light border py-2 mt-2 d-flex flex-wrap justify-content-between align-items-center" role="status" invisible="not project_id">
+                    <div>
+                        <span class="text-muted small text-uppercase me-1">Remaining Budget (Before MR):</span>
+                        <strong class="me-3"><field name="budget_remaining_before" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        <span class="text-muted small text-uppercase me-1">Order Total:</span>
+                        <strong class="me-3"><field name="order_total" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                    </div>
+                    <div>
+                        <field name="budget_traffic_status" widget="badge"
+                               decoration-success="budget_traffic_status == 'within_budget'"
+                               decoration-danger="budget_traffic_status == 'exceeds_budget'"
+                               decoration-warning="budget_traffic_status == 'no_budget'"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 4. Purchase Order: Live Remaining Budget Bar -->
+    <record id="purchase_order_form_inherit_contractor_ux" model="ir.ui.view">
+        <field name="name">purchase.order.form.contractor.ux</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="contractor_budget_procurement.purchase_order_form_inherit_contractor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="alert alert-light border py-2 mb-2 d-flex flex-wrap justify-content-between align-items-center" role="status" invisible="not project_id">
+                    <div>
+                        <span class="text-muted small text-uppercase me-1">Remaining Budget (Before PO):</span>
+                        <strong class="me-3"><field name="budget_remaining_before" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        <span class="text-muted small text-uppercase me-1">Order Total:</span>
+                        <strong class="me-3"><field name="order_total" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                    </div>
+                    <div>
+                        <field name="budget_traffic_status" widget="badge"
+                               decoration-success="budget_traffic_status == 'within_budget'"
+                               decoration-danger="budget_traffic_status == 'exceeds_budget'"
+                               decoration-warning="budget_traffic_status == 'no_budget'"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

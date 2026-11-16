@@ -57,5 +57,62 @@
             </xpath>
         </field>
     </record>
+    <record id="edit_project_inherit_contractor_360_ux" model="ir.ui.view">
+        <field name="name">project.project.form.contractor.360.ux</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="priority">70</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_site_issues"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exclamation-triangle">
+                    <field name="open_site_issues_count" widget="statinfo" string="Open Site Issues"/>
+                </button>
+                <button name="action_view_project_retentions"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-shield">
+                    <field name="retention_held_amount" widget="statinfo" string="Retentions Held"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="before">
+                <field name="currency_id" invisible="1"/>
+                <div class="alert alert-light border py-2 mb-3" role="region" string="Project 360° Executive Health Card">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong>Project 360° Single-Screen Health Summary</strong>
+                    </div>
+                    <div class="row g-2 small">
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Revised Contract</div>
+                            <strong class="fs-6"><field name="revised_contract_value" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Approved Budget</div>
+                            <strong class="fs-6"><field name="total_approved_budget" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Committed + Actual</div>
+                            <strong class="fs-6"><field name="committed_plus_actual_cost" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Remaining Budget</div>
+                            <strong class="fs-6 text-success" invisible="remaining_project_budget &lt; 0"><field name="remaining_project_budget" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                            <strong class="fs-6 text-danger" invisible="remaining_project_budget &gt;= 0"><field name="remaining_project_budget" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Earned PoC / Billed</div>
+                            <strong><field name="earned_poc_revenue" widget="monetary" readonly="1" class="oe_inline"/> / <field name="total_billed_to_date" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted text-uppercase">Retention Held</div>
+                            <strong class="fs-6"><field name="retention_held_amount" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
 </odoo>
 

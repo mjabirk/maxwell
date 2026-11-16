@@ -1011,9 +1011,9 @@ class ContractorAgencyReconciliation(models.Model):
 
         lines = []
         for emp, records in grouped.items():
-            tot_reg = sum(records.mapped('regular_hours'))
-            tot_ot = sum(records.mapped('overtime_hours'))
-            tot_cost = sum(records.mapped('calculated_labour_cost'))
+            tot_reg = sum(r.regular_hours for r in records)
+            tot_ot = sum(r.overtime_hours for r in records)
+            tot_cost = sum(r.calculated_labour_cost for r in records)
 
             lines.append((0, 0, {
                 'employee_id': emp.id,

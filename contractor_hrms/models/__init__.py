@@ -6,4 +6,5 @@ from . import contractor_payroll
 from . import tool_custody_register
 from . import leave_and_tickets
 from . import employee_exit_settlement
+from . import hrms_ux_extensions
 

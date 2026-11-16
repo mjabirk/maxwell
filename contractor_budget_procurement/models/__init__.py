@@ -5,4 +5,5 @@ from . import material_requisition
 from . import comparative_statement
 from . import purchase_and_stock
 from . import emergency_purchase
+from . import procurement_ux_extensions
 

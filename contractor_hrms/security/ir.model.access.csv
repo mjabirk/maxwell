@@ -50,6 +50,8 @@ access_tool_assign_line_user,contractor.tool.assignment.line.user,model_contract
 access_tool_assign_line_admin,contractor.tool.assignment.line.admin,model_contractor_tool_assignment_line,base.group_system,1,1,1,1
 
 access_tool_action_wiz_user,contractor.tool.action.wizard.user,model_contractor_tool_action_wizard,base.group_user,1,1,1,1
+access_tool_bulk_wiz_user,contractor.tool.bulk.wizard.user,model_contractor_tool_bulk_wizard,base.group_user,1,1,1,1
+access_tool_bulk_line_user,contractor.tool.bulk.line.user,model_contractor_tool_bulk_line,base.group_user,1,1,1,1
 
 access_leave_sal_user,contractor.leave.salary.request.user,model_contractor_leave_salary_request,base.group_user,1,0,0,0
 access_leave_sal_hr,contractor.leave.salary.request.hr,model_contractor_leave_salary_request,contractor_core.group_contractor_hr_officer,1,1,1,0

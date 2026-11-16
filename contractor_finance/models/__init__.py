@@ -7,4 +7,5 @@ from . import rpt_and_partner_accounts
 from . import petty_cash_loans_provisions
 from . import revenue_wip
 from . import period_close_and_audit
+from . import finance_ux_extensions
 

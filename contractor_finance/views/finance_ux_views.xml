@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Side-by-Side 3-Way Match Breakdown Tab on Vendor Bills -->
+    <record id="view_move_form_contractor_finance_ux" model="ir.ui.view">
+        <field name="name">account.move.form.contractor.finance.ux</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="contractor_finance.view_move_form_contractor_finance"/>
+        <field name="priority">70</field>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page id="contractor_three_way_match_tab" string="3-Way Match Breakdown" invisible="move_type != 'in_invoice'">
+                    <div class="alert alert-light border py-2 mb-2 d-flex justify-content-between align-items-center" role="status">
+                        <span>Line-level comparison of <strong>Purchase Order</strong> vs. <strong>GRN Accepted Qty</strong> vs. <strong>Vendor Bill</strong>. Variances are highlighted in red.</span>
+                        <field name="three_way_match_status" widget="badge" readonly="1"
+                               decoration-success="three_way_match_status == 'matched'"
+                               decoration-danger="three_way_match_status == 'exception'"
+                               decoration-warning="three_way_match_status == 'manually_cleared'"/>
+                    </div>
+                    <field name="three_way_match_line_ids" readonly="1">
+                        <list string="3-Way Match Comparison" decoration-danger="is_line_mismatch" decoration-success="line_match_status == 'matched'">
+                            <field name="product_id"/>
+                            <field name="name" string="Description"/>
+                            <field name="po_qty"/>
+                            <field name="po_price_unit"/>
+                            <field name="grn_accepted_qty"/>
+                            <field name="quantity" string="Invoice Qty"/>
+                            <field name="price_unit" string="Invoice Unit Price"/>
+                            <field name="qty_variance"/>
+                            <field name="price_variance"/>
+                            <field name="line_match_status" widget="badge"
+                                   decoration-danger="is_line_mismatch"
+                                   decoration-success="line_match_status == 'matched'"
+                                   decoration-muted="line_match_status == 'no_po'"/>
+                            <field name="is_line_mismatch" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 2. Interactive 10-Gate Period Close Checklist with Inspect Links -->
+    <record id="view_contractor_period_close_form_ux" model="ir.ui.view">
+        <field name="name">contractor.period.close.form.ux</field>
+        <field name="model">contractor.period.close</field>
+        <field name="inherit_id" ref="contractor_finance.view_contractor_period_close_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='gate_bank_recs_approved']" position="replace">
+                <label for="gate_bank_recs_approved"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_bank_recs_approved" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_bank_recs_approved'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_ap_bills_accruals_cleared']" position="replace">
+                <label for="gate_ap_bills_accruals_cleared"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_ap_bills_accruals_cleared" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_ap_bills_accruals_cleared'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_hrms_payroll_eosb_verified']" position="replace">
+                <label for="gate_hrms_payroll_eosb_verified"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_hrms_payroll_eosb_verified" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_hrms_payroll_eosb_verified'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_inventory_counts_reconciled']" position="replace">
+                <label for="gate_inventory_counts_reconciled"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_inventory_counts_reconciled" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_inventory_counts_reconciled'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_nca_depreciation_posted']" position="replace">
+                <label for="gate_nca_depreciation_posted"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_nca_depreciation_posted" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_nca_depreciation_posted'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_provisions_reviewed']" position="replace">
+                <label for="gate_provisions_reviewed"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_provisions_reviewed" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_provisions_reviewed'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_poc_revenue_wip_posted']" position="replace">
+                <label for="gate_poc_revenue_wip_posted"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_poc_revenue_wip_posted" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_poc_revenue_wip_posted'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_retention_register_reviewed']" position="replace">
+                <label for="gate_retention_register_reviewed"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_retention_register_reviewed" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_retention_register_reviewed'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_rpt_partner_accounts_reconciled']" position="replace">
+                <label for="gate_rpt_partner_accounts_reconciled"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_rpt_partner_accounts_reconciled" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_rpt_partner_accounts_reconciled'}"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='gate_project_profitability_generated']" position="replace">
+                <label for="gate_project_profitability_generated"/>
+                <div class="d-flex align-items-center gap-2">
+                    <field name="gate_project_profitability_generated" widget="boolean_toggle" readonly="state == 'locked'"/>
+                    <button name="action_view_gate_exceptions" type="object" string="Inspect Records" icon="fa-external-link" class="btn btn-link btn-sm p-0" context="{'gate_key': 'gate_project_profitability_generated'}"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

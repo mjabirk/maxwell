@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Bulk Tool Issue / Return Wizard -->
+    <record id="view_contractor_tool_bulk_wizard_form" model="ir.ui.view">
+        <field name="name">contractor.tool.bulk.wizard.form</field>
+        <field name="model">contractor.tool.bulk.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Tool Issue &amp; Return Wizard">
+                <group>
+                    <group>
+                        <field name="action_type" widget="radio"/>
+                        <field name="employee_id"/>
+                        <field name="project_id" invisible="action_type != 'issue'" required="action_type == 'issue'"/>
+                    </group>
+                    <group>
+                        <field name="default_condition" invisible="action_type != 'return'"/>
+                        <field name="notes" placeholder="Site custody transfer, batch inspection, or storekeeper notes..."/>
+                    </group>
+                </group>
+                <group string="Select Store Tools to Issue" invisible="action_type != 'issue'">
+                    <field name="tool_ids" nolabel="1" domain="[('status', '=', 'in_store')]" widget="many2many">
+                        <list>
+                            <field name="tool_code"/>
+                            <field name="name"/>
+                            <field name="tool_type"/>
+                            <field name="condition"/>
+                            <field name="status" widget="badge"/>
+                        </list>
+                    </field>
+                </group>
+                <group string="Assigned Tools Condition Inspection &amp; Return" invisible="action_type != 'return'">
+                    <field name="return_line_ids" nolabel="1">
+                        <list editable="bottom">
+                            <field name="selected"/>
+                            <field name="tool_code"/>
+                            <field name="tool_id" readonly="1"/>
+                            <field name="return_condition"/>
+                            <field name="notes"/>
+                        </list>
+                    </field>
+                </group>
+                <footer>
+                    <button name="action_apply_bulk" string="Execute Bulk Action" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_contractor_tool_bulk_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Tool Issue / Return</field>
+        <field name="res_model">contractor.tool.bulk.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_contractor_tool_bulk_wizard"
+              name="Bulk Tool Issue / Return"
+              parent="contractor_hrms.menu_contractor_hrms_root"
+              action="action_contractor_tool_bulk_wizard"
+              sequence="75"/>
+
+    <!-- Button on hr.employee & contractor.tool.asset -->
+    <record id="view_employee_form_contractor_hrms_ux" model="ir.ui.view">
+        <field name="name">hr.employee.form.contractor.hrms.ux</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="contractor_hrms.view_employee_form_contractor_hrms"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_bulk_tool_wizard"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-wrench"
+                        string="Bulk Tool Custody"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_contractor_tool_asset_form_ux" model="ir.ui.view">
+        <field name="name">contractor.tool.asset.form.ux</field>
+        <field name="model">contractor.tool.asset</field>
+        <field name="inherit_id" ref="contractor_hrms.view_contractor_tool_asset_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_bulk_tool_wizard"
+                        string="Bulk Issue / Return"
+                        type="object"
+                        class="btn-secondary"
+                        groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 2. Live Exit Clearance Traffic-Light Checklist -->
+    <record id="view_contractor_employee_exit_form_ux" model="ir.ui.view">
+        <field name="name">contractor.employee.exit.form.ux</field>
+        <field name="model">contractor.employee.exit</field>
+        <field name="inherit_id" ref="contractor_hrms.view_contractor_employee_exit_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/*[1]" position="before">
+                <div class="oe_button_box" name="button_box">
+                    <button name="action_view_unreturned_tools"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-wrench">
+                        <field name="assigned_tools_count" widget="statinfo" string="Assigned Tools"/>
+                    </button>
+                </div>
+            </xpath>
+            <xpath expr="//notebook" position="before">
+                <field name="tool_clearance_ready" invisible="1"/>
+                <field name="exit_clearance_ready" invisible="1"/>
+                <div class="alert alert-light border py-2 mb-3" role="status">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-1">
+                        <strong>Live Exit Clearance Traffic-Light Checklist</strong>
+                        <span class="badge text-bg-success" invisible="not exit_clearance_ready">All Checks Green</span>
+                        <span class="badge text-bg-warning" invisible="exit_clearance_ready">Pending Clearances Below</span>
+                    </div>
+                    <div class="row g-2 small">
+                        <div class="col-md-4">
+                            <strong>1. Tool Custody: </strong>
+                            <span class="badge text-bg-success" invisible="not tool_clearance_ready">Cleared (0 Tools)</span>
+                            <span class="badge text-bg-danger" invisible="tool_clearance_ready">
+                                Blocked (<field name="assigned_tools_count" readonly="1" class="oe_inline"/> Tools Held)
+                            </span>
+                            <button name="action_view_unreturned_tools" string="View Tools" type="object" class="btn btn-link btn-sm p-0 ms-1" invisible="tool_clearance_ready"/>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>2. Advances &amp; Deductions: </strong>
+                            <span class="badge text-bg-success" invisible="outstanding_advances_balance &gt; 0">Cleared (0.00)</span>
+                            <span class="badge text-bg-warning" invisible="outstanding_advances_balance &lt;= 0">
+                                Recovery Due: <field name="outstanding_advances_balance" widget="monetary" readonly="1" class="oe_inline"/>
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>3. Last-Day Attendance: </strong>
+                            <field name="last_day_attendance_status" widget="badge"
+                                   decoration-success="last_day_attendance_status == 'logged'"
+                                   decoration-warning="last_day_attendance_status == 'draft_only'"
+                                   decoration-danger="last_day_attendance_status == 'missing'"/>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 3. Agency Reconciliation Grid Enhancements -->
+    <record id="view_contractor_agency_reconciliation_form_ux" model="ir.ui.view">
+        <field name="name">contractor.agency.reconciliation.form.ux</field>
+        <field name="model">contractor.agency.reconciliation</field>
+        <field name="inherit_id" ref="contractor_hrms.view_contractor_agency_reconciliation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_pull_and_reconcile']" position="after">
+                <button name="action_pull_approved_erp_hours"
+                        string="Pull Approved ERP Hours"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="state not in ('draft', 'discrepancy_flagged')"/>
+                <button name="action_bulk_flag_discrepancies"
+                        string="Log Bulk Dispute"
+                        type="object"
+                        class="btn-warning"
+                        invisible="discrepancy_line_count == 0"/>
+            </xpath>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="discrepancy_line_count" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list" position="attributes">
+                <attribute name="editable">bottom</attribute>
+                <attribute name="decoration-danger">discrepancy_flag</attribute>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='erp_hours']" position="after">
+                <field name="contractual_rate" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='variance_amount']" position="after">
+                <field name="discrepancy_flag" widget="boolean"/>
+                <field name="dispute_notes" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -26,6 +26,7 @@
         'views/account_payment_views.xml',
         'views/leftover_disposition_views.xml',
         'views/stock_adjustment_views.xml',
+        'views/procurement_ux_views.xml',
         'views/contractor_procurement_menus.xml',
     ],
     'installable': True,

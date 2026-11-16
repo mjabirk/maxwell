@@ -64,6 +64,7 @@ Enterprise construction financial controls, treasury management, and statutory a
         'views/petty_cash_loans_provisions_views.xml',
         'views/revenue_wip_views.xml',
         'views/period_close_views.xml',
+        'views/finance_ux_views.xml',
         'views/contractor_finance_menus.xml',
     ],
     'installable': True,

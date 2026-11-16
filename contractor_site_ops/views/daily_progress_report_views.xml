@@ -23,10 +23,6 @@
                             class="btn-warning"
                             invisible="missing_prior_dpr_override"
                             groups="contractor_core.group_contractor_project_manager"/>
-                <header>
-                    <button name="action_submit" string="Submit DPR" type="object" class="btn-primary" invisible="state != 'draft'"/>
-                    <button name="action_pm_approve" string="PM Approve DPR" type="object" class="btn-success" invisible="state != 'submitted'" groups="contractor_core.group_contractor_project_manager"/>
-                    <button name="action_override_missing_prior" string="Grant Gap Override" type="object" class="btn-outline-warning" invisible="missing_prior_dpr_override" groups="contractor_core.group_contractor_project_manager"/>
                     <button name="action_request_late_amendment"
                             string="Request Late Amendment"
                             type="object"

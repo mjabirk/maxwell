@@ -229,6 +229,12 @@ class ContractorCostMaterialLine(models.Model):
         store=True,
     )
 
+    @api.onchange('cost_basis')
+    def _onchange_cost_basis_sync(self):
+        for line in self:
+            if line.cost_basis and not line.cost_basis_reason:
+                line.cost_basis_reason = line.cost_basis
+
     @api.depends('is_new_sku', 'cost_basis_reason')
     def _compute_missing_cost_basis(self):
         for line in self:
