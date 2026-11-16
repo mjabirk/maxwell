@@ -34,11 +34,20 @@ class StockLocation(models.Model):
         readonly=True,
     )
     project_id = fields.Many2one(
-        related='warehouse_id.project_id',
+        'project.project',
         string='Assigned Project',
+        compute='_compute_location_project_id',
         store=True,
-        readonly=True,
+        readonly=False,
+        index=True,
+        help='Project associated with this location (inherited from warehouse if set, or assigned directly per sub-location).',
     )
+
+    @api.depends('warehouse_id', 'warehouse_id.project_id')
+    def _compute_location_project_id(self):
+        for loc in self:
+            if loc.warehouse_id and loc.warehouse_id.project_id:
+                loc.project_id = loc.warehouse_id.project_id
 
 
 # =========================================================================
@@ -109,7 +118,7 @@ class ContractorStockAvailabilityWizard(models.TransientModel):
                         'location_id': loc.id,
                         'warehouse_id': wh.id if wh else False,
                         'warehouse_type': wh.warehouse_type if wh else 'other',
-                        'project_id': wh.project_id.id if wh and wh.project_id else False,
+                        'project_id': loc.project_id.id or (wh.project_id.id if wh and wh.project_id else False),
                         'quantity': qty,
                         'reserved_quantity': reserved,
                         'net_available_qty': net,

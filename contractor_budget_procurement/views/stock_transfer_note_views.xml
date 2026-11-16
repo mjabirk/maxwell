@@ -13,6 +13,19 @@
         </field>
     </record>
 
+    <!-- Single-Warehouse Sub-Location Project Assignment Extension -->
+    <record id="view_location_form_inherit_contractor" model="ir.ui.view">
+        <field name="name">stock.location.form.inherit.contractor</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='additional_info']/field[@name='usage']" position="after">
+                <field name="warehouse_type" readonly="1" invisible="usage != 'internal'"/>
+                <field name="project_id" invisible="usage != 'internal'"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Stock Transfer Note Form -->
     <record id="view_contractor_stock_transfer_note_form" model="ir.ui.view">
         <field name="name">contractor.stock.transfer.note.form</field>

@@ -29,7 +29,8 @@
             </xpath>
 
             <xpath expr="//field[@name='picking_type_id']" position="after">
-                <field name="project_id" readonly="state in ('done', 'cancel')"/>
+                <field name="is_central_stock_purchase" widget="boolean_toggle" readonly="state in ('done', 'cancel')"/>
+                <field name="project_id" required="not is_central_stock_purchase" readonly="state in ('done', 'cancel') or is_central_stock_purchase"/>
             </xpath>
 
             <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="after">

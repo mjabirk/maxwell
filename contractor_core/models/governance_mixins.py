@@ -430,10 +430,51 @@ class StockPicking(models.Model):
     project_id = fields.Many2one(
         'project.project',
         string='Project Code',
-        required=True,
+        required=False,
         index=True,
-        help='Project Code strictly required on all stock operations and material deliveries.',
+        help='Project Code required on project stock operations and material deliveries.',
     )
+    is_central_stock_purchase = fields.Boolean(
+        string='Central Store Stock Movement',
+        default=False,
+        tracking=True,
+        help='Indicates receipts or movements into Central Warehouse stock without charging a specific project.',
+    )
+
+    @api.model
+    def _is_unassigned_or_central_storage(self, location=None, warehouse=None):
+        """Returns True if location/warehouse is central stock or general company storage without a project."""
+        if location and getattr(location, 'project_id', False):
+            return False
+        wh = warehouse or (location.warehouse_id if location else False)
+        if wh:
+            if getattr(wh, 'project_id', False) or getattr(wh, 'warehouse_type', False) == 'project_site':
+                return False
+        return True
+
+    def _is_central_warehouse_operation(self):
+        self.ensure_one()
+        if self.picking_type_code in ('incoming', 'internal'):
+            return True
+        pick_wh = self.picking_type_id.warehouse_id if self.picking_type_id else False
+        return any(
+            wh and getattr(wh, 'warehouse_type', False) == 'central'
+            for wh in (
+                self.location_dest_id.warehouse_id if self.location_dest_id else False,
+                self.location_id.warehouse_id if self.location_id else False,
+                pick_wh,
+            )
+        )
+
+    @api.constrains('project_id', 'is_central_stock_purchase', 'picking_type_id', 'location_id', 'location_dest_id')
+    def _check_project_id_required(self):
+        for picking in self:
+            if picking.project_id or picking.is_central_stock_purchase or picking._is_central_warehouse_operation():
+                continue
+            raise ValidationError(_(
+                "Project Code is strictly required on Stock Picking '%s' unless it is a Central Store Stock Movement "
+                "or operates on central/unassigned storage."
+            ) % (picking.name or picking.display_name))
 
     @api.model
     def _resolve_project_id_from_origin(self, origin):
@@ -476,6 +517,12 @@ class StockPicking(models.Model):
 
     @api.model
     def _resolve_project_id_from_vals(self, vals):
+        if vals.get('is_central_stock_purchase'):
+            return False
+        if vals.get('purchase_id') and 'purchase.order' in self.env:
+            po = self.env['purchase.order'].sudo().browse(vals['purchase_id'])
+            if getattr(po, 'is_central_stock_purchase', False):
+                return False
         if vals.get('project_id'):
             return vals['project_id']
         if self.env.context.get('default_project_id'):
@@ -538,9 +585,14 @@ class StockPicking(models.Model):
 
         return False
 
+    @api.onchange('is_central_stock_purchase')
+    def _onchange_is_central_stock_purchase_clear_project(self):
+        if self.is_central_stock_purchase:
+            self.project_id = False
+
     @api.onchange('picking_type_id', 'location_id', 'location_dest_id', 'origin', 'return_id', 'backorder_id')
     def _onchange_auto_populate_project_id(self):
-        if self.project_id:
+        if self.is_central_stock_purchase or self.project_id:
             return
         if self.return_id and self.return_id.project_id:
             self.project_id = self.return_id.project_id
@@ -580,15 +632,30 @@ class StockPicking(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if not vals.get('project_id'):
+            if not vals.get('is_central_stock_purchase'):
+                if vals.get('purchase_id') and 'purchase.order' in self.env:
+                    po = self.env['purchase.order'].sudo().browse(vals['purchase_id'])
+                    if getattr(po, 'is_central_stock_purchase', False):
+                        vals['is_central_stock_purchase'] = True
+                elif vals.get('return_id'):
+                    ret_pick = self.env['stock.picking'].sudo().browse(vals['return_id'])
+                    if ret_pick.is_central_stock_purchase:
+                        vals['is_central_stock_purchase'] = True
+                elif vals.get('backorder_id'):
+                    bo_pick = self.env['stock.picking'].sudo().browse(vals['backorder_id'])
+                    if bo_pick.is_central_stock_purchase:
+                        vals['is_central_stock_purchase'] = True
+            if not vals.get('project_id') and not vals.get('is_central_stock_purchase'):
                 resolved_proj_id = self._resolve_project_id_from_vals(vals)
                 if resolved_proj_id:
                     vals['project_id'] = resolved_proj_id
-            if vals.get('project_id'):
+            if vals.get('project_id') or vals.get('is_central_stock_purchase'):
                 for move_key in ('move_ids', 'move_ids_without_package'):
                     for cmd in vals.get(move_key) or []:
                         if isinstance(cmd, (list, tuple)) and len(cmd) >= 3 and cmd[0] == 0 and isinstance(cmd[2], dict):
-                            if not cmd[2].get('project_id'):
+                            if vals.get('is_central_stock_purchase'):
+                                cmd[2]['is_central_stock_purchase'] = True
+                            elif vals.get('project_id') and not cmd[2].get('project_id'):
                                 cmd[2]['project_id'] = vals['project_id']
 
         pickings = super().create(vals_list)
@@ -623,10 +690,17 @@ class StockMove(models.Model):
         required=False,
         index=True,
     )
+    is_central_stock_purchase = fields.Boolean(
+        string='Central Store Stock Movement',
+        default=False,
+        help='Indicates a stock movement for Central Store replenishment without a project code.',
+    )
 
-    @api.depends('picking_id.project_id')
+    @api.depends('picking_id.project_id', 'is_central_stock_purchase')
     def _compute_project_id(self):
         for move in self:
+            if move.is_central_stock_purchase or (move.picking_id and move.picking_id.is_central_stock_purchase):
+                continue
             if move.project_id:
                 continue
             if move.picking_id and move.picking_id.project_id:
@@ -640,6 +714,16 @@ class StockMove(models.Model):
 
     @api.model
     def _resolve_move_project_id_from_vals(self, vals):
+        if vals.get('is_central_stock_purchase'):
+            return False
+        if vals.get('picking_id'):
+            picking = self.env['stock.picking'].sudo().browse(vals['picking_id'])
+            if getattr(picking, 'is_central_stock_purchase', False):
+                return False
+        if vals.get('purchase_line_id') and 'purchase.order.line' in self.env:
+            pol = self.env['purchase.order.line'].sudo().browse(vals['purchase_line_id'])
+            if getattr(pol.order_id, 'is_central_stock_purchase', False):
+                return False
         if vals.get('project_id'):
             return vals['project_id']
         if self.env.context.get('default_project_id'):
@@ -681,7 +765,16 @@ class StockMove(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if not vals.get('project_id'):
+            if not vals.get('is_central_stock_purchase'):
+                if vals.get('picking_id'):
+                    picking = self.env['stock.picking'].sudo().browse(vals['picking_id'])
+                    if getattr(picking, 'is_central_stock_purchase', False):
+                        vals['is_central_stock_purchase'] = True
+                elif vals.get('purchase_line_id') and 'purchase.order.line' in self.env:
+                    pol = self.env['purchase.order.line'].sudo().browse(vals['purchase_line_id'])
+                    if getattr(pol.order_id, 'is_central_stock_purchase', False):
+                        vals['is_central_stock_purchase'] = True
+            if not vals.get('project_id') and not vals.get('is_central_stock_purchase'):
                 proj_id = self._resolve_move_project_id_from_vals(vals)
                 if proj_id:
                     vals['project_id'] = proj_id
@@ -689,6 +782,10 @@ class StockMove(models.Model):
 
     def _get_new_picking_values(self):
         vals = super()._get_new_picking_values()
+        if any(self.mapped('is_central_stock_purchase')):
+            vals['is_central_stock_purchase'] = True
+            vals['project_id'] = False
+            return vals
         if not vals.get('project_id'):
             project = self.mapped('project_id')[:1]
             if not project and 'sale_line_id' in self._fields:
@@ -709,7 +806,9 @@ class StockMove(models.Model):
 
     def _assign_picking_values(self, picking):
         vals = super()._assign_picking_values(picking)
-        if not picking.project_id:
+        if any(self.mapped('is_central_stock_purchase')) and not picking.is_central_stock_purchase:
+            vals['is_central_stock_purchase'] = True
+        if not picking.project_id and not (picking.is_central_stock_purchase or vals.get('is_central_stock_purchase')):
             project = self.mapped('project_id')[:1]
             if not project and 'sale_line_id' in self._fields:
                 project = self.mapped('sale_line_id.order_id.project_id')[:1]
@@ -727,10 +826,28 @@ class StockMove(models.Model):
             res['project_id'] = self.sale_line_id.order_id.project_id.id
         return res
 
-    @api.constrains('project_id', 'picking_id')
+    def _is_central_or_unassigned_move(self):
+        self.ensure_one()
+        dest_wh = self.location_dest_id.warehouse_id if self.location_dest_id else False
+        src_wh = self.location_id.warehouse_id if self.location_id else False
+        pick = self.picking_id
+        pick_wh = pick.picking_type_id.warehouse_id if (pick and pick.picking_type_id) else False
+        if any(wh and getattr(wh, 'warehouse_type', False) == 'central' for wh in (dest_wh, src_wh, pick_wh, self.warehouse_id)):
+            return True
+        if pick:
+            return pick.picking_type_code in ('incoming', 'internal')
+        return self.env['stock.picking']._is_unassigned_or_central_storage(self.location_dest_id, self.warehouse_id)
+
+    @api.constrains('project_id', 'picking_id', 'is_central_stock_purchase', 'location_id', 'location_dest_id')
     def _check_project_id_required(self):
         for move in self:
-            if not move.project_id and move.picking_id and not move.picking_id.project_id:
+            if move.project_id:
+                continue
+            if move.is_central_stock_purchase or (move.picking_id and move.picking_id.is_central_stock_purchase):
+                continue
+            if move._is_central_or_unassigned_move():
+                continue
+            if move.picking_id and not move.picking_id.project_id:
                 raise ValidationError(_("Every stock move must be assigned to a Project Code."))
 
 
@@ -739,13 +856,16 @@ class StockRule(models.Model):
 
     def _get_custom_move_fields(self):
         fields_list = super()._get_custom_move_fields()
-        if 'project_id' not in fields_list:
-            fields_list.append('project_id')
+        for fname in ('project_id', 'is_central_stock_purchase'):
+            if fname not in fields_list:
+                fields_list.append(fname)
         return fields_list
 
     def _push_prepare_move_copy_values(self, move_to_copy, new_date):
         vals = super()._push_prepare_move_copy_values(move_to_copy, new_date)
-        if move_to_copy.project_id:
+        if move_to_copy.is_central_stock_purchase:
+            vals['is_central_stock_purchase'] = True
+        elif move_to_copy.project_id:
             vals['project_id'] = move_to_copy.project_id.id
         return vals
 
@@ -755,7 +875,9 @@ class StockReturnPicking(models.TransientModel):
 
     def _prepare_picking_default_values_based_on(self, picking):
         vals = super()._prepare_picking_default_values_based_on(picking)
-        if picking.project_id:
+        if getattr(picking, 'is_central_stock_purchase', False):
+            vals['is_central_stock_purchase'] = True
+        elif picking.project_id:
             vals['project_id'] = picking.project_id.id
         return vals
 
@@ -1007,10 +1129,53 @@ class PurchaseOrder(models.Model):
     project_id = fields.Many2one(
         'project.project',
         string='Project Code',
-        required=True,
+        required=False,
         index=True,
-        help='Project Code linked to this procurement requisition / purchase order.',
+        help='Project Code linked to this procurement requisition / purchase order (leave empty for Central Store Replenishment).',
     )
+    is_central_stock_purchase = fields.Boolean(
+        string='Central Store Replenishment (No Project)',
+        default=False,
+        tracking=True,
+        help='Check this for general Central Warehouse stock replenishment orders without assigning a Project Code.',
+    )
+
+    @api.constrains('project_id', 'is_central_stock_purchase')
+    def _check_project_id_required(self):
+        for order in self:
+            if not order.is_central_stock_purchase and not order.project_id:
+                raise ValidationError(_(
+                    "Project Code is strictly required on Purchase Order '%s' unless 'Central Store Replenishment (No Project)' is checked."
+                ) % (order.name or order.display_name))
+
+    @api.model
+    def _get_default_central_receipt_picking_type(self, company=None):
+        company = company or self.env.company
+        wh_model = self.env['stock.warehouse'].sudo()
+        if 'warehouse_type' in wh_model._fields:
+            central_wh = wh_model.search([
+                ('company_id', '=', company.id),
+                ('warehouse_type', '=', 'central'),
+            ], limit=1)
+            if central_wh and central_wh.in_type_id:
+                return central_wh.in_type_id
+            fallback_wh = wh_model.search([
+                ('company_id', '=', company.id),
+                ('warehouse_type', '!=', 'project_site'),
+                ('project_id', '=', False),
+            ], limit=1)
+            if fallback_wh and fallback_wh.in_type_id:
+                return fallback_wh.in_type_id
+        default_wh = wh_model.search([('company_id', '=', company.id)], limit=1)
+        return default_wh.in_type_id if default_wh and default_wh.in_type_id else False
+
+    @api.onchange('is_central_stock_purchase', 'company_id')
+    def _onchange_is_central_stock_purchase(self):
+        if self.is_central_stock_purchase:
+            self.project_id = False
+            central_pt = self._get_default_central_receipt_picking_type(self.company_id or self.env.company)
+            if central_pt:
+                self.picking_type_id = central_pt
 
     @api.onchange('project_id')
     def _onchange_project_id_propagate(self):
@@ -1023,7 +1188,13 @@ class PurchaseOrder(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if not vals.get('project_id'):
+            if vals.get('is_central_stock_purchase'):
+                if not vals.get('picking_type_id'):
+                    comp = self.env['res.company'].browse(vals['company_id']) if vals.get('company_id') else self.env.company
+                    central_pt = self._get_default_central_receipt_picking_type(comp)
+                    if central_pt:
+                        vals['picking_type_id'] = central_pt.id
+            elif not vals.get('project_id'):
                 if vals.get('requisition_id') and 'contractor.material.requisition' in self.env:
                     mr = self.env['contractor.material.requisition'].sudo().browse(vals['requisition_id'])
                     if mr.project_id:

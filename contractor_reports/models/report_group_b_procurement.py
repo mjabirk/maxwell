@@ -925,3 +925,60 @@ class ContractorReportEmergencyMDReview(models.Model):
             WHERE po.is_emergency_purchase = TRUE
         """)
 
+
+# -------------------------------------------------------------------------
+# 36. Free Stock vs. Project-Allocated Stock Analysis
+# -------------------------------------------------------------------------
+class ContractorReportFreeVsProjectStock(models.Model):
+    _name = 'contractor.report.free_vs_project_stock'
+    _description = 'Free Stock vs. Project-Allocated Stock Analytical Report'
+    _auto = False
+    _order = 'stock_type, product_id, location_id'
+
+    product_id = fields.Many2one('product.product', string='Material / SKU', readonly=True)
+    categ_id = fields.Many2one('product.category', string='Material Category', readonly=True)
+    location_id = fields.Many2one('stock.location', string='Store Location', readonly=True)
+    warehouse_id = fields.Many2one('stock.warehouse', string='Warehouse', readonly=True)
+    project_id = fields.Many2one('project.project', string='Assigned Project', readonly=True)
+    stock_type = fields.Selection([
+        ('free_stock', 'Free Stock'),
+        ('project_allocated', 'Project-Allocated Stock'),
+    ], string='Allocation Type', readonly=True)
+    quantity = fields.Float(string='On-Hand Qty', readonly=True)
+    reserved_quantity = fields.Float(string='Reserved Qty', readonly=True)
+    available_quantity = fields.Float(string='Available Qty', readonly=True)
+    inventory_value = fields.Monetary(string='Inventory Value', currency_field='currency_id', readonly=True)
+    company_id = fields.Many2one('res.company', string='Company', readonly=True)
+    currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
+
+    @property
+    def _table_query(self):
+        return SQL("""
+            SELECT
+                sq.id AS id,
+                sq.product_id AS product_id,
+                pt.categ_id AS categ_id,
+                sq.location_id AS location_id,
+                sw.id AS warehouse_id,
+                proj.id AS project_id,
+                CASE
+                    WHEN proj.id IS NOT NULL THEN 'project_allocated'
+                    ELSE 'free_stock'
+                END AS stock_type,
+                sq.quantity AS quantity,
+                sq.reserved_quantity AS reserved_quantity,
+                (sq.quantity - sq.reserved_quantity) AS available_quantity,
+                ROUND((sq.quantity * COALESCE((pp.standard_price->>COALESCE(sq.company_id, rc.id, 1)::text)::numeric, 0.0))::numeric, 2) AS inventory_value,
+                sq.company_id AS company_id,
+                rc.currency_id AS currency_id
+            FROM stock_quant sq
+            JOIN product_product pp ON pp.id = sq.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN stock_location sl ON sl.id = sq.location_id
+            LEFT JOIN stock_warehouse sw ON sw.id = sl.warehouse_id
+            LEFT JOIN project_project proj ON proj.id = COALESCE(sl.project_id, sw.project_id)
+            LEFT JOIN res_company rc ON rc.id = sq.company_id
+            WHERE sl.usage = 'internal'
+              AND (sq.quantity != 0 OR sq.reserved_quantity != 0)
+        """)
+

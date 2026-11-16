@@ -101,15 +101,58 @@ class PurchaseOrder(models.Model):
             subtype_xmlid='mail.mt_note',
         )
 
+    emergency_status_badge = fields.Char(
+        string='Emergency Status',
+        compute='_compute_emergency_status_badge',
+    )
+
+    @api.depends('is_emergency_purchase')
+    def _compute_emergency_status_badge(self):
+        for po in self:
+            po.emergency_status_badge = _('EMERGENCY') if po.is_emergency_purchase else False
+
     def button_confirm(self):
         """Hard-Stops on Confirmation:
-        1. Must be linked to approved MR or be an Emergency Purchase.
+        1. Must be linked to approved MR, an authorized Emergency Purchase, or Central Store Replenishment.
         2. Managing Director approval check if threshold exceeded.
-        3. Project budget overrun check.
+        3. Project budget overrun check (skipped for Central Store Replenishment without project_id).
         """
         for order in self:
-            # 1. MR or Emergency Purchase Hard-Stop
-            is_emergency = getattr(order, 'is_emergency_purchase', False)
+            is_central = bool(getattr(order, 'is_central_stock_purchase', False))
+            is_emergency = bool(getattr(order, 'is_emergency_purchase', False))
+
+            # 1A. Central Store Replenishment Hard-Stops
+            if is_central:
+                if order.project_id:
+                    raise UserError(_(
+                        "Central Store Replenishment Hard-Stop:\n\n"
+                        "Purchase Order '%s' is marked as Central Store Replenishment (No Project) and cannot have a Project Code assigned."
+                    ) % order.name)
+                company = order.company_id or self.env.company
+                wh = order.picking_type_id.warehouse_id if order.picking_type_id else False
+                if not wh:
+                    central_pt = order._get_default_central_receipt_picking_type(company)
+                    if central_pt:
+                        order.picking_type_id = central_pt
+                        wh = central_pt.warehouse_id
+                if not wh or getattr(wh, 'warehouse_type', False) == 'project_site' or getattr(wh, 'project_id', False):
+                    raise UserError(_(
+                        "Central Warehouse Hard-Stop:\n\n"
+                        "Central Store Replenishment PO '%s' cannot deliver to a Project Site Store."
+                    ) % order.name)
+                if getattr(wh, 'warehouse_type', False) != 'central':
+                    has_dedicated_central = bool(self.env['stock.warehouse'].search_count([
+                        ('company_id', '=', company.id),
+                        ('warehouse_type', '=', 'central'),
+                    ], limit=1))
+                    if has_dedicated_central:
+                        raise UserError(_(
+                            "Central Warehouse Hard-Stop:\n\n"
+                            "Central Store Replenishment PO '%s' must deliver to a Central Warehouse / Store "
+                            "('Deliver To' operation type must belong to a warehouse with Contractor Store Type = 'Central Warehouse / Store')."
+                        ) % order.name)
+
+            # 1B. MR or Emergency Purchase Hard-Stop (Standard project POs require MR; Emergency requires Manager sign-off)
             if is_emergency:
                 if not getattr(order, 'emergency_reason_code', False) or len((getattr(order, 'emergency_explanation', '') or '').strip()) < 15:
                     raise UserError(_(
@@ -128,13 +171,13 @@ class PurchaseOrder(models.Model):
                         "Emergency Purchase Cap Hard-Stop:\n\n"
                         "Emergency PO '%s' (%s %.2f) exceeds the company Emergency Cap (%s %.2f)."
                     ) % (order.name, order.currency_id.symbol or '', order.amount_total, order.currency_id.symbol or '', cap))
-            else:
+            elif not is_central:
                 if not order.requisition_id:
                     raise UserError(_(
                         "Procurement Governance Hard-Stop:\n\n"
                         "Direct confirmation of Purchase Order '%s' is prohibited.\n\n"
-                        "All standard purchases must originate from an approved Material Requisition (MR) "
-                        "or be designated and authorized as an Emergency Purchase."
+                        "All standard purchases must originate from an approved Material Requisition (MR), "
+                        "be designated as a Central Store Replenishment order, or be authorized as an Emergency Purchase."
                     ) % order.name)
                 if order.requisition_id.state not in ('approved', 'cs_in_progress', 'po_created', 'done'):
                     raise UserError(_(
@@ -162,7 +205,7 @@ class PurchaseOrder(models.Model):
                     ))
 
             # 3. Budget Check (avoid double-counting commitment already reserved by source MR)
-            if order.project_id:
+            if order.project_id and not is_central:
                 req_amt = order.amount_total
                 if order.requisition_id and order.requisition_id.state in ('approved', 'cs_in_progress', 'po_created'):
                     has_prior_confirmed_po = any(
@@ -179,9 +222,11 @@ class PurchaseOrder(models.Model):
                     )
 
         res = super().button_confirm()
-        self.env['contractor.project.budget']._refresh_project_consumption(self.mapped('project_id').ids)
+        project_ids = [p.id for p in self.mapped('project_id') if p]
+        if project_ids:
+            self.env['contractor.project.budget']._refresh_project_consumption(project_ids)
 
-        # Propagate emergency flags to pickings if emergency purchase
+        # Propagate emergency & central stock flags to pickings
         for order in self:
             if getattr(order, 'is_emergency_purchase', False):
                 order.picking_ids.write({
@@ -189,11 +234,20 @@ class PurchaseOrder(models.Model):
                     'emergency_reason_code': order.emergency_reason_code,
                     'emergency_explanation': order.emergency_explanation,
                 })
+            if getattr(order, 'is_central_stock_purchase', False):
+                order.picking_ids.write({
+                    'is_central_stock_purchase': True,
+                    'project_id': False,
+                })
+                order.picking_ids.mapped('move_ids').write({
+                    'is_central_stock_purchase': True,
+                    'project_id': False,
+                })
         return res
 
     @api.onchange('requisition_id', 'comparative_statement_id')
     def _onchange_procurement_lineage_project(self):
-        if not self.project_id:
+        if not self.project_id and not self.is_central_stock_purchase:
             if self.requisition_id and self.requisition_id.project_id:
                 self.project_id = self.requisition_id.project_id
             elif self.comparative_statement_id and self.comparative_statement_id.project_id:
@@ -201,7 +255,10 @@ class PurchaseOrder(models.Model):
 
     def _prepare_picking(self):
         res = super()._prepare_picking()
-        if self.project_id:
+        if self.is_central_stock_purchase:
+            res['is_central_stock_purchase'] = True
+            res['project_id'] = False
+        elif self.project_id:
             res['project_id'] = self.project_id.id
         elif self.requisition_id and self.requisition_id.project_id:
             res['project_id'] = self.requisition_id.project_id.id
@@ -221,6 +278,8 @@ class PurchaseOrder(models.Model):
         'fiscal_position_id',
         'payment_term_id',
         'project_id',
+        'is_central_stock_purchase',
+        'picking_type_id',
         'company_id',
     }
 
@@ -424,9 +483,13 @@ class PurchaseOrderLine(models.Model):
 
     def _prepare_stock_move_vals(self, picking, price_unit, product_uom_qty, product_uom):
         vals = super()._prepare_stock_move_vals(picking, price_unit, product_uom_qty, product_uom)
-        project = self.order_id.project_id or (picking and picking.project_id)
-        if project:
-            vals['project_id'] = project.id
+        if self.order_id.is_central_stock_purchase or (picking and picking.is_central_stock_purchase):
+            vals['is_central_stock_purchase'] = True
+            vals['project_id'] = False
+        else:
+            project = self.order_id.project_id or (picking and picking.project_id)
+            if project:
+                vals['project_id'] = project.id
         return vals
 
 

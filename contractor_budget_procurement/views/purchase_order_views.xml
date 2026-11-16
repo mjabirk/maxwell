@@ -49,6 +49,9 @@
 
             <!-- Alert Banners -->
             <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="alert alert-info py-2 mb-3" role="status" invisible="not is_central_stock_purchase">
+                    <strong>CENTRAL STORE REPLENISHMENT:</strong> Replenishes Central Warehouse stock without requiring a Project Code or Material Requisition.
+                </div>
                 <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_emergency_purchase">
                     <strong>EMERGENCY PURCHASE:</strong> Bypasses standard MR &amp; 3-Vendor RFQ under Classification:
                     <field name="emergency_reason_code" readonly="1" class="oe_inline"/>.
@@ -63,9 +66,10 @@
 
             <!-- Procurement Lineage Fields -->
             <xpath expr="//field[@name='partner_ref']" position="after">
-                <field name="project_id" readonly="state in ('purchase', 'done', 'cancel')"/>
-                <field name="requisition_id" readonly="state in ('purchase', 'done', 'cancel')"/>
-                <field name="comparative_statement_id" readonly="state in ('purchase', 'done', 'cancel')"/>
+                <field name="is_central_stock_purchase" widget="boolean_toggle" readonly="state in ('purchase', 'done', 'cancel')"/>
+                <field name="project_id" required="not is_central_stock_purchase" readonly="state in ('purchase', 'done', 'cancel') or is_central_stock_purchase"/>
+                <field name="requisition_id" readonly="state in ('purchase', 'done', 'cancel')" invisible="is_central_stock_purchase"/>
+                <field name="comparative_statement_id" readonly="state in ('purchase', 'done', 'cancel')" invisible="is_central_stock_purchase"/>
                 <field name="requires_md_approval" invisible="1"/>
                 <field name="md_approval_state" widget="badge"
                        decoration-info="md_approval_state == 'pending'"
@@ -112,7 +116,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='amount_total']" position="after">
                 <field name="project_id" optional="show"/>
-                <field name="is_emergency_purchase" widget="badge" decoration-danger="is_emergency_purchase" invisible="not is_emergency_purchase"/>
+                <field name="emergency_status_badge" string="Emergency Status" widget="badge" decoration-danger="1" optional="show"/>
                 <field name="requires_md_approval" invisible="1"/>
                 <field name="md_approval_state" widget="badge" decoration-warning="md_approval_state == 'pending'" decoration-success="md_approval_state == 'approved'" invisible="not requires_md_approval"/>
             </xpath>

@@ -116,6 +116,11 @@
               parent="menu_contractor_reports_procurement"
               action="action_contractor_report_consolidated_stock"
               sequence="10"/>
+    <menuitem id="menu_contractor_report_free_vs_project_stock"
+              name="Free Stock vs. Project Stock"
+              parent="menu_contractor_reports_procurement"
+              action="action_contractor_report_free_vs_project_stock"
+              sequence="12"/>
     <menuitem id="menu_contractor_report_interproject_stn"
               name="Inter-Project STN Register &amp; Cost Neutrality"
               parent="menu_contractor_reports_procurement"

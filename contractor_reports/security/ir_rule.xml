@@ -420,4 +420,10 @@
         <field name="global" eval="True"/>
         <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_contractor_report_free_vs_project_stock_multi_company" model="ir.rule">
+        <field name="name">contractor_report_free_vs_project_stock Multi-Company</field>
+        <field name="model_id" ref="model_contractor_report_free_vs_project_stock"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>
