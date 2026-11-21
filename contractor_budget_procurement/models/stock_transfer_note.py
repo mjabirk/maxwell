@@ -2,6 +2,7 @@
 from markupsafe import Markup
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 
 
 # =========================================================================
@@ -221,7 +222,14 @@ class ContractorStockAvailabilityLine(models.TransientModel):
 class ContractorStockTransferNote(models.Model):
     _name = 'contractor.stock.transfer.note'
     _description = 'Inter-Project Stock Transfer Note (STN)'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.version.mixin', 'contractor.reason.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.version.mixin',
+        'contractor.reason.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'create_date desc, id desc'
 
     name = fields.Char(
@@ -366,7 +374,7 @@ class ContractorStockTransferNote(models.Model):
 
     def action_submit(self):
         """Validates STN lines and requests approval from Donor Site Engineer."""
-        self.ensure_one()
+        self._ensure_state('draft', _("submit stock transfer note"))
         if not self.line_ids:
             raise UserError(_("Please add at least one material line to transfer."))
 
@@ -385,7 +393,7 @@ class ContractorStockTransferNote(models.Model):
                     avail, self.donor_location_id.display_name, line.qty,
                 ))
 
-        self.state = 'pending_donor_approval'
+        self.with_context(bypass_state_lock=True).write({'state': 'pending_donor_approval'})
 
         # Activity to Donor Engineer
         target_user = self.donor_engineer_id or self.donor_project_id.user_id
@@ -412,12 +420,13 @@ class ContractorStockTransferNote(models.Model):
     def action_donor_approve(self):
         """Donor Site Engineer approves material release; notifies Contractor Manager."""
         self.ensure_one()
+        self._ensure_state(('draft', 'pending_donor_approval'), _("grant donor approval"))
         # Ensure user has authority
         if self.donor_engineer_id and self.env.user != self.donor_engineer_id:
             if not self.env.user.has_group('contractor_core.group_contractor_manager'):
                 raise UserError(_("Only the assigned Donor Site Engineer (%s) or a Contractor Manager can approve material release.") % self.donor_engineer_id.name)
 
-        self.state = 'donor_approved'
+        self.with_context(bypass_state_lock=True).write({'state': 'donor_approved'})
 
         # Notify Contractor Manager
         group_mgr = self.env.ref('contractor_core.group_contractor_manager', raise_if_not_found=False)
@@ -445,10 +454,11 @@ class ContractorStockTransferNote(models.Model):
     def action_manager_approve(self):
         """Contractor Manager gives final administrative clearance."""
         self.ensure_one()
+        self._ensure_state(('draft', 'pending_donor_approval', 'donor_approved'), _("grant manager approval"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only a Contractor Manager can authorize inter-project transfers."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'manager_id': self.env.user.id,
         })
@@ -459,36 +469,67 @@ class ContractorStockTransferNote(models.Model):
         )
         return True
 
-    def action_execute_transfer(self):
-        """Executes the internal stock picking and transfers project analytic cost at original purchase cost."""
+    def _reallocate_same_location_quants(self):
+        """Shift quant project_id ownership within the same shared location without a physical picking."""
         self.ensure_one()
-        if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_storekeeper') or self.env.user.has_group('contractor_core.group_contractor_procurement_officer')):
-            raise AccessError(_("Access Denied: Only Storekeepers, Procurement Officers, or Managers can execute Stock Transfer Notes."))
-        if self.state != 'approved':
-            raise UserError(_("Only approved STNs can be executed."))
-        if self.picking_id or self.account_move_id:
-            raise UserError(_("Stock transfer and accounting shift have already been executed for this STN."))
+        quant_model = self.env['stock.quant'].sudo()
+        loc = self.donor_location_id
+        for line in self.line_ids:
+            prec = (line.product_uom_id.rounding or 0.01)
+            donor_quants = quant_model.search(
+                self._get_donor_quant_domain(line.product_id.id),
+                order='in_date, id',
+            )
+            avail_total = sum((q.quantity or 0.0) - (q.reserved_quantity or 0.0) for q in donor_quants)
+            if float_compare(line.qty, avail_total, precision_rounding=prec) > 0:
+                raise UserError(_(
+                    "Insufficient Unreserved Stock for Donor Project '%s':\n\n"
+                    "Product '%s' has only %.2f unreserved units at location '%s' (Requested: %.2f)."
+                ) % (
+                    self.donor_project_id.display_name, line.product_id.display_name,
+                    avail_total, loc.display_name, line.qty,
+                ))
 
-        # 1. Find or determine picking type
+            remaining = line.qty
+            for q in donor_quants:
+                if float_compare(remaining, 0.0, precision_rounding=prec) <= 0:
+                    break
+                q_avail = (q.quantity or 0.0) - (q.reserved_quantity or 0.0)
+                if float_compare(q_avail, 0.0, precision_rounding=prec) <= 0:
+                    continue
+                take = min(remaining, q_avail)
+                src_proj = q.project_id.id or False
+                quant_model.with_context(quant_project_id=src_proj)._update_available_quantity(
+                    line.product_id, loc, -take,
+                    lot_id=q.lot_id, package_id=q.package_id, owner_id=q.owner_id,
+                )
+                quant_model.with_context(quant_project_id=self.receiving_project_id.id)._update_available_quantity(
+                    line.product_id, loc, take,
+                    lot_id=q.lot_id, package_id=q.package_id, owner_id=q.owner_id,
+                    in_date=q.in_date,
+                )
+                remaining -= take
+
+        quant_model.flush_model()
+        quant_model._unlink_zero_quants()
+        return True
+
+    def _create_and_validate_transfer_picking(self):
+        """Create and validate an internal stock.picking for cross-location STNs."""
+        self.ensure_one()
         picking_type = self.env['stock.picking.type'].search([
             ('code', '=', 'internal'),
             ('warehouse_id', 'in', [self.donor_location_id.warehouse_id.id, self.receiving_location_id.warehouse_id.id, False]),
             ('company_id', '=', self.company_id.id),
+        ], limit=1) or self.env['stock.picking.type'].search([
+            ('code', '=', 'internal'),
+            ('company_id', '=', self.company_id.id),
         ], limit=1)
-
-        if not picking_type:
-            picking_type = self.env['stock.picking.type'].search([
-                ('code', '=', 'internal'),
-                ('company_id', '=', self.company_id.id),
-            ], limit=1)
-
         if not picking_type:
             raise UserError(_("No Internal Transfer operation type found in company '%s'.") % self.company_id.name)
 
-        # 2. Build stock move values (handles both cross-location and same-location project reallocation)
-        moves = []
-        for line in self.line_ids:
-            moves.append((0, 0, {
+        moves = [
+            (0, 0, {
                 'description_picking': f"STN Transfer: {line.product_id.display_name} ({self.donor_project_id.name} -> {self.receiving_project_id.name})",
                 'product_id': line.product_id.id,
                 'product_uom': line.product_uom_id.id,
@@ -499,21 +540,19 @@ class ContractorStockTransferNote(models.Model):
                 'source_project_id': self.donor_project_id.id,
                 'restrict_source_project': True,
                 'project_id': self.receiving_project_id.id,
-            }))
-
-        picking_vals = {
+            })
+            for line in self.line_ids
+        ]
+        picking = self.env['stock.picking'].create({
             'picking_type_id': picking_type.id,
             'location_id': self.donor_location_id.id,
             'location_dest_id': self.receiving_location_id.id,
             'origin': self.name,
             'project_id': self.receiving_project_id.id,
             'move_ids': moves,
-        }
-        picking = self.env['stock.picking'].create(picking_vals)
+        })
         picking.action_confirm()
         picking.action_assign()
-
-        # Set quantities done and ensure source project attribution stays pinned for shared locations
         for move in picking.move_ids:
             for ml in move.move_line_ids:
                 if not ml.source_quant_pinned or ml.source_project_id != self.donor_project_id:
@@ -523,24 +562,49 @@ class ContractorStockTransferNote(models.Model):
                     })
             move.quantity = move.product_uom_qty
             move.picked = True
-
-        # Validate picking
         picking.button_validate()
+        return picking
 
-        # 3. Create Analytic Cost Reallocation Journal Entry if analytic accounts exist
+    def action_execute_transfer(self):
+        """Reallocate quant ownership (same-location) or execute internal picking, then shift analytic cost."""
+        self.ensure_one()
+        if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_storekeeper') or self.env.user.has_group('contractor_core.group_contractor_procurement_officer')):
+            raise AccessError(_("Access Denied: Only Storekeepers, Procurement Officers, or Managers can execute Stock Transfer Notes."))
+        if self.state != 'approved':
+            raise UserError(_("Only approved STNs can be executed."))
+        if self.picking_id or self.account_move_id:
+            raise UserError(_("Stock transfer and accounting shift have already been executed for this STN."))
+
+        same_location = (self.donor_location_id == self.receiving_location_id)
+        if same_location:
+            self._reallocate_same_location_quants()
+            picking = self.env['stock.picking']
+        else:
+            picking = self._create_and_validate_transfer_picking()
+
         move_rec = self._create_analytic_cost_transfer_entry()
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'transferred',
             'transfer_date': fields.Datetime.now(),
-            'picking_id': picking.id,
+            'picking_id': picking.id if picking else False,
             'account_move_id': move_rec.id if move_rec else False,
         })
 
+        if picking:
+            msg = Markup(_(
+                "<strong>Transfer Executed:</strong> Stock picking "
+                "<a href='#' data-oe-model='stock.picking' data-oe-id='%s'>%s</a> processed. "
+                "Cost shifted at original purchase price."
+            )) % (picking.id, picking.name)
+        else:
+            msg = Markup(_(
+                "<strong>Same-Location Ownership Transfer Executed:</strong> Reallocated %d material line(s) at %s "
+                "from Project '%s' to Project '%s' (physical picking bypassed). Cost shifted at original purchase price."
+            )) % (len(self.line_ids), self.donor_location_id.display_name, self.donor_project_id.name, self.receiving_project_id.name)
+
         self.message_post(
-            body=Markup(_("<strong>Transfer Executed:</strong> Stock picking <a href='#' data-oe-model='stock.picking' data-oe-id='%s'>%s</a> processed. Cost shifted at original purchase price.")) % (
-                picking.id, picking.name
-            ),
+            body=msg,
             message_type='notification',
             subtype_xmlid='mail.mt_note',
         )
@@ -605,22 +669,15 @@ class ContractorStockTransferNote(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'pending_donor_approval', 'donor_approved', 'approved'), _("decline stock transfer note"))
         return self.action_open_reason_wizard(action_type='decline', target_state='declined')
-
-    def write(self, vals):
-        allowed_meta_fields = {
-            'message_follower_ids', 'message_ids', 'activity_ids',
-            'message_main_attachment_id', 'website_message_ids',
-            'last_action_reason', 'last_action_by_id', 'last_action_date',
-        }
-        if any(rec.state == 'transferred' for rec in self) and not set(vals.keys()).issubset(allowed_meta_fields):
-            raise UserError(_("Completed Stock Transfer Notes are locked and cannot be modified."))
-        return super().write(vals)
 
 
 class ContractorStockTransferNoteLine(models.Model):
     _name = 'contractor.stock.transfer.note.line'
     _description = 'Inter-Project Stock Transfer Note Line'
+    _inherit = ['contractor.line.state.lock.mixin']
+    _line_parent_field = 'stn_id'
 
     stn_id = fields.Many2one(
         'contractor.stock.transfer.note',
@@ -695,14 +752,4 @@ class ContractorStockTransferNoteLine(models.Model):
     def _compute_subtotal(self):
         for line in self:
             line.subtotal_cost = (line.qty or 0.0) * (line.original_purchase_cost or 0.0)
-
-    def write(self, vals):
-        if any(line.stn_id.state == 'transferred' for line in self):
-            raise UserError(_("Lines of a completed Stock Transfer Note cannot be modified."))
-        return super().write(vals)
-
-    def unlink(self):
-        if any(line.stn_id.state == 'transferred' for line in self):
-            raise UserError(_("Lines of a completed Stock Transfer Note cannot be deleted."))
-        return super().unlink()
 

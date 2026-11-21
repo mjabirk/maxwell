@@ -222,7 +222,7 @@ class ContractorApprovalInbox(models.Model):
     @api.model
     def action_open_inbox(self):
         self.action_refresh_inbox()
-        return self.env.ref('contractor_core.action_contractor_approval_inbox').read()[0]
+        return self.env.ref('contractor_core.action_contractor_approval_inbox').sudo().read()[0]
 
     def _get_source_record(self):
         self.ensure_one()

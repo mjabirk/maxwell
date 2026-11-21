@@ -23,6 +23,11 @@
                             class="btn-danger"
                             invisible="state != 'submitted'"
                             groups="contractor_core.group_contractor_project_manager"/>
+                    <button name="action_load_scheduled_or_previous_crew"
+                            string="Load Scheduled / Previous Crew"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'draft'"/>
                     <button name="action_mark_all_present"
                             string="Mark All Present"
                             type="object"
@@ -52,17 +57,7 @@
                         <span invisible="not late_amendment_requested or late_amendment_approved">
                             | Amendment Requested by <field name="late_amendment_requester_id" readonly="1" class="oe_inline"/>: <field name="late_amendment_request_reason" readonly="1" class="oe_inline"/>
                         </span>
-                        <button name="action_mark_all_present"
-                            string="Mark All Present"
-                            type="object"
-                            class="btn-secondary"
-                            invisible="state not in ('draft', 'submitted')"/>
-                    <button name="action_verify_all_ot"
-                            string="Verify All OT"
-                            type="object"
-                            class="btn-secondary"
-                            invisible="state not in ('draft', 'submitted')"/>
-                    <button name="action_request_late_amendment"
+                        <button name="action_request_late_amendment"
                                 string="Request Late Amendment"
                                 type="object"
                                 class="btn btn-warning btn-sm ms-2"
@@ -100,8 +95,10 @@
                             <field name="total_no_shows" readonly="1"/>
                             <field name="total_regular_hours" widget="float_time" readonly="1"/>
                             <field name="total_overtime_hours" widget="float_time" readonly="1"/>
-                            <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
-                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
+                            <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                         </group>
                     </group>
 
@@ -154,9 +151,12 @@
                                     <field name="ot_reason" optional="show"/>
                                     <field name="se_ot_verified" widget="boolean" optional="hide"/>
                                     <field name="ot_approved" widget="boolean" readonly="1"/>
-                                    <field name="hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="ot_multiplier"/>
-                                    <field name="calculated_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour Cost"/>
+                                    <field name="hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="ot_multiplier"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="calculated_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour Cost"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
@@ -180,7 +180,8 @@
                 <field name="total_no_shows"/>
                 <field name="total_regular_hours" widget="float_time"/>
                 <field name="total_overtime_hours" widget="float_time"/>
-                <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour"/>
+                <field name="total_labour_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Labour"
+                       groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'submitted'"
@@ -228,7 +229,7 @@
                 <field name="attendance_date"/>
                 <field name="total_workers"/>
                 <field name="total_present"/>
-                <field name="total_labour_cost"/>
+                <field name="total_labour_cost" groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="currency_id"/>
                 <field name="state"/>
                 <templates>
@@ -245,7 +246,8 @@
                         </div>
                         <div class="d-flex justify-content-between small mb-2">
                             <span>Present: <strong><field name="total_present"/>/<field name="total_workers"/></strong></span>
-                            <field name="total_labour_cost" widget="monetary" class="fw-bold"/>
+                            <field name="total_labour_cost" widget="monetary" class="fw-bold"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                         </div>
                         <div class="d-flex gap-1" invisible="state not in ('draft', 'submitted')">
                             <button name="action_mark_all_present" type="object" class="btn btn-sm btn-outline-success">All Present</button>

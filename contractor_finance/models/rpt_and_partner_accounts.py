@@ -405,6 +405,7 @@ class ContractorPartnerCurrentAccount(models.Model):
 class ContractorPartnerCurrentAccountLine(models.Model):
     _name = 'contractor.partner.current.account.line'
     _description = 'Partner Current Account Transaction Line'
+    _inherit = ['contractor.state.lock.mixin']
     _order = 'date desc, id desc'
 
     current_account_id = fields.Many2one(
@@ -467,13 +468,14 @@ class ContractorPartnerCurrentAccountLine(models.Model):
     def action_approve(self):
         """Hard-Stop: Drawings & personal expenses strictly require Managing Director sign-off."""
         self.ensure_one()
+        self._ensure_state('draft', _("approve partner account entry"))
         if not self.env.user.has_group('contractor_core.group_contractor_md'):
             raise UserError(_("Access Denied: Partner drawings and advances strictly require Managing Director authorization."))
 
         if len((self.purpose or '').strip()) < 10:
             raise UserError(_("A clear business purpose (minimum 10 characters) is required for partner transactions."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'approved_by_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -533,7 +535,7 @@ class ContractorPartnerCurrentAccountLine(models.Model):
         })
         move.action_post()
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'posted',
             'move_id': move.id,
         })

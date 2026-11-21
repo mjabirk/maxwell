@@ -85,7 +85,8 @@
                             <field name="manager_id" readonly="1" invisible="not manager_id"/>
                             <field name="transfer_date" readonly="1" invisible="not transfer_date"/>
                             <field name="picking_id" readonly="1" invisible="not picking_id"/>
-                            <field name="account_move_id" readonly="1" invisible="not account_move_id"/>
+                            <field name="account_move_id" readonly="1" invisible="not account_move_id"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                         </group>
                     </group>
                     <group string="Transfer Governance &amp; Purpose">
@@ -99,12 +100,15 @@
                                     <field name="qty"/>
                                     <field name="product_uom_id"/>
                                     <field name="available_qty" readonly="1"/>
-                                    <field name="original_purchase_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transfer Cost"/>
+                                    <field name="original_purchase_cost" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transfer Cost"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
-                            <group class="oe_subtotal_footer oe_right">
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                 <field name="total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
                             </group>
                         </page>
@@ -125,7 +129,8 @@
                 <field name="donor_project_id"/>
                 <field name="receiving_project_id"/>
                 <field name="donor_engineer_id"/>
-                <field name="total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transferred"/>
+                <field name="total_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Transferred"
+                       groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state in ('pending_donor_approval', 'donor_approved')"

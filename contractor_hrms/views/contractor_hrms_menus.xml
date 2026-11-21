@@ -1,69 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Main HR & Payroll Operations Category -->
     <menuitem id="menu_contractor_hrms_root"
               name="HR, Payroll &amp; Workforce"
               parent="contractor_core.menu_contractor_root"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_workforce"
               name="Workforce Master"
               parent="menu_contractor_hrms_root"
               action="action_contractor_workforce"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_leave_approvals"
+              name="Time Off &amp; Leave Requests"
+              parent="menu_contractor_hrms_root"
+              action="hr_holidays.hr_leave_action_action_approve_department"
+              sequence="15"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_agency_agreements"
               name="Manpower Supply SLAs"
               parent="menu_contractor_hrms_root"
               action="action_contractor_agency_agreement"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_payroll_track1"
               name="Monthly Payroll Runs (Permanent)"
               parent="menu_contractor_hrms_root"
               action="action_contractor_payroll_run"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_payroll_track2"
               name="Temporary Wage Settlements (Daily)"
               parent="menu_contractor_hrms_root"
               action="action_contractor_temp_wage_settlement"
-              sequence="40"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_payroll_track3"
               name="Agency Invoice Reconciliations"
               parent="menu_contractor_hrms_root"
               action="action_contractor_agency_reconciliation"
-              sequence="50"/>
+              sequence="50"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_labour_adjustments"
               name="Labour Cost Adjustments"
               parent="menu_contractor_hrms_root"
               action="action_contractor_labour_cost_adjustment"
-              sequence="60"/>
+              sequence="60"
+              groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_tool_custody"
               name="Hand &amp; Power Tool Custody"
               parent="menu_contractor_hrms_root"
               action="action_contractor_tool_asset"
-              sequence="70"/>
+              sequence="70"
+              groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_tool_bulk_wizard"
+              name="Bulk Tool Issue / Return"
+              parent="menu_contractor_hrms_root"
+              action="action_contractor_tool_bulk_wizard"
+              sequence="75"
+              groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_leave_salary"
               name="Leave Salary Requests"
               parent="menu_contractor_hrms_root"
               action="action_contractor_leave_salary_request"
-              sequence="80"/>
+              sequence="80"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_ticket_allowance"
               name="Air Ticket Allowance Requests"
               parent="menu_contractor_hrms_root"
               action="action_contractor_ticket_allowance_request"
-              sequence="90"/>
+              sequence="90"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_employee_exit"
               name="Employee Exit &amp; EOSB Settlements"
               parent="menu_contractor_hrms_root"
               action="action_contractor_employee_exit"
-              sequence="100"/>
+              sequence="100"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 </odoo>
-

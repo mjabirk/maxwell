@@ -27,6 +27,19 @@ class ContractorEstimationLineLockMixin(models.AbstractModel):
                     "Use 'Revise Quotation (New Version)' or 'Log Client Negotiation' with a mandatory reason."
                 ) % (action_label, order.display_name, order.contractor_quote_state))
 
+    def _check_vo_estimation_lock(self, vos, action_label):
+        ctx = self.env.context
+        if self.env.su or ctx.get('bypass_state_lock'):
+            return
+        for vo in vos:
+            if not vo:
+                continue
+            if vo.state != 'draft':
+                raise UserError(_(
+                    "Cannot %s cost estimation lines on Variation Order %s because its status is '%s'. "
+                    "Another user may have submitted or approved it — please reload the page."
+                ) % (action_label, vo.display_name, vo._get_state_lock_label(vo) if hasattr(vo, '_get_state_lock_label') else vo.state))
+
     @api.model_create_multi
     def create(self, vals_list):
         order_ids = {
@@ -35,6 +48,9 @@ class ContractorEstimationLineLockMixin(models.AbstractModel):
         }
         if order_ids:
             self._check_so_estimation_lock(self.env['sale.order'].browse(list(order_ids)), _("add"))
+        vo_ids = {v['variation_order_id'] for v in vals_list if v.get('variation_order_id')}
+        if vo_ids:
+            self._check_vo_estimation_lock(self.env['contractor.variation.order'].browse(list(vo_ids)), _("add"))
         return super().create(vals_list)
 
     def write(self, vals):
@@ -44,12 +60,21 @@ class ContractorEstimationLineLockMixin(models.AbstractModel):
             if vals.get('order_id'):
                 orders |= self.env['sale.order'].browse(vals['order_id'])
             so_lines._check_so_estimation_lock(orders, _("modify"))
+        vo_lines = self.filtered(lambda l: l.variation_order_id or vals.get('variation_order_id'))
+        if vo_lines:
+            vos = vo_lines.mapped('variation_order_id')
+            if vals.get('variation_order_id'):
+                vos |= self.env['contractor.variation.order'].browse(vals['variation_order_id'])
+            vo_lines._check_vo_estimation_lock(vos, _("modify"))
         return super().write(vals)
 
     def unlink(self):
         so_lines = self.filtered(lambda l: not l.variation_order_id)
         if so_lines:
             so_lines._check_so_estimation_lock(so_lines.mapped('order_id'), _("delete"))
+        vo_lines = self.filtered(lambda l: l.variation_order_id)
+        if vo_lines:
+            vo_lines._check_vo_estimation_lock(vo_lines.mapped('variation_order_id'), _("delete"))
         return super().unlink()
 
 

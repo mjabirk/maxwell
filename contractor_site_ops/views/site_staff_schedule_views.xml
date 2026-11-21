@@ -11,6 +11,11 @@
                             type="object"
                             class="btn-primary"
                             invisible="state != 'draft'"/>
+                    <button name="action_copy_previous_schedule"
+                            string="Copy Previous Schedule"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'draft'"/>
                     <button name="action_approve_late_amendment"
                             string="Authorize Late Amendment"
                             type="object"

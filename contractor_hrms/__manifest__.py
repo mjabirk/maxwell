@@ -31,6 +31,7 @@ Comprehensive human resource and labor governance suite engineered for general, 
         'account',
     ],
     'data': [
+        'security/security_groups.xml',
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
         'data/ir_sequence.xml',

@@ -388,7 +388,7 @@ class ContractorRfqVendorInvite(models.Model):
                 'requisition_id': self.requisition_id.id,
             })
             if self.requisition_id.state == 'approved':
-                self.requisition_id.state = 'cs_in_progress'
+                self.requisition_id.with_context(bypass_state_lock=True).write({'state': 'cs_in_progress'})
 
         self._upsert_lines_to_comparative_statement(cs, attach_to_chatter=True)
         self.write({

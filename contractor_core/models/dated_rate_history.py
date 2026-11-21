@@ -205,12 +205,12 @@ class HrEmployee(models.Model):
 
     def _compute_current_effective_rate(self):
         today = fields.Date.context_today(self)
-        rate_model = self.env['contractor.dated.rate.history']
+        rate_model = self.env['contractor.dated.rate.history'].sudo()
         for emp in self:
             emp.current_effective_rate = rate_model.get_rate_on_date(emp.id, today)
 
     def get_employee_rate_on_date(self, target_date=None):
         """Helper on employee to fetch historical hourly rate on specific date."""
         self.ensure_one()
-        return self.env['contractor.dated.rate.history'].get_rate_on_date(self.id, target_date)
+        return self.env['contractor.dated.rate.history'].sudo().get_rate_on_date(self.id, target_date)
 

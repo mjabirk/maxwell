@@ -17,9 +17,9 @@ class ContractorSiteConsumptionUx(models.Model):
         existing_product_ids = set(self.line_ids.mapped('product_id').ids)
         candidate_product_ids = set()
 
-        # 1. Products delivered on POs linked to this project
+        # 1. Products delivered on POs linked to this project (sudo for Site Engineer ACL safety)
         if 'purchase.order.line' in self.env:
-            po_lines = self.env['purchase.order.line'].search([
+            po_lines = self.env['purchase.order.line'].sudo().search([
                 ('order_id.project_id', '=', self.project_id.id),
                 ('order_id.state', 'in', ['purchase', 'done']),
                 ('product_id', '!=', False),
@@ -29,24 +29,32 @@ class ContractorSiteConsumptionUx(models.Model):
 
         # 2. Products transferred IN via completed Stock Transfer Notes
         if 'contractor.stock.transfer.note.line' in self.env:
-            stn_lines = self.env['contractor.stock.transfer.note.line'].search([
+            stn_lines = self.env['contractor.stock.transfer.note.line'].sudo().search([
                 ('stn_id.receiving_project_id', '=', self.project_id.id),
                 ('stn_id.state', '=', 'transferred'),
                 ('product_id', '!=', False),
             ])
             candidate_product_ids.update(stn_lines.mapped('product_id').ids)
 
-        # 3. Products physically stocked on project internal stock locations
-        site_locs = self.env['stock.location'].search([
-            ('usage', '=', 'internal'),
+        # 3. Products delivered via done stock moves / pickings tagged with this project
+        moves = self.env['stock.move'].sudo().search([
+            ('state', '=', 'done'),
+            ('product_id', '!=', False),
+            '|',
             ('project_id', '=', self.project_id.id),
+            ('picking_id.project_id', '=', self.project_id.id),
         ])
-        if site_locs:
-            quants = self.env['stock.quant'].search([
-                ('location_id', 'in', site_locs.ids),
-                ('quantity', '>', 0),
-            ])
-            candidate_product_ids.update(quants.mapped('product_id').ids)
+        candidate_product_ids.update(moves.mapped('product_id').ids)
+
+        # 4. Products physically stocked for this project (dedicated site location or shared WH/Stock project_id quant)
+        quants = self.env['stock.quant'].sudo().search([
+            ('location_id.usage', '=', 'internal'),
+            ('quantity', '>', 0),
+            '|',
+            ('project_id', '=', self.project_id.id),
+            ('location_id.project_id', '=', self.project_id.id),
+        ])
+        candidate_product_ids.update(quants.mapped('product_id').ids)
 
         new_line_vals = []
         ConsumptionLine = self.env['contractor.site.consumption.line']
@@ -66,7 +74,21 @@ class ContractorSiteConsumptionUx(models.Model):
 
         if new_line_vals:
             self.write({'line_ids': new_line_vals})
-        return True
+            return True
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('No Issued Materials Found'),
+                'message': _(
+                    "No unconsumed materials issued to project '%s' were found in store transfers, "
+                    "PO receipts, or project stock. Please verify stock issuance or add lines manually."
+                ) % self.project_id.display_name,
+                'type': 'warning',
+                'sticky': False,
+            },
+        }
 
 
 class ContractorSiteConsumptionLineUx(models.Model):
@@ -95,15 +117,14 @@ class ContractorSiteConsumptionLineUx(models.Model):
             prev = line.previously_consumed_qty or 0.0
             avail = max(issued - prev, 0.0)
             if not issued and line.product_id and line.consumption_id.project_id:
-                site_locs = self.env['stock.location'].search([
-                    ('usage', '=', 'internal'),
+                quants = self.env['stock.quant'].sudo().search([
+                    ('product_id', '=', line.product_id.id),
+                    ('location_id.usage', '=', 'internal'),
+                    '|',
                     ('project_id', '=', line.consumption_id.project_id.id),
+                    ('location_id.project_id', '=', line.consumption_id.project_id.id),
                 ])
-                if site_locs:
-                    quants = self.env['stock.quant'].search([
-                        ('product_id', '=', line.product_id.id),
-                        ('location_id', 'in', site_locs.ids),
-                    ])
+                if quants:
                     loc_avail = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
                     avail = max(loc_avail - prev, 0.0)
             line.available_site_qty = avail

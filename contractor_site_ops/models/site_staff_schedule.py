@@ -8,7 +8,13 @@ from odoo.exceptions import UserError, ValidationError
 class ContractorSiteSchedule(models.Model):
     _name = 'contractor.site.schedule'
     _description = 'Next-Day Site Staff Schedule'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.site.lock.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.site.lock.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'schedule_date desc, id desc'
 
     name = fields.Char(
@@ -97,6 +103,7 @@ class ContractorSiteSchedule(models.Model):
     def action_confirm_schedule(self):
         """Confirms next-day schedule and auto-populates site attendance sheet for the engineer."""
         self.ensure_one()
+        self._ensure_state('draft', _("confirm schedule"))
         if not self.line_ids:
             raise UserError(_("Please add at least one operative to the deployment schedule."))
 
@@ -132,7 +139,7 @@ class ContractorSiteSchedule(models.Model):
                     'line_ids': attendance_lines,
                 })
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'confirmed',
             'attendance_id': attendance.id,
         })
@@ -154,15 +161,68 @@ class ContractorSiteSchedule(models.Model):
             'target': 'current',
         }
 
+    def action_copy_previous_schedule(self):
+        """Pre-fill draft schedule lines from the latest schedule on this project."""
+        self.ensure_one()
+        self._ensure_state('draft', _("copy previous schedule"))
+        if not self.project_id:
+            raise UserError(_("Please select a Project Site before copying a previous schedule."))
+
+        prev_schedule = self.search([
+            ('project_id', '=', self.project_id.id),
+            ('id', '!=', self.id),
+            ('state', '!=', 'cancelled'),
+        ], order='schedule_date desc, id desc', limit=1)
+
+        if not prev_schedule or not prev_schedule.line_ids:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('No Previous Schedule Found'),
+                    'message': _("No prior deployment schedule was found for project '%s'.") % self.project_id.display_name,
+                    'type': 'warning',
+                    'sticky': False,
+                },
+            }
+
+        existing_emp_ids = set(self.line_ids.mapped('employee_id').ids)
+        new_lines = []
+        for sline in prev_schedule.line_ids:
+            if sline.employee_id.id not in existing_emp_ids and sline.employee_id.active:
+                new_lines.append((0, 0, {
+                    'employee_id': sline.employee_id.id,
+                    'planned_shift_hours': sline.planned_shift_hours or 8.0,
+                    'notes': sline.notes or '',
+                }))
+
+        if new_lines:
+            self.write({'line_ids': new_lines})
+            return True
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Schedule Copy'),
+                'message': _("All operatives from '%s' are already in this schedule.") % prev_schedule.name,
+                'type': 'info',
+                'sticky': False,
+            },
+        }
+
     def action_cancel(self):
         self.ensure_one()
-        self.state = 'cancelled'
+        self._ensure_state(('draft', 'confirmed'), _("cancel schedule"))
+        self.with_context(bypass_state_lock=True).write({'state': 'cancelled'})
 
 
 class ContractorSiteScheduleLine(models.Model):
     _name = 'contractor.site.schedule.line'
     _description = 'Site Schedule Operative Line'
+    _inherit = ['contractor.line.state.lock.mixin']
     _order = 'employee_id, id'
+    _line_parent_field = 'schedule_id'
 
     schedule_id = fields.Many2one(
         'contractor.site.schedule',

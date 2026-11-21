@@ -9,7 +9,13 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ContractorSiteAttendance(models.Model):
     _name = 'contractor.site.attendance'
     _description = 'Daily Site Attendance & Overtime Sheet'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.site.lock.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.site.lock.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'attendance_date desc, id desc'
 
     name = fields.Char(
@@ -152,12 +158,13 @@ class ContractorSiteAttendance(models.Model):
 
     def action_submit(self):
         self.ensure_one()
+        self._ensure_state('draft', _("submit attendance sheet"))
         if not self.line_ids:
             raise UserError(_("Please add operative attendance lines before submitting."))
 
-        self.line_ids.filtered(lambda l: l.overtime_hours > 0).write({'se_ot_verified': True})
+        self.line_ids.filtered(lambda l: l.overtime_hours > 0).with_context(bypass_state_lock=True).write({'se_ot_verified': True})
         total_ot = sum(self.line_ids.mapped('overtime_hours'))
-        self.state = 'submitted'
+        self.with_context(bypass_state_lock=True).write({'state': 'submitted'})
 
         pm_user = self.project_id.user_id
         if pm_user:
@@ -185,15 +192,18 @@ class ContractorSiteAttendance(models.Model):
     def action_pm_approve(self):
         """Authorizes site attendance, approves overtime, and triggers daily project cost posting."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve attendance sheet"))
         if not self.env.user.has_group('contractor_core.group_contractor_project_manager'):
             raise UserError(_("Access Denied: Only a Contractor Project Manager can approve site attendance sheets."))
 
         # Mark OT approved on present lines with OT
-        for line in self.line_ids:
-            if line.overtime_hours > 0 and line.attendance_status in ('present', 'unscheduled_addition'):
-                line.ot_approved = True
+        ot_lines = self.line_ids.filtered(
+            lambda l: l.overtime_hours > 0 and l.attendance_status in ('present', 'unscheduled_addition')
+        )
+        if ot_lines:
+            ot_lines.with_context(bypass_state_lock=True).write({'ot_approved': True})
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'pm_approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -204,7 +214,7 @@ class ContractorSiteAttendance(models.Model):
             project_id=self.project_id.id,
             cost_date=self.attendance_date,
         )
-        self.cost_posting_id = posting.id
+        self.with_context(bypass_state_lock=True).write({'cost_posting_id': posting.id})
 
         self.message_post(
             body=Markup(_("<strong>Site Attendance Approved:</strong> Verified by Project Manager %s. Synced with Daily Cost Posting <a href='#' data-oe-model='contractor.daily.cost.posting' data-oe-id='%s'>%s</a>.")) % (
@@ -217,6 +227,7 @@ class ContractorSiteAttendance(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("decline attendance sheet"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_project_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Project Manager can decline site attendance sheets."))
         return {
@@ -236,8 +247,7 @@ class ContractorSiteAttendance(models.Model):
     def action_mark_all_present(self):
         """One-tap bulk mark all non-leave operatives on this sheet as Present."""
         self.ensure_one()
-        if self.state in ('pm_approved', 'declined'):
-            raise UserError(_("Cannot modify an approved or declined attendance sheet."))
+        self._ensure_state('draft', _("bulk-update attendance lines"))
         for line in self.line_ids:
             if line.attendance_status != 'on_leave':
                 line.write({
@@ -249,18 +259,88 @@ class ContractorSiteAttendance(models.Model):
     def action_verify_all_ot(self):
         """One-tap bulk OT verification for all present operatives logging overtime."""
         self.ensure_one()
-        if self.state in ('pm_approved', 'declined'):
-            raise UserError(_("Cannot modify an approved or declined attendance sheet."))
+        self._ensure_state('draft', _("verify overtime lines"))
         for line in self.line_ids:
             if line.attendance_status in ('present', 'unscheduled_addition') and line.overtime_hours > 0:
                 line.se_ot_verified = True
         return True
 
+    def action_load_scheduled_or_previous_crew(self):
+        """Pre-fill draft attendance sheet from today's schedule or the latest attendance sheet on this project."""
+        self.ensure_one()
+        self._ensure_state('draft', _("load scheduled or previous crew"))
+        if not self.project_id:
+            raise UserError(_("Please select a Project Site before loading crew lines."))
+
+        existing_emp_ids = set(self.line_ids.mapped('employee_id').ids)
+        new_lines = []
+        source_label = None
+
+        schedule = self.env['contractor.site.schedule'].search([
+            ('project_id', '=', self.project_id.id),
+            ('schedule_date', '=', self.attendance_date),
+            ('state', 'in', ['confirmed', 'draft']),
+        ], limit=1)
+        if schedule and schedule.line_ids:
+            source_label = schedule.name
+            for sline in schedule.line_ids:
+                if sline.employee_id.id not in existing_emp_ids and sline.employee_id.active:
+                    hrs = sline.planned_shift_hours or 8.0
+                    new_lines.append((0, 0, {
+                        'employee_id': sline.employee_id.id,
+                        'scheduled_hours': hrs,
+                        'regular_hours': hrs,
+                        'attendance_status': 'present',
+                        'work_zone': sline.notes or '',
+                    }))
+            if not self.schedule_id:
+                self.schedule_id = schedule.id
+        else:
+            prev_sheet = self.search([
+                ('project_id', '=', self.project_id.id),
+                ('id', '!=', self.id),
+                ('state', '!=', 'declined'),
+            ], order='attendance_date desc, id desc', limit=1)
+            if prev_sheet and prev_sheet.line_ids:
+                source_label = prev_sheet.name
+                for aline in prev_sheet.line_ids:
+                    if aline.employee_id.id not in existing_emp_ids and aline.employee_id.active:
+                        hrs = aline.scheduled_hours or 8.0
+                        new_lines.append((0, 0, {
+                            'employee_id': aline.employee_id.id,
+                            'scheduled_hours': hrs,
+                            'regular_hours': hrs,
+                            'attendance_status': 'present',
+                            'work_zone': aline.work_zone or '',
+                        }))
+
+        if new_lines:
+            self.write({'line_ids': new_lines})
+            return True
+
+        msg = (
+            _("All operatives from '%s' are already loaded on this sheet.") % source_label
+            if source_label
+            else _("No schedule for this date or previous attendance sheet was found for project '%s'.") % self.project_id.display_name
+        )
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Crew Loader'),
+                'message': msg,
+                'type': 'warning',
+                'sticky': False,
+            },
+        }
+
 
 class ContractorSiteAttendanceLine(models.Model):
     _name = 'contractor.site.attendance.line'
     _description = 'Site Attendance Operative Record'
+    _inherit = ['contractor.line.state.lock.mixin']
     _order = 'employee_id, id'
+    _line_parent_field = 'attendance_id'
 
     attendance_id = fields.Many2one(
         'contractor.site.attendance',

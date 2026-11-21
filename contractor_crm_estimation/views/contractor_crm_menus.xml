@@ -1,76 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Submenu: Inquiries & Estimation -->
+    <!-- Inquiries & Estimation Menu Category -->
     <menuitem id="menu_contractor_crm_inquiries"
               name="Inquiries &amp; Estimation"
               parent="contractor_core.menu_contractor_root"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_leads"
               name="Contracting Leads &amp; Inquiries"
               parent="menu_contractor_crm_inquiries"
               action="crm.crm_lead_action_pipeline"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_customers"
+              name="Customers"
+              parent="menu_contractor_crm_inquiries"
+              action="account.res_partner_action_customer"
+              sequence="15"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_site_visits"
               name="Site Inspections &amp; Visits"
               parent="menu_contractor_crm_inquiries"
               action="action_contractor_site_visit"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_quotations"
               name="Cost Estimates &amp; Quotations"
               parent="menu_contractor_crm_inquiries"
               action="action_contractor_quotations_all"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_quotation_approvals"
               name="Quotation Approvals"
               parent="menu_contractor_crm_inquiries"
               action="action_contractor_quotation_approvals"
-              sequence="35"/>
+              sequence="35"
+              groups="contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_quotation_followups"
               name="Quotation Follow-ups"
               parent="menu_contractor_crm_inquiries"
               action="action_contractor_quotation_followups"
-              sequence="40"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Mirror Approval & Follow-up queues under standard Sales -> Orders -->
+    <!-- Dedicated UX Menus under native Sales -> Orders as well -->
     <menuitem id="menu_sale_contractor_quotation_approvals"
               name="Quotation Approvals"
               parent="sale.sale_order_menu"
               action="action_contractor_quotation_approvals"
-              sequence="15"/>
+              sequence="15"
+              groups="contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_sale_contractor_quotation_followups"
               name="Quotation Follow-ups"
               parent="sale.sale_order_menu"
               action="action_contractor_quotation_followups"
-              sequence="18"/>
+              sequence="18"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Submenu: Projects & Variations -->
+    <!-- Projects & Variations Menu Category -->
     <menuitem id="menu_contractor_project_control"
               name="Projects &amp; Variations"
               parent="contractor_core.menu_contractor_root"
-              sequence="15"/>
+              sequence="15"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_project_list"
               name="Active Contractor Projects"
               parent="menu_contractor_project_control"
               action="project.open_view_project_all"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_project_budgets"
               name="Project Master Budgets"
               parent="menu_contractor_project_control"
               action="action_contractor_project_budget"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_variation_orders"
               name="Variation Orders (VO)"
               parent="menu_contractor_project_control"
               action="action_contractor_variation_order"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 </odoo>
-

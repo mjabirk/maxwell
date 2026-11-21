@@ -7,7 +7,7 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ContractorAgencyAgreement(models.Model):
     _name = 'contractor.agency.agreement'
     _description = 'Manpower Supply Agency Service Agreement'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'agreement_date desc, id desc'
 
     name = fields.Char(
@@ -123,11 +123,12 @@ class ContractorAgencyAgreement(models.Model):
 
     def action_activate(self):
         self.ensure_one()
+        self._ensure_state('draft', _("activate agency agreement"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_hr_officer')):
             raise AccessError(_("Access Denied: Only HR Officers or Managers can activate agency agreements."))
         if self.agreed_rate <= 0:
             raise UserError(_("Agreed billing rate must be strictly greater than zero."))
-        self.state = 'active'
+        self.with_context(bypass_state_lock=True).write({'state': 'active'})
         self.message_post(
             body=Markup(_("<strong>Agreement Activated:</strong> Manpower SLA confirmed active.")),
             message_type='notification',
@@ -136,9 +137,10 @@ class ContractorAgencyAgreement(models.Model):
 
     def action_terminate(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'active', 'expired'), _("terminate agency agreement"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Manager can terminate agency agreements."))
-        self.state = 'terminated'
+        self.with_context(bypass_state_lock=True).write({'state': 'terminated'})
         self.message_post(
             body=Markup(_("<strong>Agreement Terminated:</strong> Manpower SLA concluded.")),
             message_type='notification',

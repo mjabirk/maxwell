@@ -86,8 +86,10 @@
                             <field name="uom_id" readonly="state != 'draft'"/>
                             <field name="subcontractor_claimed_qty" readonly="state != 'draft'"/>
                             <field name="site_verified_qty" readonly="state != 'draft'"/>
-                            <field name="agreed_unit_rate" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"/>
-                            <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="agreed_unit_rate" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state != 'draft'"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                            <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                             <field name="certified_by" readonly="1" invisible="not certified_by"/>
                             <field name="certification_date" readonly="1" invisible="not certification_date"/>
                             <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
@@ -116,7 +118,8 @@
                 <field name="work_package"/>
                 <field name="site_verified_qty"/>
                 <field name="uom_id"/>
-                <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Accrual"/>
+                <field name="accrued_subcontractor_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Accrual"
+                       groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'submitted'"
@@ -223,7 +226,7 @@
                         <field name="photo_attachment_ids" widget="many2many_binary" readonly="state == 'resolved'"/>
                     </group>
 
-                    <group string="Corrective Action &amp; Resolution" invisible="state != 'resolved' and not resolution_notes">
+                    <group string="Corrective Action &amp; Resolution">
                         <field name="resolution_notes" placeholder="State engineering remedy, safety clearance, permit received, or resumption details..." readonly="state == 'resolved'"/>
                     </group>
                 </sheet>

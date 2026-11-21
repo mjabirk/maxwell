@@ -15,7 +15,7 @@
                             string="Reconcile Store Receipts"
                             type="object"
                             class="btn-warning"
-                            invisible="state != 'draft'"
+                            invisible="state not in ('draft', 'submitted')"
                             groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_manager"/>
                     <button name="action_pm_approve"
                             string="PM Approve &amp; Cost"
@@ -27,7 +27,7 @@
                             string="Decline"
                             type="object"
                             class="btn-danger"
-                            invisible="state not in ('draft', 'reconciled')"
+                            invisible="state not in ('draft', 'submitted', 'reconciled')"
                             groups="contractor_core.group_contractor_project_manager"/>
                     <button name="action_load_issued_site_materials"
                             string="Load Issued Site Materials"
@@ -45,7 +45,7 @@
                             class="btn-outline-warning"
                             invisible="not is_entry_locked or late_amendment_approved"
                             groups="contractor_core.group_contractor_project_manager"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,reconciled,pm_approved"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reconciled,pm_approved"/>
                 </header>
                 <sheet>
                     <div class="alert alert-danger py-2 mb-3" role="alert" invisible="not is_entry_locked">
@@ -90,18 +90,20 @@
                             <field name="late_amendment_requester_id" invisible="1"/>
                             <field name="late_amendment_request_reason" invisible="1"/>
                         </group>
-                        <group string="Consumption Financials &amp; Reconciliation">
-                            <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"/>
+                        <group string="Reconciliation &amp; Cost Summary">
+                            <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_subtotal_footer_separator"
+                                   groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                             <field name="variance_flagged" readonly="1" widget="boolean_toggle"/>
                             <field name="reconciled_by" readonly="1" invisible="not reconciled_by"/>
                             <field name="reconciliation_date" readonly="1" invisible="not reconciliation_date"/>
                             <field name="approver_id" readonly="1" invisible="not approver_id"/>
-                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"/>
+                            <field name="cost_posting_id" readonly="1" invisible="not cost_posting_id"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                         </group>
                     </group>
 
                     <group string="Storekeeper Investigation &amp; Reconciliation Notes" invisible="not variance_flagged and not reconciliation_notes">
-                        <field name="reconciliation_notes" placeholder="Explain causes for material usage variance against store issues (wastage, cutting losses, site stock adjustment)..." readonly="state in ('pm_approved', 'declined')"/>
+                        <field name="reconciliation_notes" placeholder="Explain causes for material usage variance against store issues (wastage, cutting losses, site stock adjustment)..." readonly="state not in ('draft', 'submitted')"/>
                     </group>
 
                     <notebook>
@@ -110,8 +112,10 @@
                                 <list string="Materials Consumed" editable="bottom">
                                     <field name="cost_head"/>
                                     <field name="product_id"/>
-                                    <field name="source_picking_id"/>
-                                    <field name="source_po_id"/>
+                                    <field name="source_picking_id" optional="hide"
+                                           groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
+                                    <field name="source_po_id" optional="hide"
+                                           groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager"/>
                                     <field name="work_location"/>
                                     <field name="product_uom_id"/>
                                     <field name="issued_to_site_qty" readonly="1"/>
@@ -120,11 +124,28 @@
                                     <field name="consumed_today_qty" decoration-danger="is_over_consumed" decoration-warning="consumed_today_qty &gt; 0 and available_site_qty &lt;= consumed_today_qty and not is_over_consumed"/>
                                     <field name="is_over_consumed" column_invisible="1"/>
                                     <field name="remaining_site_stock_qty" readonly="1" decoration-bf="1"/>
-                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"
+                                           groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"
+                                           groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="variance_pct" widget="percentage" readonly="1" optional="show"/>
                                     <field name="variance_flagged" widget="badge" decoration-danger="variance_flagged" readonly="1" optional="show"/>
                                     <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Inventory Deduction Moves" name="page_stock_moves"
+                              invisible="not stock_move_ids"
+                              groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
+                            <field name="stock_move_ids" readonly="1">
+                                <list string="Validated Stock Moves">
+                                    <field name="date"/>
+                                    <field name="product_id"/>
+                                    <field name="location_id"/>
+                                    <field name="location_dest_id"/>
+                                    <field name="quantity"/>
+                                    <field name="product_uom"/>
+                                    <field name="state" widget="badge"/>
                                 </list>
                             </field>
                         </page>
@@ -144,7 +165,8 @@
                 <field name="project_id"/>
                 <field name="consumption_date"/>
                 <field name="site_engineer_id"/>
-                <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"/>
+                <field name="total_consumption_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Material Cost"
+                       groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="variance_flagged" widget="badge" decoration-danger="variance_flagged" invisible="not variance_flagged"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"

@@ -1,389 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <!-- Top-Level App: Contractor Analytics -->
+    <!-- Top Level Contractor Analytics App Menu -->
     <menuitem id="menu_contractor_reports_root"
               name="Contractor Analytics"
-              web_icon="contractor_reports,static/description/icon.png"
-              sequence="100"/>
+              sequence="100"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"
+              web_icon="contractor_reports,static/description/icon.png"/>
 
-    <!-- Category 1: Sales, Estimating and Variations -->
+    <!-- Level 1 Categories -->
     <menuitem id="menu_contractor_reports_sales"
               name="Sales &amp; Variations"
               parent="menu_contractor_reports_root"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Category 2: Procurement and Inventory -->
     <menuitem id="menu_contractor_reports_procurement"
               name="Procurement &amp; Stores"
               parent="menu_contractor_reports_root"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Category 3: Site Operations and HRMS -->
     <menuitem id="menu_contractor_reports_site_hrms"
               name="Site Operations &amp; HR"
               parent="menu_contractor_reports_root"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Category 4: Finance and Profitability -->
     <menuitem id="menu_contractor_reports_finance"
               name="Finance &amp; Profitability"
               parent="menu_contractor_reports_root"
-              sequence="40"/>
-    
-    <menuitem id="menu_contractor_report_lead_funnel"
-              name="Lead Pipeline Funnel Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_lead_funnel"
-              sequence="10"/>
-    <menuitem id="menu_contractor_report_win_rate"
-              name="Lead-to-Project Win Rate Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_win_rate"
-              sequence="15"/>
-    <menuitem id="menu_contractor_report_loss_decline_reason"
-              name="Loss &amp; Decline Reason Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_loss_decline_reason"
-              sequence="20"/>
-    <menuitem id="menu_contractor_report_quote_approval_sla"
-              name="Quotation Approval SLA Timeframe"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_quote_approval_sla"
-              sequence="25"/>
-    <menuitem id="menu_contractor_report_quote_ageing"
-              name="Quotation Ageing Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_quote_ageing"
-              sequence="30"/>
-    <menuitem id="menu_contractor_report_quote_conversion_time"
-              name="Quotation-to-Invoice Conversion Time"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_quote_conversion_time"
-              sequence="35"/>
-    <menuitem id="menu_contractor_report_non_converted_quotes"
-              name="Non-Converted Approved Quotations"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_non_converted_quotes"
-              sequence="40"/>
-    <menuitem id="menu_contractor_report_quote_revision_log"
-              name="Quotation Revision History &amp; Negotiation Log"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_quote_revision_log"
-              sequence="45"/>
-    <menuitem id="menu_contractor_report_draft_stagnation"
-              name="Draft Estimation Stagnation Report"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_draft_stagnation"
-              sequence="50"/>
-    <menuitem id="menu_contractor_report_margin_analysis"
-              name="Margin Erosion &amp; Floor Compliance Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_margin_analysis"
-              sequence="55"/>
-    <menuitem id="menu_contractor_report_sales_release_sla"
-              name="Sales-to-Project Release SLA Timeframe"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_sales_release_sla"
-              sequence="60"/>
-    <menuitem id="menu_contractor_report_pending_client_release"
-              name="Pending Client Sign-Off Handover"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_pending_client_release"
-              sequence="65"/>
-    <menuitem id="menu_contractor_report_vo_register"
-              name="Variation Order (VO) Register"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_vo_register"
-              sequence="70"/>
-    <menuitem id="menu_contractor_report_vo_approval_sla"
-              name="VO Approval SLA Timeframe"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_vo_approval_sla"
-              sequence="75"/>
-    <menuitem id="menu_contractor_report_vo_contract_ratio"
-              name="VO Cumulative Impact vs Contract Value"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_vo_contract_ratio"
-              sequence="80"/>
-    <menuitem id="menu_contractor_report_vo_declined"
-              name="Declined Variation Order Analysis"
-              parent="menu_contractor_reports_sales"
-              action="action_contractor_report_vo_declined"
-              sequence="85"/>
-    <menuitem id="menu_contractor_report_consolidated_stock"
-              name="Real-Time Consolidated Stock Analysis"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_consolidated_stock"
-              sequence="10"/>
-    <menuitem id="menu_contractor_report_free_vs_project_stock"
-              name="Free Stock vs. Project Stock"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_free_vs_project_stock"
-              sequence="12"/>
-    <menuitem id="menu_contractor_report_interproject_stn"
-              name="Inter-Project STN Register &amp; Cost Neutrality"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_interproject_stn"
-              sequence="15"/>
-    <menuitem id="menu_contractor_report_mr_approval_sla"
-              name="Material Requisition Approval SLA &amp; Ageing"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_mr_approval_sla"
-              sequence="20"/>
-    <menuitem id="menu_contractor_report_mr_revision_history"
-              name="Requisition Revision History &amp; Audit Log"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_mr_revision_history"
-              sequence="25"/>
-    <menuitem id="menu_contractor_report_budget_override"
-              name="Budget Override Register with Approver"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_budget_override"
-              sequence="30"/>
-    <menuitem id="menu_contractor_report_rfq_compliance"
-              name="3-Vendor RFQ Compliance vs Exceptions"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_rfq_compliance"
-              sequence="35"/>
-    <menuitem id="menu_contractor_report_sole_source"
-              name="Sole-Source Procurements with Justification"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_sole_source"
-              sequence="40"/>
-    <menuitem id="menu_contractor_report_po_amendments"
-              name="PO Amendments &amp; Cancellation Register"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_po_amendments"
-              sequence="45"/>
-    <menuitem id="menu_contractor_report_goods_rejection"
-              name="Goods Rejection &amp; Return to Vendor Analysis"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_goods_rejection"
-              sequence="50"/>
-    <menuitem id="menu_contractor_report_three_way_exceptions"
-              name="3-Way Match Exception Register &amp; Days Held"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_three_way_exceptions"
-              sequence="55"/>
-    <menuitem id="menu_contractor_report_vendor_advances"
-              name="Vendor Advance Aging &amp; Prepayment Exposure"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_vendor_advances"
-              sequence="60"/>
-    <menuitem id="menu_contractor_report_payment_maker_checker"
-              name="Payment Maker-Checker SLA Timeframes"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_payment_maker_checker"
-              sequence="65"/>
-    <menuitem id="menu_contractor_report_leftover_disposition"
-              name="Leftover Material Disposition Register"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_leftover_disposition"
-              sequence="70"/>
-    <menuitem id="menu_contractor_report_physical_stock_variance"
-              name="Physical Stock Audit Variance Analysis"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_physical_stock_variance"
-              sequence="75"/>
-    <menuitem id="menu_contractor_report_emergency_frequency"
-              name="Emergency PO Frequency by Project &amp; Month"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_emergency_frequency"
-              sequence="80"/>
-    <menuitem id="menu_contractor_report_emergency_price_variance"
-              name="Emergency PO Price Variance vs Standard"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_emergency_price_variance"
-              sequence="85"/>
-    <menuitem id="menu_contractor_report_emergency_vendor_conc"
-              name="Emergency PO Vendor Concentration &amp; Spend"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_emergency_vendor_conc"
-              sequence="90"/>
-    <menuitem id="menu_contractor_report_emergency_reasons"
-              name="Emergency PO Reasons Analysis"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_emergency_reasons"
-              sequence="95"/>
-    <menuitem id="menu_contractor_report_emergency_md_review"
-              name="Emergency PO MD Post-Facto Review Log"
-              parent="menu_contractor_reports_procurement"
-              action="action_contractor_report_emergency_md_review"
-              sequence="100"/>
-    <menuitem id="menu_contractor_report_dpr_compliance"
-              name="DPR Compliance &amp; Submission Timeliness"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_dpr_compliance"
-              sequence="10"/>
-    <menuitem id="menu_contractor_report_site_attendance_cost"
-              name="Site Attendance &amp; Workforce Cost Breakdown"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_site_attendance_cost"
-              sequence="15"/>
-    <menuitem id="menu_contractor_report_material_variance"
-              name="Daily Site Material Consumption Variance"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_material_variance"
-              sequence="20"/>
-    <menuitem id="menu_contractor_report_site_issues"
-              name="Site Incident, Delay &amp; Safety Obstruction Log"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_site_issues"
-              sequence="25"/>
-    <menuitem id="menu_contractor_report_daily_cost_reconciliation"
-              name="Daily Cost Posting Reconciliation"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_daily_cost_reconciliation"
-              sequence="30"/>
-    <menuitem id="menu_contractor_report_late_amended_entries"
-              name="48h Locked Entries Late Amendment Register"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_late_amended_entries"
-              sequence="35"/>
-    <menuitem id="menu_contractor_report_schedule_vs_actual"
-              name="Next-Day Site Schedule vs Actual Attendance"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_schedule_vs_actual"
-              sequence="40"/>
-    <menuitem id="menu_contractor_report_employee_rate_history"
-              name="Employee Wage &amp; Billing Rate History Audit"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_employee_rate_history"
-              sequence="45"/>
-    <menuitem id="menu_contractor_report_daily_labour_by_project"
-              name="Daily Labour Deployment &amp; Cost by Project"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_daily_labour_by_project"
-              sequence="50"/>
-    <menuitem id="menu_contractor_report_overtime_analysis"
-              name="Overtime Hours &amp; Premium Cost Analysis"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_overtime_analysis"
-              sequence="55"/>
-    <menuitem id="menu_contractor_report_tool_register"
-              name="Tool Custody &amp; Physical Location Register"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_tool_register"
-              sequence="60"/>
-    <menuitem id="menu_contractor_report_unreturned_tools"
-              name="Unreturned &amp; Damaged Tools by Operative"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_unreturned_tools"
-              sequence="65"/>
-    <menuitem id="menu_contractor_report_agency_reconciliation"
-              name="Manpower Agency Reconciliation &amp; Hours Audit"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_agency_reconciliation"
-              sequence="70"/>
-    <menuitem id="menu_contractor_report_payroll_summary"
-              name="Payroll Summary by Workforce Track"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_payroll_summary"
-              sequence="75"/>
-    <menuitem id="menu_contractor_report_leave_utilization"
-              name="Annual Leave Utilization vs Blackout Periods"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_leave_utilization"
-              sequence="80"/>
-    <menuitem id="menu_contractor_report_leave_salary_payout"
-              name="Leave Salary Advance &amp; Entitlement Payout"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_leave_salary_payout"
-              sequence="85"/>
-    <menuitem id="menu_contractor_report_ticket_allowance_due"
-              name="Air Ticket Allowance Schedule &amp; Due Dates"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_ticket_allowance_due"
-              sequence="90"/>
-    <menuitem id="menu_contractor_report_eosb_liability"
-              name="End-of-Service Gratuity (EOSB) Liability"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_eosb_liability"
-              sequence="95"/>
-    <menuitem id="menu_contractor_report_final_settlement"
-              name="Employee Exit &amp; Final Settlement Register"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_final_settlement"
-              sequence="100"/>
-    <menuitem id="menu_contractor_report_labour_budget_variance"
-              name="Site Labour Budget vs Actual Variance"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_labour_budget_variance"
-              sequence="105"/>
-    <menuitem id="menu_contractor_report_employee_advances"
-              name="Employee Advances &amp; Personal Loans Ledger"
-              parent="menu_contractor_reports_site_hrms"
-              action="action_contractor_report_employee_advances"
-              sequence="110"/>
-    <menuitem id="menu_contractor_report_project_profitability"
-              name="Project Profitability &amp; Cost Variance"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_project_profitability"
-              sequence="10"/>
-    <menuitem id="menu_contractor_report_wip_over_under_billing"
-              name="PoC WIP &amp; Over/Under-Billing Schedule"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_wip_over_under_billing"
-              sequence="15"/>
-    <menuitem id="menu_contractor_report_retention_dlp"
-              name="Retention Money &amp; DLP Expiry Ageing"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_retention_dlp"
-              sequence="20"/>
-    <menuitem id="menu_contractor_report_bank_rec_status"
-              name="Bank Rec Status &amp; Variance Tracker"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_bank_rec_status"
-              sequence="25"/>
-    <menuitem id="menu_contractor_report_ar_ageing_escalation"
-              name="AR Aging &amp; Milestone Escalation Log"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_ar_ageing_escalation"
-              sequence="30"/>
-    <menuitem id="menu_contractor_report_ap_ageing"
-              name="AP Aging &amp; Trade Payables Schedule"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_ap_ageing"
-              sequence="35"/>
-    <menuitem id="menu_contractor_report_rpt_log"
-              name="Related Party Transaction (RPT) Register"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_rpt_log"
-              sequence="40"/>
-    <menuitem id="menu_contractor_report_partner_current_account"
-              name="Partner &amp; Shareholder Current Account"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_partner_current_account"
-              sequence="45"/>
-    <menuitem id="menu_contractor_report_petty_cash_rec"
-              name="Petty Cash Float Reconciliation Sheet"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_petty_cash_rec"
-              sequence="50"/>
-    <menuitem id="menu_contractor_report_nca_depreciation"
-              name="Fixed Asset Depreciation Schedule"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_nca_depreciation"
-              sequence="55"/>
-    <menuitem id="menu_contractor_report_loan_covenant"
-              name="Loan Facility &amp; Covenant Compliance"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_loan_covenant"
-              sequence="60"/>
-    <menuitem id="menu_contractor_report_month_end_checklist"
-              name="10-Point Period-End Close Checklist"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_month_end_checklist"
-              sequence="65"/>
-    <menuitem id="menu_contractor_report_audit_query_log"
-              name="External Audit Query &amp; Adjustment Tracker"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_audit_query_log"
-              sequence="70"/>
-    <menuitem id="menu_contractor_report_monthly_financial_pack"
-              name="Monthly Financial Pack &amp; Close KPIs"
-              parent="menu_contractor_reports_finance"
-              action="action_contractor_report_monthly_financial_pack"
-              sequence="75"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <!-- Group A: Sales, CRM & Variations -->
+    <menuitem id="menu_contractor_report_lead_funnel" name="Lead Pipeline Funnel Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_lead_funnel" sequence="10" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_win_rate" name="Lead-to-Project Win Rate Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_win_rate" sequence="15" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_loss_decline_reason" name="Loss &amp; Decline Reason Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_loss_decline_reason" sequence="20" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_quote_approval_sla" name="Quotation Approval SLA Timeframe" parent="menu_contractor_reports_sales" action="action_contractor_report_quote_approval_sla" sequence="25" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_quote_ageing" name="Quotation Ageing Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_quote_ageing" sequence="30" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_quote_conversion_time" name="Quotation-to-Invoice Conversion Time" parent="menu_contractor_reports_sales" action="action_contractor_report_quote_conversion_time" sequence="35" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_non_converted_quotes" name="Non-Converted Approved Quotations" parent="menu_contractor_reports_sales" action="action_contractor_report_non_converted_quotes" sequence="40" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_quote_revision_log" name="Quotation Revision History &amp; Negotiation Log" parent="menu_contractor_reports_sales" action="action_contractor_report_quote_revision_log" sequence="45" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_draft_stagnation" name="Draft Estimation Stagnation Report" parent="menu_contractor_reports_sales" action="action_contractor_report_draft_stagnation" sequence="50" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_margin_analysis" name="Margin Erosion &amp; Floor Compliance Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_margin_analysis" sequence="55" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_sales_release_sla" name="Sales-to-Project Release SLA Timeframe" parent="menu_contractor_reports_sales" action="action_contractor_report_sales_release_sla" sequence="60" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_pending_client_release" name="Pending Client Sign-Off Handover" parent="menu_contractor_reports_sales" action="action_contractor_report_pending_client_release" sequence="65" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_vo_register" name="Variation Order (VO) Register" parent="menu_contractor_reports_sales" action="action_contractor_report_vo_register" sequence="70" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_vo_approval_sla" name="VO Approval SLA Timeframe" parent="menu_contractor_reports_sales" action="action_contractor_report_vo_approval_sla" sequence="75" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_vo_contract_ratio" name="VO Cumulative Impact vs Contract Value" parent="menu_contractor_reports_sales" action="action_contractor_report_vo_contract_ratio" sequence="80" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_vo_declined" name="Declined Variation Order Analysis" parent="menu_contractor_reports_sales" action="action_contractor_report_vo_declined" sequence="85" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <!-- Group B: Procurement, Inventory & Stores -->
+    <menuitem id="menu_contractor_report_consolidated_stock" name="Real-Time Consolidated Stock Analysis" parent="menu_contractor_reports_procurement" action="action_contractor_report_consolidated_stock" sequence="10" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_free_vs_project_stock" name="Free Stock vs. Project Stock" parent="menu_contractor_reports_procurement" action="action_contractor_report_free_vs_project_stock" sequence="12" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_interproject_stn" name="Inter-Project STN Register &amp; Cost Neutrality" parent="menu_contractor_reports_procurement" action="action_contractor_report_interproject_stn" sequence="15" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_mr_approval_sla" name="Material Requisition Approval SLA &amp; Ageing" parent="menu_contractor_reports_procurement" action="action_contractor_report_mr_approval_sla" sequence="20" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_mr_revision_history" name="Requisition Revision History &amp; Audit Log" parent="menu_contractor_reports_procurement" action="action_contractor_report_mr_revision_history" sequence="25" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_budget_override" name="Budget Override Register with Approver" parent="menu_contractor_reports_procurement" action="action_contractor_report_budget_override" sequence="30" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_rfq_compliance" name="3-Vendor RFQ Compliance vs Exceptions" parent="menu_contractor_reports_procurement" action="action_contractor_report_rfq_compliance" sequence="35" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_sole_source" name="Sole-Source Procurements with Justification" parent="menu_contractor_reports_procurement" action="action_contractor_report_sole_source" sequence="40" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_po_amendments" name="PO Amendments &amp; Cancellation Register" parent="menu_contractor_reports_procurement" action="action_contractor_report_po_amendments" sequence="45" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_goods_rejection" name="Goods Rejection &amp; Return to Vendor Analysis" parent="menu_contractor_reports_procurement" action="action_contractor_report_goods_rejection" sequence="50" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_three_way_exceptions" name="3-Way Match Exception Register &amp; Days Held" parent="menu_contractor_reports_procurement" action="action_contractor_report_three_way_exceptions" sequence="55" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_vendor_advances" name="Vendor Advance Aging &amp; Prepayment Exposure" parent="menu_contractor_reports_procurement" action="action_contractor_report_vendor_advances" sequence="60" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_payment_maker_checker" name="Payment Maker-Checker SLA Timeframes" parent="menu_contractor_reports_procurement" action="action_contractor_report_payment_maker_checker" sequence="65" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_leftover_disposition" name="Leftover Material Disposition Register" parent="menu_contractor_reports_procurement" action="action_contractor_report_leftover_disposition" sequence="70" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_physical_stock_variance" name="Physical Stock Audit Variance Analysis" parent="menu_contractor_reports_procurement" action="action_contractor_report_physical_stock_variance" sequence="75" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_emergency_frequency" name="Emergency PO Frequency by Project &amp; Month" parent="menu_contractor_reports_procurement" action="action_contractor_report_emergency_frequency" sequence="80" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_emergency_price_variance" name="Emergency PO Price Variance vs Standard" parent="menu_contractor_reports_procurement" action="action_contractor_report_emergency_price_variance" sequence="85" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_emergency_vendor_conc" name="Emergency PO Vendor Concentration &amp; Spend" parent="menu_contractor_reports_procurement" action="action_contractor_report_emergency_vendor_conc" sequence="90" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_emergency_reasons" name="Emergency PO Reasons Analysis" parent="menu_contractor_reports_procurement" action="action_contractor_report_emergency_reasons" sequence="95" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_emergency_md_review" name="Emergency PO MD Post-Facto Review Log" parent="menu_contractor_reports_procurement" action="action_contractor_report_emergency_md_review" sequence="100" groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <!-- Group C (Part 1): Site Ops & HRMS -->
+    <menuitem id="menu_contractor_report_dpr_compliance" name="DPR Compliance &amp; Submission Timeliness" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_dpr_compliance" sequence="10" groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_site_attendance_cost" name="Site Attendance &amp; Workforce Cost Breakdown" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_site_attendance_cost" sequence="15" groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_material_variance" name="Daily Site Material Consumption Variance" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_material_variance" sequence="20" groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_site_issues" name="Site Incident, Delay &amp; Safety Obstruction Log" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_site_issues" sequence="25" groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_daily_cost_reconciliation" name="Daily Cost Posting Reconciliation" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_daily_cost_reconciliation" sequence="30" groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_late_amended_entries" name="48h Locked Entries Late Amendment Register" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_late_amended_entries" sequence="35" groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_schedule_vs_actual" name="Next-Day Site Schedule vs Actual Attendance" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_schedule_vs_actual" sequence="40" groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_employee_rate_history" name="Employee Wage &amp; Billing Rate History Audit" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_employee_rate_history" sequence="45" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_daily_labour_by_project" name="Daily Labour Deployment &amp; Cost by Project" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_daily_labour_by_project" sequence="50" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_overtime_analysis" name="Overtime Hours &amp; Premium Cost Analysis" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_overtime_analysis" sequence="55" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_tool_register" name="Tool Custody &amp; Physical Location Register" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_tool_register" sequence="60" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_unreturned_tools" name="Unreturned &amp; Damaged Tools by Operative" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_unreturned_tools" sequence="65" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_agency_reconciliation" name="Manpower Agency Reconciliation &amp; Hours Audit" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_agency_reconciliation" sequence="70" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_payroll_summary" name="Payroll Summary by Workforce Track" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_payroll_summary" sequence="75" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_leave_utilization" name="Annual Leave Utilization vs Blackout Periods" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_leave_utilization" sequence="80" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_leave_salary_payout" name="Leave Salary Advance &amp; Entitlement Payout" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_leave_salary_payout" sequence="85" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_ticket_allowance_due" name="Air Ticket Allowance Schedule &amp; Due Dates" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_ticket_allowance_due" sequence="90" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_eosb_liability" name="End-of-Service Gratuity (EOSB) Liability" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_eosb_liability" sequence="95" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_final_settlement" name="Employee Exit &amp; Final Settlement Register" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_final_settlement" sequence="100" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_labour_budget_variance" name="Site Labour Budget vs Actual Variance" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_labour_budget_variance" sequence="105" groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_employee_advances" name="Employee Advances &amp; Personal Loans Ledger" parent="menu_contractor_reports_site_hrms" action="action_contractor_report_employee_advances" sequence="110" groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <!-- Group C (Part 2): Finance & Governance -->
+    <menuitem id="menu_contractor_report_project_profitability" name="Project Profitability &amp; Cost Variance" parent="menu_contractor_reports_finance" action="action_contractor_report_project_profitability" sequence="10" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_wip_over_under_billing" name="PoC WIP &amp; Over/Under-Billing Schedule" parent="menu_contractor_reports_finance" action="action_contractor_report_wip_over_under_billing" sequence="15" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_retention_dlp" name="Retention Money &amp; DLP Expiry Ageing" parent="menu_contractor_reports_finance" action="action_contractor_report_retention_dlp" sequence="20" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_bank_rec_status" name="Bank Rec Status &amp; Variance Tracker" parent="menu_contractor_reports_finance" action="action_contractor_report_bank_rec_status" sequence="25" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_ar_ageing_escalation" name="AR Aging &amp; Milestone Escalation Log" parent="menu_contractor_reports_finance" action="action_contractor_report_ar_ageing_escalation" sequence="30" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_ap_ageing" name="AP Aging &amp; Trade Payables Schedule" parent="menu_contractor_reports_finance" action="action_contractor_report_ap_ageing" sequence="35" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_rpt_log" name="Related Party Transaction (RPT) Register" parent="menu_contractor_reports_finance" action="action_contractor_report_rpt_log" sequence="40" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_partner_current_account" name="Partner &amp; Shareholder Current Account" parent="menu_contractor_reports_finance" action="action_contractor_report_partner_current_account" sequence="45" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_petty_cash_rec" name="Petty Cash Float Reconciliation Sheet" parent="menu_contractor_reports_finance" action="action_contractor_report_petty_cash_rec" sequence="50" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_nca_depreciation" name="Fixed Asset Depreciation Schedule" parent="menu_contractor_reports_finance" action="action_contractor_report_nca_depreciation" sequence="55" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_loan_covenant" name="Loan Facility &amp; Covenant Compliance" parent="menu_contractor_reports_finance" action="action_contractor_report_loan_covenant" sequence="60" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_month_end_checklist" name="10-Point Period-End Close Checklist" parent="menu_contractor_reports_finance" action="action_contractor_report_month_end_checklist" sequence="65" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_audit_query_log" name="External Audit Query &amp; Adjustment Tracker" parent="menu_contractor_reports_finance" action="action_contractor_report_audit_query_log" sequence="70" groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+    <menuitem id="menu_contractor_report_monthly_financial_pack" name="Monthly Financial Pack &amp; Close KPIs" parent="menu_contractor_reports_finance" action="action_contractor_report_monthly_financial_pack" sequence="75" groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 </odoo>

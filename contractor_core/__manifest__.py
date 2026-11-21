@@ -68,6 +68,7 @@ Key Components:
         'views/reason_wizard_views.xml',
         'views/contractor_menus.xml',
         'views/executive_approval_inbox_views.xml',
+        'views/menu_restriction_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

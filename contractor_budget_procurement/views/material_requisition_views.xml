@@ -79,7 +79,8 @@
                     </div>
 
                     <!-- Budget Warning Banner -->
-                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="budget_healthy">
+                    <div class="alert alert-warning py-2 mb-3" role="alert" invisible="budget_healthy"
+                         groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                         <strong>Budget Overrun Warning:</strong>
                         Requisition value exceeds remaining project material budget (<field name="remaining_material_budget" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" class="oe_inline"/>).
                         An approved management override is required to finalize procurement.
@@ -103,7 +104,8 @@
                         </group>
                         <group string="Governance &amp; Stock Gate">
                             <field name="stock_checked" widget="boolean_toggle" readonly="state != 'draft'"/>
-                            <field name="remaining_material_budget" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="remaining_material_budget" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                             <field name="submitted_datetime" readonly="1" invisible="not submitted_datetime"/>
                             <field name="escalated_to_md" readonly="1" invisible="not escalated_to_md"/>
                             <field name="approver_id" readonly="1" invisible="not approver_id"/>
@@ -128,14 +130,17 @@
                                     <field name="product_uom_id"/>
                                     <field name="on_hand_qty" readonly="1"/>
                                     <field name="net_available_qty" readonly="1" decoration-bf="1"/>
-                                    <field name="estimated_unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="estimated_subtotal" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Est."/>
+                                    <field name="estimated_unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="estimated_subtotal" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Est."
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="ordered_qty" readonly="1"/>
                                     <field name="received_qty" readonly="1"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
-                            <group class="oe_subtotal_footer oe_right">
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                 <field name="total_estimated_amount" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
                             </group>
                         </page>
@@ -170,7 +175,8 @@
                 <field name="project_id"/>
                 <field name="required_date"/>
                 <field name="stock_checked" widget="boolean"/>
-                <field name="total_estimated_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Value"/>
+                <field name="total_estimated_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Value"
+                       groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'submitted'"

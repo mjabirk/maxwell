@@ -209,19 +209,19 @@ class ContractorDailyCostPosting(models.Model):
     @api.model
     def get_or_create_daily_posting(self, project_id, cost_date):
         """Idempotently finds or creates the Daily Cost Posting for a project and date, re-aggregating approved costs."""
-        posting = self.with_context(bypass_cost_posting_source_check=True).search([
+        posting = self.sudo().with_context(bypass_cost_posting_source_check=True).search([
             ('project_id', '=', project_id),
             ('cost_date', '=', cost_date),
         ], limit=1)
 
         if not posting:
-            posting = self.with_context(bypass_cost_posting_source_check=True).create({
+            posting = self.sudo().with_context(bypass_cost_posting_source_check=True).create({
                 'project_id': project_id,
                 'cost_date': cost_date,
             })
 
-        posting._sync_cost_lines()
-        return posting
+        posting.sudo()._sync_cost_lines()
+        return self.browse(posting.id)
 
     def _sync_cost_lines(self):
         """Pulls and consolidates approved operational costs for labour, material, and subcontractors."""
@@ -301,8 +301,8 @@ class ContractorDailyCostPosting(models.Model):
                 }))
 
         # Replace existing lines
-        self.line_ids.unlink()
-        self.with_context(bypass_cost_posting_source_check=True).write({
+        self.line_ids.sudo().unlink()
+        self.sudo().with_context(bypass_cost_posting_source_check=True).write({
             'line_ids': lines,
         })
         self._compute_totals()
@@ -346,29 +346,44 @@ class ContractorDailyCostPosting(models.Model):
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1) or expense_acc
 
+        material_exp_acc = self.company_id.default_material_expense_account_id or expense_acc
+        stock_val_acc = self.company_id.default_stock_valuation_account_id or wip_acc
+        labour_exp_acc = self.company_id.default_labour_expense_account_id or expense_acc
+        subcon_exp_acc = self.company_id.default_subcontractor_expense_account_id or expense_acc
+
         move_lines = []
-        for cat_key, cat_label, cat_amt in (
-            ('labour', 'Daily Labour Cost', self.labour_cost_total),
-            ('material', 'Daily Material Consumption', self.material_cost_total),
-            ('subcontractor', 'Daily Subcontractor Accrual', self.subcontractor_cost_total),
+        for cat_key, cat_label, cat_amt, deb_acc in (
+            ('labour', 'Daily Labour Cost', self.labour_cost_total, labour_exp_acc),
+            ('material', 'Daily Material Consumption', self.material_cost_total, material_exp_acc),
+            ('subcontractor', 'Daily Subcontractor Accrual', self.subcontractor_cost_total, subcon_exp_acc),
         ):
             if cat_amt > 0.0:
                 move_lines.append((0, 0, {
                     'name': f"[DCP] {cat_label}: {self.project_id.name} ({self.cost_date})",
-                    'account_id': expense_acc.id,
+                    'account_id': deb_acc.id,
                     'debit': cat_amt,
                     'credit': 0.0,
                     'project_id': self.project_id.id,
                     'cost_head': cat_key,
                     'analytic_distribution': {str(analytic_acc.id): 100.0},
                 }))
-        move_lines.append((0, 0, {
-            'name': f"Daily Accrued Site Costs: {self.project_id.name} ({self.cost_date})",
-            'account_id': wip_acc.id,
-            'debit': 0.0,
-            'credit': self.grand_total_cost,
-            'project_id': self.project_id.id,
-        }))
+        if self.material_cost_total > 0.0:
+            move_lines.append((0, 0, {
+                'name': f"Inventory / Site Stock Consumption: {self.project_id.name} ({self.cost_date})",
+                'account_id': stock_val_acc.id,
+                'debit': 0.0,
+                'credit': self.material_cost_total,
+                'project_id': self.project_id.id,
+            }))
+        accrual_credit = (self.labour_cost_total or 0.0) + (self.subcontractor_cost_total or 0.0)
+        if accrual_credit > 0.0:
+            move_lines.append((0, 0, {
+                'name': f"Daily Accrued Site Labour & Subcontractor Costs: {self.project_id.name} ({self.cost_date})",
+                'account_id': wip_acc.id,
+                'debit': 0.0,
+                'credit': accrual_credit,
+                'project_id': self.project_id.id,
+            }))
 
         move = self.env['account.move'].create({
             'journal_id': misc_journal.id,

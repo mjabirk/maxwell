@@ -277,6 +277,30 @@ class ResCompany(models.Model):
         check_company=True,
         help='Default expense account used for daily cost postings, payroll, and project expense entries when a specific account is not set.',
     )
+    default_material_expense_account_id = fields.Many2one(
+        'account.account',
+        string='Material Consumption Expense Account',
+        check_company=True,
+        help='Expense account debited when daily site material consumption is posted to Daily Cost Posting (falls back to Default Project Expense Account).',
+    )
+    default_stock_valuation_account_id = fields.Many2one(
+        'account.account',
+        string='Inventory / Stock Issue Credit Account',
+        check_company=True,
+        help='Inventory/Stock Valuation or Cost Clearing account credited when materials are consumed from site/store stock (falls back to Default Cost Accrual Account).',
+    )
+    default_labour_expense_account_id = fields.Many2one(
+        'account.account',
+        string='Direct Site Labour & Overtime Expense Account',
+        check_company=True,
+        help='Expense account debited when daily site labour and overtime costs are posted (falls back to Default Project Expense Account).',
+    )
+    default_subcontractor_expense_account_id = fields.Many2one(
+        'account.account',
+        string='Subcontractor Site Works Expense Account',
+        check_company=True,
+        help='Expense account debited when certified subcontractor work logs are posted (falls back to Default Project Expense Account).',
+    )
     default_cost_accrual_account_id = fields.Many2one(
         'account.account',
         string='Default Cost Accrual / Clearing Account',
@@ -289,4 +313,24 @@ class ResCompany(models.Model):
         check_company=True,
         help='Default payable/liability account used for payroll runs, temporary wage settlements, leave salary, ticket allowances, and EOSB.',
     )
+
+    # -------------------------------------------------------------------------
+    # 7. Role-Based Menu & UI Access Controls
+    # -------------------------------------------------------------------------
+    restrict_menus_by_role = fields.Boolean(
+        string='Restrict Unwanted Menus by User Level',
+        default=True,
+        help='When enabled, non-administrator users have unwanted standard Odoo menus (Calendar, Contacts, Dashboards, Employees, Time Off, Apps, etc.) hidden according to their user level.',
+    )
+    restrict_contractor_top_menus_only = fields.Boolean(
+        string='Show Only Contractor ERP & Analytics to Contractor Users',
+        default=True,
+        help='When enabled, Contractor ERP role users only see the top-level Contractor ERP and Contractor Analytics apps, keeping all operational options scoped inside those menus.',
+    )
+
+    def write(self, vals):
+        res = super().write(vals)
+        if any(k in vals for k in ('restrict_menus_by_role', 'restrict_contractor_top_menus_only')):
+            self.env.registry.clear_cache()
+        return res
 

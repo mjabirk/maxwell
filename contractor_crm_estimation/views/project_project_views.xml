@@ -7,7 +7,8 @@
         <field name="arch" type="xml">
             <!-- Stat Buttons -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button class="oe_stat_button" type="object" name="action_view_budgets" icon="fa-money">
+                <button class="oe_stat_button" type="object" name="action_view_budgets" icon="fa-money"
+                        groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                     <div class="o_stat_info">
                         <span class="o_stat_text">Master Budget</span>
                     </div>
@@ -31,7 +32,8 @@
 
             <!-- Financial Position & Contractual Values -->
             <xpath expr="//group" position="inside">
-                <group string="Contractual Scope &amp; VO Values">
+                <group string="Contractual Scope &amp; VO Values"
+                       groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                     <field name="sale_order_id" readonly="1"/>
                     <field name="baseline_contract_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                     <field name="total_approved_vo_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -73,13 +75,15 @@
                 <button name="action_view_project_retentions"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-shield">
+                        icon="fa-shield"
+                        groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                     <field name="retention_held_amount" widget="statinfo" string="Retentions Held"/>
                 </button>
             </xpath>
             <xpath expr="//notebook" position="before">
                 <field name="currency_id" invisible="1"/>
-                <div class="alert alert-light border py-2 mb-3" role="status" string="Project 360° Executive Health Card">
+                <div class="alert alert-light border py-2 mb-3" role="status" string="Project 360° Executive Health Card"
+                     groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong>Project 360° Single-Screen Health Summary</strong>
                     </div>

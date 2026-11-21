@@ -121,7 +121,7 @@ class ContractorPettyCashFloat(models.Model):
         if not paid_vouchers:
             raise UserError(_("No disbursed vouchers pending replenishment on float '%s'.") % self.name)
         replenish_amt = sum(paid_vouchers.mapped('amount'))
-        paid_vouchers.write({'state': 'replenished'})
+        paid_vouchers.with_context(bypass_state_lock=True).write({'state': 'replenished'})
         self._compute_current_balance()
         self.message_post(
             body=Markup(_("<strong>Float Replenished:</strong> %s %.2f restored to imprest limit by %s.")) % (
@@ -136,7 +136,7 @@ class ContractorPettyCashFloat(models.Model):
 class ContractorPettyCashVoucher(models.Model):
     _name = 'contractor.petty.cash.voucher'
     _description = 'Contractor Petty Cash Expense Voucher'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'voucher_date desc, id desc'
 
     name = fields.Char(
@@ -242,11 +242,12 @@ class ContractorPettyCashVoucher(models.Model):
 
     def action_approve(self):
         self.ensure_one()
+        self._ensure_state('draft', _("approve petty cash voucher"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_site_engineer') or self.env.user.has_group('contractor_core.group_contractor_accountant')):
             raise AccessError(_("Access Denied: Only Site Engineers, Project Managers, Accountants, or Managers can approve petty cash vouchers."))
         if not self.receipt_attachment_ids:
             raise UserError(_("Receipt Attachment Hard-Stop: A scanned receipt or vendor bill attachment is strictly mandatory."))
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'approved_by_id': self.env.user.id,
         })
@@ -254,6 +255,7 @@ class ContractorPettyCashVoucher(models.Model):
     def action_disburse(self):
         """Hard-Stop: Block disbursement exceeding available unspent cash balance, post tagged GL move if configured."""
         self.ensure_one()
+        self._ensure_state(('draft', 'approved'), _("disburse petty cash voucher"))
         if self.amount > self.float_id.current_balance:
             raise UserError(_(
                 "Petty Cash Balance Hard-Stop:\n\n"
@@ -304,7 +306,7 @@ class ContractorPettyCashVoucher(models.Model):
             move.action_post()
             vals['move_id'] = move.id
 
-        self.write(vals)
+        self.with_context(bypass_state_lock=True).write(vals)
         self.float_id._compute_current_balance()
         if self.project_id and 'contractor.project.budget' in self.env:
             self.env['contractor.project.budget']._refresh_project_consumption(self.project_id.ids)
@@ -313,7 +315,13 @@ class ContractorPettyCashVoucher(models.Model):
 class ContractorPettyCashCount(models.Model):
     _name = 'contractor.petty.cash.count'
     _description = 'Independent Surprise Petty Cash Count Audit'
+    _inherit = ['contractor.state.lock.mixin']
     _order = 'count_date desc, id desc'
+
+    def _get_state_lock_extra_allowed_fields(self, record):
+        if record.state == 'verified' and not record.discrepancy_resolved:
+            return ('resolution_notes',)
+        return ()
 
     float_id = fields.Many2one(
         'contractor.petty.cash.float',
@@ -433,7 +441,8 @@ class ContractorPettyCashCount(models.Model):
 
     def action_verify_count(self):
         self.ensure_one()
-        self.state = 'verified'
+        self._ensure_state('draft', _("verify cash count"))
+        self.with_context(bypass_state_lock=True).write({'state': 'verified'})
         self._escalate_if_discrepancy()
         self.float_id._compute_discrepancy_flags()
         return True
@@ -442,7 +451,7 @@ class ContractorPettyCashCount(models.Model):
         self.ensure_one()
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_senior_accountant') or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only a Senior Accountant or Contractor Manager can resolve cash count discrepancies."))
-        self.write({'discrepancy_resolved': True})
+        self.with_context(bypass_state_lock=True).write({'discrepancy_resolved': True})
         self.float_id._compute_discrepancy_flags()
         self.float_id.message_post(
             body=Markup(_("<strong>Petty Cash Variance Resolved:</strong> Count dated %s cleared by %s.")) % (
@@ -1115,7 +1124,7 @@ class ContractorAccountMappingHistory(models.Model):
 class ContractorEmployeeAdvance(models.Model):
     _name = 'contractor.employee.advance'
     _description = 'Contractor Employee Salary Advance & Personal Loan'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'request_date desc, id desc'
 
     name = fields.Char(
@@ -1244,7 +1253,7 @@ class ContractorEmployeeAdvance(models.Model):
         self.ensure_one()
         if self.state != 'draft':
             raise UserError(_("Only draft advance requests can be submitted."))
-        self.state = 'submitted'
+        self.with_context(bypass_state_lock=True).write({'state': 'submitted'})
         return True
 
     def action_hr_verify(self):
@@ -1253,7 +1262,7 @@ class ContractorEmployeeAdvance(models.Model):
             raise AccessError(_("Access Denied: Only HR Officers or Managers can verify employee advances."))
         if self.state != 'submitted':
             raise UserError(_("Only submitted advance requests can be HR verified."))
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'hr_verified',
             'hr_verified_by_id': self.env.user.id,
         })
@@ -1265,7 +1274,7 @@ class ContractorEmployeeAdvance(models.Model):
             raise AccessError(_("Access Denied: Only Contractor Management or MD can approve employee advances."))
         if self.state not in ('submitted', 'hr_verified'):
             raise UserError(_("Advance request must be submitted or HR verified before approval."))
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'approved_by_id': self.env.user.id,
         })
@@ -1313,7 +1322,7 @@ class ContractorEmployeeAdvance(models.Model):
             move.action_post()
             vals['account_move_id'] = move.id
 
-        self.write(vals)
+        self.with_context(bypass_state_lock=True).write(vals)
         self.message_post(
             body=Markup(_("<strong>Employee Advance Disbursed:</strong> %s %.2f to %s. Active for payroll deduction.")) % (
                 self.currency_id.symbol or '', self.advance_amount, self.employee_id.name
@@ -1325,6 +1334,7 @@ class ContractorEmployeeAdvance(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted', 'hr_verified', 'approved'), _("decline advance request"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager') or self.env.user.has_group('contractor_core.group_contractor_hr_officer')):
             raise AccessError(_("Access Denied: Only HR or Management can decline employee advances."))
         return {

@@ -25,7 +25,8 @@
 
             <!-- Notebook Tabs -->
             <xpath expr="//notebook" position="inside">
-                <page string="Contractor Governance &amp; Rates" name="contractor_governance">
+                <page string="Contractor Governance &amp; Rates" name="contractor_governance"
+                      groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager">
                     <group>
                         <group string="Workforce Classification &amp; Agency">
                             <field name="workforce_category" widget="radio" readonly="id"/>
@@ -60,13 +61,16 @@
                     </group>
                 </page>
 
-                <page string="Tool Custody &amp; Travel" name="contractor_tools_travel">
+                <page string="Tool Custody &amp; Travel" name="contractor_tools_travel"
+                      groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager">
                     <group>
                         <group string="Field Tool Custody Summary">
                             <field name="assigned_tool_count" readonly="1"/>
-                            <field name="pending_tool_deduction_amount" readonly="1"/>
+                            <field name="pending_tool_deduction_amount" readonly="1"
+                                   groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
                         </group>
-                        <group string="Air Ticket Entitlement (Permanent)" invisible="workforce_category != 'permanent'">
+                        <group string="Air Ticket Entitlement (Permanent)" invisible="workforce_category != 'permanent'"
+                               groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager">
                             <field name="ticket_frequency"/>
                             <field name="ticket_route_class"/>
                             <field name="ticket_allowance_amount"/>
@@ -104,11 +108,15 @@
                 <field name="job_title"/>
                 <field name="department_id"/>
                 <field name="agency_partner_id" optional="show"/>
-                <field name="system_calculated_hourly_rate" optional="show"/>
-                <field name="effective_hourly_rate"/>
+                <field name="system_calculated_hourly_rate" optional="show"
+                       groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                <field name="effective_hourly_rate"
+                       groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
                 <field name="assigned_tool_count"/>
-                <field name="pending_tool_deduction_amount" optional="hide"/>
-                <field name="ticket_due_flag" widget="boolean_toggle" optional="show"/>
+                <field name="pending_tool_deduction_amount" optional="hide"
+                       groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
+                <field name="ticket_due_flag" widget="boolean_toggle" optional="show"
+                       groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
         </field>

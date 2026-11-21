@@ -1134,7 +1134,7 @@ class SaleOrder(models.Model):
             'sale_order_id': self.id,
             'baseline_contract_value': self.proposed_quotation_value or self.amount_untaxed,
         }
-        project = self.env['project.project'].create(project_vals)
+        project = self.env['project.project'].sudo().create(project_vals)
         project._get_or_create_project_analytic_account()
 
         # 3. Create Initial Project Budget Carrying Forward 4 Estimation Blocks
@@ -1191,7 +1191,7 @@ class SaleOrder(models.Model):
                 'planned_amount': line.estimated_cost,
             }))
 
-        budget = self.env['contractor.project.budget'].create(budget_vals)
+        budget = self.env['contractor.project.budget'].sudo().create(budget_vals)
 
         # 4. Link & Update Sale Order, and confirm via standard Odoo Sales workflow
         self.with_context(from_convert_to_project=True).write({

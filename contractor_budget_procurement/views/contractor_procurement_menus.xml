@@ -1,64 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Add Internal Budget Revisions under Project Control -->
+    <!-- Add Internal Budget Revisions under Projects & Variations -->
     <menuitem id="menu_contractor_internal_budget_revisions"
               name="Internal Budget Revisions"
               parent="contractor_crm_estimation.menu_contractor_project_control"
               action="action_contractor_budget_revision"
-              sequence="42"/>
+              sequence="42"
+              groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- Main Procurement & Material Control Category -->
+    <!-- Procurement & Material Control Menu Category -->
     <menuitem id="menu_contractor_procurement"
               name="Procurement &amp; Material Control"
               parent="contractor_core.menu_contractor_root"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_material_requisitions"
               name="Material Requisitions (MR)"
               parent="menu_contractor_procurement"
               action="action_contractor_material_requisition"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_rfq_vendor_invites"
               name="Vendor RFQ Invitations (Portal)"
               parent="menu_contractor_procurement"
               action="action_contractor_rfq_vendor_invite"
-              sequence="15"/>
+              sequence="15"
+              groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_comparative_statements"
               name="Comparative Statements (3-Vendor RFQ)"
               parent="menu_contractor_procurement"
               action="action_contractor_comparative_statement"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_purchase_orders"
               name="Purchase Orders"
               parent="menu_contractor_procurement"
               action="purchase.purchase_form_action"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_goods_receipts"
+              name="Goods Receipts (GRN)"
+              parent="menu_contractor_procurement"
+              action="stock.action_picking_tree_incoming"
+              sequence="32"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_inventory_transfers"
+              name="Warehouse Transfers"
+              parent="menu_contractor_procurement"
+              action="stock.action_picking_tree_all"
+              sequence="35"
+              groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_stock_transfers"
               name="Inter-Project Transfers (STN)"
               parent="menu_contractor_procurement"
               action="action_contractor_stock_transfer_note"
-              sequence="40"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_stock_availability"
               name="Consolidated Stock Availability"
               parent="menu_contractor_procurement"
               action="action_contractor_stock_availability_wizard"
-              sequence="50"/>
+              sequence="50"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_leftover_dispositions"
               name="Leftover Material Dispositions"
               parent="menu_contractor_procurement"
               action="action_contractor_leftover_disposition"
-              sequence="60"/>
+              sequence="60"
+              groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_stock_adjustments"
               name="Physical Stock Audits (SAN)"
               parent="menu_contractor_procurement"
               action="action_contractor_stock_adjustment_note"
-              sequence="70"/>
-</odoo>
+              sequence="70"
+              groups="contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
+    <menuitem id="menu_contractor_products"
+              name="Products &amp; Materials Master"
+              parent="menu_contractor_procurement"
+              action="stock.product_template_action_product"
+              sequence="80"
+              groups="contractor_core.group_contractor_site_engineer,contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_storekeeper,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_vendors"
+              name="Vendors &amp; Suppliers"
+              parent="menu_contractor_procurement"
+              action="account.res_partner_action_supplier"
+              sequence="85"
+              groups="contractor_core.group_contractor_procurement_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+</odoo>

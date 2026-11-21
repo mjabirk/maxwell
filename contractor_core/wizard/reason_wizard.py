@@ -119,11 +119,11 @@ class ContractorReasonWizard(models.TransientModel):
                 update_vals['state'] = self.target_state
 
         if update_vals:
-            record.write(update_vals)
+            record.with_context(bypass_state_lock=True).write(update_vals)
 
         # 2. Invoke optional callback method on the record if specified
         if self.callback_method and hasattr(record, self.callback_method):
-            method = getattr(record, self.callback_method)
+            method = getattr(record.with_context(bypass_state_lock=True), self.callback_method)
             try:
                 method(reason=clean_reason)
             except TypeError:

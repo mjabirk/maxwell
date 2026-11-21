@@ -144,13 +144,15 @@
                     <div>
                         <span class="text-muted small text-uppercase me-1">Total Cost:</span>
                         <strong class="me-3"><field name="total_estimated_cost" widget="monetary" readonly="1" class="oe_inline"/></strong>
-                        <span class="text-muted small text-uppercase me-1">Proposed Margin %:</span>
-                        <strong class="text-success me-3" invisible="not margin_meets_minimum"><field name="effective_margin_pct" readonly="1" class="oe_inline"/>%</strong>
-                        <strong class="text-danger me-3" invisible="margin_meets_minimum"><field name="effective_margin_pct" readonly="1" class="oe_inline"/>% <span class="badge text-bg-danger" invisible="margin_override_approved">Override Required</span></strong>
-                        <span class="text-muted small text-uppercase me-1">Min Required:</span>
-                        <strong class="me-3"><field name="min_required_margin_pct" readonly="1" class="oe_inline"/>%</strong>
-                        <span class="text-muted small text-uppercase me-1">Final Quotation Value:</span>
-                        <strong class="fs-6"><field name="proposed_quotation_value" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        <span groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
+                            <span class="text-muted small text-uppercase me-1">Proposed Margin %:</span>
+                            <strong class="text-success me-3" invisible="not margin_meets_minimum"><field name="effective_margin_pct" readonly="1" class="oe_inline"/>%</strong>
+                            <strong class="text-danger me-3" invisible="margin_meets_minimum"><field name="effective_margin_pct" readonly="1" class="oe_inline"/>% <span class="badge text-bg-danger" invisible="margin_override_approved">Override Required</span></strong>
+                            <span class="text-muted small text-uppercase me-1">Min Required:</span>
+                            <strong class="me-3"><field name="min_required_margin_pct" readonly="1" class="oe_inline"/>%</strong>
+                            <span class="text-muted small text-uppercase me-1">Final Quotation Value:</span>
+                            <strong class="fs-6"><field name="proposed_quotation_value" widget="monetary" readonly="1" class="oe_inline"/></strong>
+                        </span>
                     </div>
                 </div>
                 <div class="alert alert-light border py-2 mb-1 d-flex flex-wrap gap-3 align-items-center" role="status" invisible="contractor_quote_state in ('draft', 'cancelled', 'lost', 'converted')">
@@ -208,7 +210,7 @@
                                 <field name="total_estimated_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             </h4>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                             <span class="text-muted d-block">Margin Mode / Value</span>
                             <div class="d-flex align-items-center">
                                 <field name="margin_type" class="oe_inline me-2" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
@@ -217,13 +219,13 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                             <span class="text-muted d-block">Commercial Margin</span>
                             <h4 class="text-success mb-0">
                                 <field name="margin_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             </h4>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                             <span class="text-muted d-block">Proposed Selling Value</span>
                             <h3 class="text-dark mb-0">
                                 <field name="proposed_quotation_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -232,7 +234,7 @@
                     </div>
 
                     <!-- Margin Inputs -->
-                    <group string="Margin Configuration">
+                    <group string="Margin Configuration" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_manager">
                         <group>
                             <field name="margin_percent" invisible="margin_type != 'percentage'" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
                             <field name="margin_amount" invisible="margin_type != 'fixed'" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
@@ -337,7 +339,8 @@
 
             <!-- Customer Acceptance & Project Conversion Page -->
             <xpath expr="//page[@name='other_information']" position="before">
-                <page string="Customer Acceptance Gate" name="page_acceptance">
+                <page string="Customer Acceptance Gate" name="page_acceptance"
+                      groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager">
                     <group string="Client Sign-Off &amp; Contract Verification">
                         <group>
                             <field name="acceptance_doc_type" readonly="contractor_quote_state == 'converted'"/>
@@ -405,8 +408,10 @@
             </xpath>
             <xpath expr="//field[@name='amount_total']" position="before">
                 <field name="total_estimated_cost" string="Est. Cost" widget="monetary" optional="show"/>
-                <field name="effective_margin_pct" string="Margin %" optional="show"/>
-                <field name="proposed_quotation_value" string="Proposed Value" widget="monetary" optional="hide"/>
+                <field name="effective_margin_pct" string="Margin %" optional="show"
+                       groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                <field name="proposed_quotation_value" string="Proposed Value" widget="monetary" optional="hide"
+                       groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
             </xpath>
             <xpath expr="//field[@name='state']" position="before">
                 <field name="contractor_quote_state"

@@ -109,7 +109,7 @@
                                         <field name="total_estimated_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     </h4>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                     <span class="text-muted d-block">Margin Mode / Value</span>
                                     <div class="d-flex align-items-center">
                                         <field name="margin_type" class="oe_inline me-2" readonly="state not in ('draft', 'submitted')"/>
@@ -117,13 +117,13 @@
                                         <field name="margin_amount" invisible="margin_type != 'fixed'" class="oe_inline" readonly="state not in ('draft', 'submitted')"/>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                     <span class="text-muted d-block">Margin Amount</span>
                                     <h4 class="text-success mb-0">
                                         <field name="margin_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     </h4>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-3" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                     <span class="text-muted d-block">Billable VO Value</span>
                                     <h3 class="text-dark mb-0">
                                         <field name="total_vo_value" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -217,7 +217,8 @@
                             </div>
                         </page>
 
-                        <page string="Client Acceptance Gate" name="page_vo_acceptance">
+                        <page string="Client Acceptance Gate" name="page_vo_acceptance"
+                              groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager">
                             <div class="alert alert-warning py-2 mb-2" role="alert">
                                 <strong>Integration Gate Hard-Stop:</strong>
                                 Budget integration into the project master budget is strictly blocked until client signed acceptance documents (Signed VO form, LPO, Addendum) are attached below.

@@ -7,7 +7,13 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ContractorSiteWorkLog(models.Model):
     _name = 'contractor.site.work.log'
     _description = 'Subcontractor & Crew Daily Work Output Log'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.site.lock.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.site.lock.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'work_date desc, id desc'
 
     name = fields.Char(
@@ -134,10 +140,11 @@ class ContractorSiteWorkLog(models.Model):
 
     def action_submit(self):
         self.ensure_one()
+        self._ensure_state('draft', _("submit work log"))
         if self.site_verified_qty <= 0:
             raise UserError(_("Site verified quantity must be strictly greater than zero to submit work log."))
 
-        self.state = 'submitted'
+        self.with_context(bypass_state_lock=True).write({'state': 'submitted'})
         pm_user = self.project_id.user_id
         if pm_user:
             self.env['mail.activity'].create({
@@ -165,10 +172,11 @@ class ContractorSiteWorkLog(models.Model):
     def action_pm_certify(self):
         """Certifies daily progress output for real-time cost accrual."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("certify work log"))
         if not self.env.user.has_group('contractor_core.group_contractor_project_manager'):
             raise UserError(_("Access Denied: Only a Contractor Project Manager can certify subcontractor work logs."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'pm_certified',
             'certified_by': self.env.user.id,
             'certification_date': fields.Datetime.now(),
@@ -179,7 +187,7 @@ class ContractorSiteWorkLog(models.Model):
             project_id=self.project_id.id,
             cost_date=self.work_date,
         )
-        self.cost_posting_id = posting.id
+        self.with_context(bypass_state_lock=True).write({'cost_posting_id': posting.id})
 
         self.message_post(
             body=Markup(_(
@@ -194,6 +202,7 @@ class ContractorSiteWorkLog(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("decline work log"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_project_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Project Manager can decline subcontractor work logs."))
         return {
@@ -214,8 +223,9 @@ class ContractorSiteWorkLog(models.Model):
 class ContractorSiteIssue(models.Model):
     _name = 'contractor.site.issue'
     _description = 'Site Incident & Critical Obstruction Issue'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'issue_date desc, id desc'
+    _state_lock_editable_states = ('open', 'escalated')
 
     name = fields.Char(
         string='Issue Reference',
@@ -353,11 +363,12 @@ class ContractorSiteIssue(models.Model):
 
     def action_resolve_issue(self):
         self.ensure_one()
+        self._ensure_state(('open', 'escalated'), _("resolve and close issue"))
         clean_notes = (self.resolution_notes or '').strip()
         if len(clean_notes) < 10:
             raise UserError(_("Please provide documented resolution notes (minimum 10 characters) before closing this issue."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'resolved',
             'resolved_by': self.env.user.id,
             'resolved_date': fields.Datetime.now(),

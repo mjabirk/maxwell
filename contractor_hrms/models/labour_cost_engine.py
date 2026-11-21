@@ -82,7 +82,7 @@ class ContractorDailyCostPostingLineHRMS(models.Model):
 class ContractorLabourCostAdjustment(models.Model):
     _name = 'contractor.labour.cost.adjustment'
     _description = 'Contractor Documented Labour Cost Adjustment'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'adjustment_date desc, id desc'
 
     name = fields.Char(
@@ -199,11 +199,12 @@ class ContractorLabourCostAdjustment(models.Model):
 
     def action_submit(self):
         self.ensure_one()
+        self._ensure_state('draft', _("submit labour cost adjustment"))
         clean_reason = (self.reason or '').strip()
         if len(clean_reason) < 15:
             raise UserError(_("Please provide a thorough technical justification for this cost adjustment (minimum 15 characters)."))
 
-        self.state = 'submitted'
+        self.with_context(bypass_state_lock=True).write({'state': 'submitted'})
         group_mgr = self.env.ref('contractor_core.group_contractor_manager', raise_if_not_found=False)
         if group_mgr:
             for user in (group_mgr.all_user_ids | group_mgr.user_ids).filtered(lambda u: u.active):
@@ -229,12 +230,13 @@ class ContractorLabourCostAdjustment(models.Model):
     def action_approve(self):
         """Authorizes labor cost adjustment, updates budget actuals, and generates accounting entry."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve labour cost adjustment"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only a Contractor Manager can authorize labour cost adjustments."))
 
         move = self._create_adjustment_journal_entry()
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -321,6 +323,7 @@ class ContractorLabourCostAdjustment(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("decline labour cost adjustment"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Manager can decline labour cost adjustments."))
         return {

@@ -1,106 +1,9 @@
 # -*- coding: utf-8 -*-
 from odoo import api, models, fields
 
-ROLE_GROUP_MAP = {
-    'md_user_ids': 'contractor_core.group_contractor_md',
-    'manager_user_ids': 'contractor_core.group_contractor_manager',
-    'project_manager_user_ids': 'contractor_core.group_contractor_project_manager',
-    'sales_admin_user_ids': 'contractor_core.group_contractor_sales_admin',
-    'procurement_user_ids': 'contractor_core.group_contractor_procurement_officer',
-    'senior_accountant_user_ids': 'contractor_core.group_contractor_senior_accountant',
-    'accountant_user_ids': 'contractor_core.group_contractor_accountant',
-    'hr_officer_user_ids': 'contractor_core.group_contractor_hr_officer',
-    'storekeeper_user_ids': 'contractor_core.group_contractor_storekeeper',
-    'site_engineer_user_ids': 'contractor_core.group_contractor_site_engineer',
-}
-
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
-
-    # -------------------------------------------------------------------------
-    # 0. Approval Roles & Managers Assignment
-    # -------------------------------------------------------------------------
-    md_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_md_users_rel',
-        'config_id',
-        'user_id',
-        string='Managing Directors (MD)',
-        domain="[('share', '=', False)]",
-    )
-    manager_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_manager_users_rel',
-        'config_id',
-        'user_id',
-        string='Contractor Managers',
-        domain="[('share', '=', False)]",
-    )
-    project_manager_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_pm_users_rel',
-        'config_id',
-        'user_id',
-        string='Project Managers (PM)',
-        domain="[('share', '=', False)]",
-    )
-    sales_admin_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_sales_admin_users_rel',
-        'config_id',
-        'user_id',
-        string='Sales Administrators',
-        domain="[('share', '=', False)]",
-    )
-    procurement_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_procurement_users_rel',
-        'config_id',
-        'user_id',
-        string='Procurement Officers',
-        domain="[('share', '=', False)]",
-    )
-    senior_accountant_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_sr_acc_users_rel',
-        'config_id',
-        'user_id',
-        string='Senior Accountants',
-        domain="[('share', '=', False)]",
-    )
-    accountant_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_acc_users_rel',
-        'config_id',
-        'user_id',
-        string='Accountants',
-        domain="[('share', '=', False)]",
-    )
-    hr_officer_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_hr_users_rel',
-        'config_id',
-        'user_id',
-        string='HR Officers',
-        domain="[('share', '=', False)]",
-    )
-    storekeeper_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_storekeeper_users_rel',
-        'config_id',
-        'user_id',
-        string='Storekeepers',
-        domain="[('share', '=', False)]",
-    )
-    site_engineer_user_ids = fields.Many2many(
-        'res.users',
-        'contractor_cfg_site_eng_users_rel',
-        'config_id',
-        'user_id',
-        string='Site Engineers',
-        domain="[('share', '=', False)]",
-    )
 
     # -------------------------------------------------------------------------
     # 1. Quotation & Variation Orders (VO)
@@ -357,6 +260,30 @@ class ResConfigSettings(models.TransientModel):
         string='Default Project Expense Account',
         check_company=True,
     )
+    default_material_expense_account_id = fields.Many2one(
+        related='company_id.default_material_expense_account_id',
+        readonly=False,
+        string='Material Consumption Expense Account',
+        check_company=True,
+    )
+    default_stock_valuation_account_id = fields.Many2one(
+        related='company_id.default_stock_valuation_account_id',
+        readonly=False,
+        string='Inventory / Stock Issue Credit Account',
+        check_company=True,
+    )
+    default_labour_expense_account_id = fields.Many2one(
+        related='company_id.default_labour_expense_account_id',
+        readonly=False,
+        string='Direct Site Labour & Overtime Expense Account',
+        check_company=True,
+    )
+    default_subcontractor_expense_account_id = fields.Many2one(
+        related='company_id.default_subcontractor_expense_account_id',
+        readonly=False,
+        string='Subcontractor Site Works Expense Account',
+        check_company=True,
+    )
     default_cost_accrual_account_id = fields.Many2one(
         related='company_id.default_cost_accrual_account_id',
         readonly=False,
@@ -370,20 +297,19 @@ class ResConfigSettings(models.TransientModel):
         check_company=True,
     )
 
-    @api.model
-    def get_values(self):
-        res = super().get_values()
-        for field_name, xmlid in ROLE_GROUP_MAP.items():
-            group = self.env.ref(xmlid, raise_if_not_found=False)
-            res[field_name] = [(6, 0, group.sudo().user_ids.ids)] if group else [(6, 0, [])]
-        return res
-
-    def set_values(self):
-        super().set_values()
-        for field_name, xmlid in ROLE_GROUP_MAP.items():
-            group = self.env.ref(xmlid, raise_if_not_found=False)
-            if group:
-                group.sudo().user_ids = [(6, 0, self[field_name].ids)]
+    # -------------------------------------------------------------------------
+    # 7. Role-Based Menu & UI Access Controls
+    # -------------------------------------------------------------------------
+    restrict_menus_by_role = fields.Boolean(
+        related='company_id.restrict_menus_by_role',
+        readonly=False,
+        string='Restrict Unwanted Menus by User Level',
+    )
+    restrict_contractor_top_menus_only = fields.Boolean(
+        related='company_id.restrict_contractor_top_menus_only',
+        readonly=False,
+        string='Show Only Contractor ERP & Analytics to Contractor Users',
+    )
 
     @api.model
     def _get_classified_fields(self, fnames=None):

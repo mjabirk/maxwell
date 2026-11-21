@@ -7,39 +7,24 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app data-string="Contractor ERP" string="Contractor ERP" name="contractor_core" groups="base.group_system,contractor_core.group_contractor_manager,contractor_core.group_contractor_md">
-                    
-                    <!-- 0. Approval Roles & Managers Assignment -->
-                    <block title="Approval Roles &amp; Managers Assignment" id="contractor_approval_roles_block">
-                        <setting string="Managing Directors (MD)" help="Executive authority: threshold overrides, emergency PO caps, major VO approvals, and SLA escalations.">
-                            <field name="md_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                <app data-string="Contractor ERP" string="Contractor ERP" name="contractor_core" groups="base.group_erp_manager,base.group_system">
+
+                    <!-- 0. Role-Based Menu & Navigation Restrictions -->
+                    <block title="Role-Based Menu &amp; Access Controls" id="contractor_menu_restriction_block">
+                        <div class="alert alert-info mb-3" role="status">
+                            <strong>User Role Assignment:</strong> Assign each employee's single Contractor ERP role directly on their User form under
+                            <strong>Settings → Users &amp; Companies → Users → Access Rights → Contractor ERP</strong>
+                            (roles automatically inherit all subordinate permissions cleanly).
+                        </div>
+                        <setting id="setting_restrict_menus_by_role"
+                                 string="Hide Unwanted Standard Menus (Normal Users)"
+                                 help="Hide standard menus such as Calendar, Contacts, Dashboards, Employees, Time Off, Apps, and Discuss for non-administrator users.">
+                            <field name="restrict_menus_by_role"/>
                         </setting>
-                        <setting string="Contractor Managers" help="General management oversight: approves quotations, low-margin overrides, budgets, high-value POs, VOs, and settlements.">
-                            <field name="manager_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Project Managers (PM)" help="Project operational control: approves Material Requisitions, Stock Transfers, Site Material Consumption, and project budgets.">
-                            <field name="project_manager_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Sales Administrators" help="Commercial control: releases approved quotations to clients and records customer acceptance gates.">
-                            <field name="sales_admin_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Procurement Officers" help="Purchasing control: manages RFQs, vendor comparative statements, and purchase orders.">
-                            <field name="procurement_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Senior Accountants" help="Finance governance: verifies budgets, billing milestones, payroll batches, final settlements, and bank reconciliations.">
-                            <field name="senior_accountant_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Accountants" help="Accounting execution: prepares supplier bills, customer invoices, and reconciliation drafts.">
-                            <field name="accountant_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="HR Officers" help="Workforce governance: manages dated labor rate histories, attendance, ticket eligibility, and settlement computations.">
-                            <field name="hr_officer_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Storekeepers" help="Warehouse custody: receives site material returns, executes transfers, and validates stock movements.">
-                            <field name="storekeeper_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </setting>
-                        <setting string="Site Engineers" help="Field operations: performs CRM site visits, uploads inspection photos/sketches, and submits site consumption/progress.">
-                            <field name="site_engineer_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <setting id="setting_restrict_contractor_top_menus_only"
+                                 string="Contractor Workspace Isolation (Contractor ERP &amp; Analytics Only)"
+                                 help="Show only Contractor ERP and Contractor Analytics as top-level apps to Contractor role users, with all role options nested inside.">
+                            <field name="restrict_contractor_top_menus_only" invisible="not restrict_menus_by_role"/>
                         </setting>
                     </block>
 
@@ -475,12 +460,36 @@
                             </div>
                         </setting>
 
-                        <setting id="setting_finance_default_accounts" string="Default GL Accounts" help="Default expense, accrual clearing, and payroll payable accounts for automated journal entries.">
+                        <setting id="setting_finance_default_accounts" string="Default GL Accounts" help="Default expense, stock valuation, accrual clearing, and payroll payable accounts for automated journal entries.">
                             <div class="content-group">
                                 <div class="row mt8">
                                     <label for="default_expense_account_id" class="col-lg-5 o_light_label"/>
                                     <div class="col-lg-7">
                                         <field name="default_expense_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_material_expense_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_material_expense_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_stock_valuation_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_stock_valuation_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_labour_expense_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_labour_expense_account_id"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="default_subcontractor_expense_account_id" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="default_subcontractor_expense_account_id"/>
                                     </div>
                                 </div>
                                 <div class="row mt8">

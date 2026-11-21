@@ -6,4 +6,5 @@ from . import document_version
 from . import dated_rate_history
 from . import sla_timer_cron
 from . import executive_approval_inbox
+from . import menu_restriction
 

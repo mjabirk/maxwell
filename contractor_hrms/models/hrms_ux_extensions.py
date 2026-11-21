@@ -315,16 +315,16 @@ class ContractorAgencyReconciliationUx(models.Model):
                 for line in rec.line_ids:
                     if line.employee_id.id in entries:
                         inv_h, inv_amt, d_notes = entries[line.employee_id.id]
-                        line.write({
+                        line.with_context(bypass_state_lock=True).write({
                             'agency_invoiced_hours': inv_h,
                             'agency_invoiced_amount': inv_amt,
                             'dispute_notes': d_notes,
                         })
-                rec._compute_reconciliation_totals()
+                rec.with_context(bypass_state_lock=True)._compute_reconciliation_totals()
                 if rec.has_variance or abs(rec.variance_hours) > 0.5 or abs(rec.variance_amount) > 1.0:
-                    rec.state = 'discrepancy_flagged'
+                    rec.with_context(bypass_state_lock=True).write({'state': 'discrepancy_flagged'})
                 else:
-                    rec.state = 'matched'
+                    rec.with_context(bypass_state_lock=True).write({'state': 'matched'})
         return res
 
     def action_pull_approved_erp_hours(self):
@@ -334,6 +334,7 @@ class ContractorAgencyReconciliationUx(models.Model):
     def action_bulk_flag_discrepancies(self):
         """Collects all operative rows with variances and logs a consolidated agency dispute note."""
         self.ensure_one()
+        self._ensure_state(('draft', 'discrepancy_flagged'), _("flag agency discrepancies"))
         bad_lines = self.line_ids.filtered(lambda l: l.discrepancy_flag)
         if not bad_lines:
             raise UserError(_("No hour or amount discrepancies detected across operative lines."))
@@ -344,7 +345,7 @@ class ContractorAgencyReconciliationUx(models.Model):
                 note += f" [{l.dispute_notes}]"
             details.append(note)
         summary_text = "\n".join(details)
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'discrepancy_flagged',
             'resolution_notes': ((self.resolution_notes + "\n\n") if self.resolution_notes else "") + _("Discrepancy Breakdown:\n") + summary_text,
         })

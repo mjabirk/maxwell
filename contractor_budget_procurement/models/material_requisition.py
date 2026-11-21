@@ -8,7 +8,14 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ContractorMaterialRequisition(models.Model):
     _name = 'contractor.material.requisition'
     _description = 'Contractor Material Requisition (MR)'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.version.mixin', 'contractor.reason.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.version.mixin',
+        'contractor.reason.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'create_date desc, id desc'
 
     name = fields.Char(
@@ -214,6 +221,7 @@ class ContractorMaterialRequisition(models.Model):
     def action_submit(self):
         """Validates stock inspection gate and budget availability before submitting."""
         self.ensure_one()
+        self._ensure_state('draft', _("submit material requisition"))
         if not self.line_ids:
             raise UserError(_("Please add at least one material line to this requisition."))
 
@@ -236,7 +244,7 @@ class ContractorMaterialRequisition(models.Model):
             requested_amount=self.total_estimated_amount,
         )
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'submitted',
             'submitted_datetime': fields.Datetime.now(),
         })
@@ -267,10 +275,11 @@ class ContractorMaterialRequisition(models.Model):
     def action_manager_approve(self):
         """Contractor Manager authorizes the requisition for comparative RFQ / PO issuance."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve material requisition"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only a Contractor Manager can approve Material Requisitions."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'approved',
             'approver_id': self.env.user.id,
             'approval_datetime': fields.Datetime.now(),
@@ -286,6 +295,7 @@ class ContractorMaterialRequisition(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("decline material requisition"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Manager can decline Material Requisitions."))
         return self.action_open_reason_wizard(action_type='decline', target_state='declined')
@@ -301,7 +311,7 @@ class ContractorMaterialRequisition(models.Model):
             editor_user=self.env.user,
             move_attachments=True,
         )
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'draft',
             'escalated_to_md': False,
             'escalation_datetime': False,
@@ -351,7 +361,7 @@ class ContractorMaterialRequisition(models.Model):
             'origin': self.name,
             'order_line': po_lines,
         })
-        self.write({'state': 'po_created'})
+        self.with_context(bypass_state_lock=True).write({'state': 'po_created'})
         self.message_post(
             body=Markup(_(
                 "<strong>Direct Single-Vendor PO Generated (Below RFQ Threshold):</strong> %s created for vendor %s."
@@ -377,7 +387,7 @@ class ContractorMaterialRequisition(models.Model):
         cs = self.env['contractor.comparative.statement'].create({
             'requisition_id': self.id,
         })
-        self.state = 'cs_in_progress'
+        self.with_context(bypass_state_lock=True).write({'state': 'cs_in_progress'})
 
         return {
             'type': 'ir.actions.act_window',
@@ -471,7 +481,9 @@ class ContractorMaterialRequisition(models.Model):
 class ContractorMaterialRequisitionLine(models.Model):
     _name = 'contractor.material.requisition.line'
     _description = 'Material Requisition Item'
+    _inherit = ['contractor.line.state.lock.mixin']
     _order = 'id'
+    _line_parent_field = 'requisition_id'
 
     requisition_id = fields.Many2one(
         'contractor.material.requisition',

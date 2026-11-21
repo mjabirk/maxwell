@@ -7,8 +7,20 @@ from odoo.exceptions import UserError, ValidationError
 class ContractorVariationOrder(models.Model):
     _name = 'contractor.variation.order'
     _description = 'Contractor Scope Variation Order (VO)'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.version.mixin', 'contractor.reason.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.version.mixin',
+        'contractor.reason.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'create_date desc, id desc'
+
+    def _get_state_lock_extra_allowed_fields(self, record):
+        if record.state in ('manager_approved', 'md_approved', 'sent_to_client', 'client_accepted'):
+            return ('client_acceptance_attachment_ids', 'client_acceptance_date')
+        return ()
 
     name = fields.Char(
         string='VO Number',
@@ -259,6 +271,7 @@ class ContractorVariationOrder(models.Model):
         and routes to either Contractor Manager or Managing Director.
         """
         self.ensure_one()
+        self._ensure_state('draft', _("submit variation order"))
         if self.total_estimated_cost <= 0:
             raise UserError(_("Variation Order Submission Gate: Consolidated VO cost must be greater than zero."))
 
@@ -276,15 +289,16 @@ class ContractorVariationOrder(models.Model):
         baseline_val = self.project_id.baseline_contract_value or (self.order_id and self.order_id.proposed_quotation_value) or 1.0
         cumulative_ratio = (cumulative_vo_sum / baseline_val) * 100.0
 
-        self.cumulative_vo_ratio = cumulative_ratio
-
         # Determine approval requirement
         exceeds_monetary = self.total_vo_value >= md_threshold
         exceeds_ratio = cumulative_ratio >= ratio_trigger
         requires_md = exceeds_monetary or exceeds_ratio
 
-        self.requires_md_approval = requires_md
-        self.state = 'submitted'
+        self.with_context(bypass_state_lock=True).write({
+            'cumulative_vo_ratio': cumulative_ratio,
+            'requires_md_approval': requires_md,
+            'state': 'submitted',
+        })
 
         # Snapshot v1
         self._create_version_snapshot(
@@ -321,6 +335,7 @@ class ContractorVariationOrder(models.Model):
 
     def action_manager_approve(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve variation order"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only Contractor Managers can approve Variation Orders."))
 
@@ -331,7 +346,7 @@ class ContractorVariationOrder(models.Model):
                 "Approval by the Managing Director is strictly mandatory."
             ))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'manager_approved',
             'approval_date': fields.Datetime.now(),
         })
@@ -344,10 +359,11 @@ class ContractorVariationOrder(models.Model):
 
     def action_md_approve(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("grant MD approval"))
         if not self.env.user.has_group('contractor_core.group_contractor_md'):
             raise UserError(_("Access Denied: Only the Managing Director can authorize high-value Variation Orders."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'md_approved',
             'approval_date': fields.Datetime.now(),
         })
@@ -362,7 +378,7 @@ class ContractorVariationOrder(models.Model):
         self.ensure_one()
         if self.state not in ('manager_approved', 'md_approved'):
             raise UserError(_("Variation Order must be approved internally before sending to the client."))
-        self.write({'state': 'sent_to_client'})
+        self.with_context(bypass_state_lock=True).write({'state': 'sent_to_client'})
         self.message_post(
             body=Markup(_("<strong>Dispatched to Client:</strong> VO proposal transmitted to client for formal sign-off.")),
             message_type='notification',
@@ -372,13 +388,14 @@ class ContractorVariationOrder(models.Model):
 
     def action_client_accept(self):
         self.ensure_one()
+        self._ensure_state(('manager_approved', 'md_approved', 'sent_to_client'), _("mark as client accepted"))
         if not self.client_acceptance_attachment_ids:
             raise UserError(_(
                 "Client Acceptance Gate Hard-Stop:\n\n"
                 "You must upload client signed acceptance documents (Signed VO Form, LPO, or Contract Addendum) "
                 "before marking this Variation Order as Client Accepted."
             ))
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'client_accepted',
             'client_acceptance_date': self.client_acceptance_date or fields.Date.context_today(self),
         })
@@ -396,6 +413,7 @@ class ContractorVariationOrder(models.Model):
         contractor.project.budget (never merging into baseline) and updates project contract value.
         """
         self.ensure_one()
+        self._ensure_state(('manager_approved', 'md_approved', 'sent_to_client', 'client_accepted'), _("integrate variation order"))
         if not self.client_acceptance_attachment_ids:
             raise UserError(_(
                 "Hard-Stop Integration Gate:\n\n"
@@ -468,9 +486,9 @@ class ContractorVariationOrder(models.Model):
                         'product_uom_qty': 1.0,
                         'price_unit': self.total_vo_value,
                     })
-                    self.vo_sale_line_id = sol.id
+                    self.with_context(bypass_state_lock=True).write({'vo_sale_line_id': sol.id})
 
-        self.write({'state': 'integrated'})
+        self.with_context(bypass_state_lock=True).write({'state': 'integrated'})
 
         # Update Project milestone & contract metrics
         self.project_id._compute_vo_totals()
@@ -514,7 +532,7 @@ class ContractorVariationOrder(models.Model):
                 move_attachments=True,
             )
             if vo.state != 'draft':
-                vo.state = 'draft'
+                vo.with_context(bypass_state_lock=True).write({'state': 'draft'})
 
     def action_decline(self):
         self.ensure_one()

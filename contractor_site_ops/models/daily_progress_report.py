@@ -9,7 +9,13 @@ from odoo.exceptions import UserError, ValidationError
 class ContractorDailyProgressReport(models.Model):
     _name = 'contractor.daily.progress.report'
     _description = 'Contractor Daily Progress Report (DPR)'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.site.lock.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.site.lock.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'report_date desc, id desc'
 
     name = fields.Char(
@@ -234,13 +240,33 @@ class ContractorDailyProgressReport(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        Attendance = self.env['contractor.site.attendance']
+        Consumption = self.env['contractor.site.consumption']
         for vals in vals_list:
             if vals.get('name', _('New DPR')) == _('New DPR'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('contractor.daily.progress.report') or _('New DPR')
+            proj_id = vals.get('project_id')
+            rep_date = vals.get('report_date')
+            if proj_id and rep_date:
+                if not vals.get('attendance_id'):
+                    att = Attendance.search([
+                        ('project_id', '=', proj_id),
+                        ('attendance_date', '=', rep_date),
+                    ], limit=1)
+                    if att:
+                        vals['attendance_id'] = att.id
+                if not vals.get('consumption_id'):
+                    cons = Consumption.search([
+                        ('project_id', '=', proj_id),
+                        ('consumption_date', '=', rep_date),
+                    ], limit=1)
+                    if cons:
+                        vals['consumption_id'] = cons.id
         return super().create(vals_list)
 
     def action_submit(self):
         self.ensure_one()
+        self._ensure_state('draft', _("submit DPR"))
         clean_summary = (self.work_done_summary or '').strip()
         if len(clean_summary) < 15:
             raise UserError(_("Please provide a thorough work executed summary (minimum 15 characters)."))
@@ -249,7 +275,7 @@ class ContractorDailyProgressReport(models.Model):
         self._check_prior_day_continuity()
 
         now = fields.Datetime.now()
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'submitted',
             'submitted_datetime': self.submitted_datetime or now,
         })
@@ -278,10 +304,11 @@ class ContractorDailyProgressReport(models.Model):
 
     def action_pm_approve(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve DPR"))
         if not self.env.user.has_group('contractor_core.group_contractor_project_manager'):
             raise UserError(_("Access Denied: Only a Contractor Project Manager can approve DPRs."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'pm_approved',
             'approval_date': fields.Datetime.now(),
         })
@@ -314,7 +341,7 @@ class ContractorDailyProgressReport(models.Model):
         }
 
     def _callback_missing_prior_override(self, reason=None):
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'missing_prior_dpr_override': True,
             'missing_prior_dpr_reason': reason or getattr(self, 'last_action_reason', _('Authorized by Project Manager.')),
             'missing_prior_dpr_approver_id': self.env.user.id,
@@ -331,6 +358,20 @@ class ContractorDailyProgressReport(models.Model):
     # -------------------------------------------------------------------------
     # UX Cockpit: Unified Daily Site Snapshot (Attendance, Consumption, Work Logs)
     # -------------------------------------------------------------------------
+    attendance_id = fields.Many2one(
+        'contractor.site.attendance',
+        string='Linked Daily Attendance',
+        domain="[('project_id', '=', project_id)]",
+        tracking=True,
+        help='Link an already-created Daily Site Attendance sheet (auto-populated if one matches Project & Date).',
+    )
+    consumption_id = fields.Many2one(
+        'contractor.site.consumption',
+        string='Linked Material Consumption',
+        domain="[('project_id', '=', project_id)]",
+        tracking=True,
+        help='Link an already-created Daily Material Consumption sheet (auto-populated if one matches Project & Date).',
+    )
     attendance_sheet_ids = fields.Many2many(
         'contractor.site.attendance',
         string='Daily Attendance Sheets',
@@ -364,29 +405,48 @@ class ContractorDailyProgressReport(models.Model):
         compute='_compute_cockpit_records',
     )
 
-    @api.depends('project_id', 'report_date')
+    @api.onchange('project_id', 'report_date')
+    def _onchange_auto_link_daily_sheets(self):
+        if not self.project_id or not self.report_date:
+            return
+        att = self.env['contractor.site.attendance'].search([
+            ('project_id', '=', self.project_id.id),
+            ('attendance_date', '=', self.report_date),
+        ], limit=1)
+        if att:
+            self.attendance_id = att.id
+        cons = self.env['contractor.site.consumption'].search([
+            ('project_id', '=', self.project_id.id),
+            ('consumption_date', '=', self.report_date),
+        ], limit=1)
+        if cons:
+            self.consumption_id = cons.id
+
+    @api.depends('project_id', 'report_date', 'attendance_id', 'consumption_id')
     def _compute_cockpit_records(self):
         Attendance = self.env['contractor.site.attendance']
         Consumption = self.env['contractor.site.consumption']
         WorkLog = self.env['contractor.site.work.log']
         for dpr in self:
             if not dpr.project_id or not dpr.report_date:
-                dpr.attendance_sheet_ids = Attendance
-                dpr.attendance_line_ids = self.env['contractor.site.attendance.line']
-                dpr.attendance_count = 0
-                dpr.consumption_sheet_ids = Consumption
-                dpr.consumption_count = 0
+                att_sheets = dpr.attendance_id
+                cons_sheets = dpr.consumption_id
+                dpr.attendance_sheet_ids = att_sheets
+                dpr.attendance_line_ids = att_sheets.mapped('line_ids')
+                dpr.attendance_count = len(att_sheets)
+                dpr.consumption_sheet_ids = cons_sheets
+                dpr.consumption_count = len(cons_sheets)
                 dpr.work_log_ids = WorkLog
                 dpr.work_log_count = 0
                 continue
             att_sheets = Attendance.search([
                 ('project_id', '=', dpr.project_id.id),
                 ('attendance_date', '=', dpr.report_date),
-            ])
+            ]) | dpr.attendance_id
             cons_sheets = Consumption.search([
                 ('project_id', '=', dpr.project_id.id),
                 ('consumption_date', '=', dpr.report_date),
-            ])
+            ]) | dpr.consumption_id
             work_logs = WorkLog.search([
                 ('project_id', '=', dpr.project_id.id),
                 ('work_date', '=', dpr.report_date),
@@ -401,10 +461,12 @@ class ContractorDailyProgressReport(models.Model):
 
     def action_open_daily_attendance(self):
         self.ensure_one()
-        existing = self.env['contractor.site.attendance'].search([
+        existing = self.attendance_id or self.env['contractor.site.attendance'].search([
             ('project_id', '=', self.project_id.id),
             ('attendance_date', '=', self.report_date),
         ], limit=1)
+        if existing and not self.attendance_id:
+            self.with_context(bypass_state_lock=True).write({'attendance_id': existing.id})
         action = {
             'name': _('Daily Site Attendance'),
             'type': 'ir.actions.act_window',
@@ -422,10 +484,12 @@ class ContractorDailyProgressReport(models.Model):
 
     def action_open_daily_consumption(self):
         self.ensure_one()
-        existing = self.env['contractor.site.consumption'].search([
+        existing = self.consumption_id or self.env['contractor.site.consumption'].search([
             ('project_id', '=', self.project_id.id),
             ('consumption_date', '=', self.report_date),
         ], limit=1)
+        if existing and not self.consumption_id:
+            self.with_context(bypass_state_lock=True).write({'consumption_id': existing.id})
         action = {
             'name': _('Daily Material Consumption'),
             'type': 'ir.actions.act_window',

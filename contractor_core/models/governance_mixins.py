@@ -256,19 +256,20 @@ class ContractorVersionMixin(models.AbstractModel):
             ],
         }
 
-        # Collect scalar fields
-        for fname, field in self._fields.items():
+        # Collect scalar fields via sudo so cross-module group-restricted fields archive safely
+        sudo_rec = self.sudo()
+        for fname, field in sudo_rec._fields.items():
             if field.type in ('char', 'integer', 'float', 'monetary', 'boolean', 'selection', 'date', 'datetime', 'text'):
-                snapshot_dict['fields'][fname] = getattr(self, fname)
+                snapshot_dict['fields'][fname] = getattr(sudo_rec, fname)
             elif field.type == 'many2one':
-                m2o_val = getattr(self, fname)
+                m2o_val = getattr(sudo_rec, fname)
                 snapshot_dict['fields'][fname] = {'id': m2o_val.id, 'name': m2o_val.display_name} if m2o_val else False
 
         # Collect line items if standard lines exist
         lines_rel = (
-            getattr(self, 'order_line', None)
-            or getattr(self, 'line_ids', None)
-            or getattr(self, 'move_ids', None)
+            getattr(sudo_rec, 'order_line', None)
+            or getattr(sudo_rec, 'line_ids', None)
+            or getattr(sudo_rec, 'move_ids', None)
         )
         if lines_rel:
             for line in lines_rel:
@@ -415,7 +416,147 @@ class ContractorEffectiveDateMixin(models.AbstractModel):
     @api.model
     def get_rate_on_date(self, employee_id, target_date=None):
         """Helper to retrieve effective hourly labor rate on any given target date."""
-        return self.env['contractor.dated.rate.history'].get_rate_on_date(employee_id, target_date)
+        return self.env['contractor.dated.rate.history'].sudo().get_rate_on_date(employee_id, target_date)
+
+
+# =========================================================================
+# 5B. Concurrent Workflow State Lock Mixins
+# =========================================================================
+class ContractorStateLockMixin(models.AbstractModel):
+    """Prevents stale-form concurrent edits after a record leaves editable state(s)."""
+    _name = 'contractor.state.lock.mixin'
+    _description = 'Contractor Concurrent Workflow State Edit Lock Mixin'
+
+    _state_lock_field = 'state'
+    _state_lock_editable_states = ('draft',)
+
+    @api.model
+    def _get_state_lock_allowed_fields(self):
+        return {
+            'message_follower_ids', 'message_ids', 'activity_ids',
+            'message_main_attachment_id', 'website_message_ids',
+            'last_action_reason', 'last_action_by_id', 'last_action_date',
+            'version_number',
+            'escalated_to_md', 'escalation_datetime', 'escalation_notified',
+            'late_amendment_requested', 'late_amendment_reason',
+            'late_amendment_approved', 'late_amendment_approved_by',
+            'late_amendment_approved_date',
+            'is_entry_locked', 'is_locked',
+        }
+
+    def _get_state_lock_extra_allowed_fields(self, record):
+        """Override in subclasses to allow specific fields in specific post-draft states."""
+        return ()
+
+    def _get_state_lock_label(self, rec):
+        field_name = self._state_lock_field
+        val = rec[field_name]
+        field = rec._fields.get(field_name)
+        if field and field.type == 'selection':
+            selection = field._description_selection(self.env)
+            return dict(selection).get(val, val)
+        return val
+
+    def _ensure_state(self, allowed_states, action_label=None):
+        """Guard workflow action buttons against stale forms or duplicate clicks."""
+        if isinstance(allowed_states, str):
+            allowed_states = (allowed_states,)
+        for rec in self:
+            if rec[self._state_lock_field] not in allowed_states:
+                raise UserError(_(
+                    "Cannot %(action)s on '%(name)s' because its current status is '%(state)s'. "
+                    "Another user may have already updated or approved it — please reload the page."
+                ) % {
+                    'action': action_label or _("perform this action"),
+                    'name': rec.display_name,
+                    'state': self._get_state_lock_label(rec),
+                })
+
+    def write(self, vals):
+        if not self or not vals or self.env.su or self.env.context.get('bypass_state_lock'):
+            return super().write(vals)
+        write_keys = set(vals.keys())
+        base_allowed = self._get_state_lock_allowed_fields()
+        for rec in self:
+            rec_state = rec[self._state_lock_field]
+            if rec_state in self._state_lock_editable_states:
+                continue
+            rec_allowed = base_allowed | set(self._get_state_lock_extra_allowed_fields(rec))
+            if not write_keys.issubset(rec_allowed):
+                raise UserError(_(
+                    "Record '%(name)s' is currently in '%(state)s' status and can no longer be edited. "
+                    "Another user may have updated or approved it while you had this form open. "
+                    "Please reload the page to see the latest status."
+                ) % {
+                    'name': rec.display_name,
+                    'state': self._get_state_lock_label(rec),
+                })
+        return super().write(vals)
+
+
+class ContractorLineStateLockMixin(models.AbstractModel):
+    """Prevents stale-form line create/write/unlink once the parent leaves editable state(s)."""
+    _name = 'contractor.line.state.lock.mixin'
+    _description = 'Contractor Child Line State Edit Lock Mixin'
+
+    _line_parent_field = False
+    _line_editable_states = ('draft',)
+
+    @api.model
+    def _get_line_lock_allowed_fields(self):
+        return set()
+
+    def _get_line_parent_state_label(self, parent):
+        state_field_name = getattr(parent, '_state_lock_field', 'state')
+        val = parent[state_field_name]
+        field = parent._fields.get(state_field_name)
+        if field and field.type == 'selection':
+            return dict(field._description_selection(self.env)).get(val, val)
+        return val
+
+    def _check_parent_editable_state(self, parents, action_label):
+        if self.env.su or self.env.context.get('bypass_state_lock'):
+            return
+        for parent in parents:
+            if not parent:
+                continue
+            state_field_name = getattr(parent, '_state_lock_field', 'state')
+            editable = getattr(self, '_line_editable_states', ('draft',))
+            if parent[state_field_name] not in editable:
+                raise UserError(_(
+                    "Cannot %(action)s '%(name)s' because its current status is '%(state)s'. "
+                    "Another user may have updated or approved it while you had this form open. "
+                    "Please reload the page to see the latest status."
+                ) % {
+                    'action': action_label,
+                    'name': parent.display_name,
+                    'state': self._get_line_parent_state_label(parent),
+                })
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if self._line_parent_field and not self.env.su and not self.env.context.get('bypass_state_lock'):
+            parent_ids = {vals[self._line_parent_field] for vals in vals_list if vals.get(self._line_parent_field)}
+            if parent_ids:
+                comodel = self.env[self._fields[self._line_parent_field].comodel_name]
+                self._check_parent_editable_state(comodel.browse(parent_ids).exists(), _("add lines to"))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if self and self._line_parent_field and vals and not self.env.su and not self.env.context.get('bypass_state_lock'):
+            if not set(vals.keys()).issubset(self._get_line_lock_allowed_fields()):
+                parents = self.mapped(self._line_parent_field)
+                if vals.get(self._line_parent_field):
+                    comodel = self.env[self._fields[self._line_parent_field].comodel_name]
+                    parents |= comodel.browse(vals[self._line_parent_field]).exists()
+                self._check_parent_editable_state(parents, _("modify lines of"))
+        return super().write(vals)
+
+    def unlink(self):
+        if self and self._line_parent_field and not self.env.su and not self.env.context.get('bypass_state_lock'):
+            parents = self.mapped(self._line_parent_field)
+            self._check_parent_editable_state(parents, _("delete lines from"))
+        return super().unlink()
 
 
 # =========================================================================

@@ -428,7 +428,14 @@ class ContractorProjectBudgetLine(models.Model):
 class ContractorBudgetRevision(models.Model):
     _name = 'contractor.budget.revision'
     _description = 'Contractor Internal Budget Revision'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.version.mixin', 'contractor.reason.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.version.mixin',
+        'contractor.reason.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'create_date desc, id desc'
 
     name = fields.Char(
@@ -529,6 +536,7 @@ class ContractorBudgetRevision(models.Model):
     def action_submit(self):
         """Validates justification and committed/actual floor, and routes through Manager (and MD above threshold)."""
         self.ensure_one()
+        self._ensure_state('draft', _("submit budget revision"))
         clean_reason = (self.reason or '').strip()
         if len(clean_reason) < 10:
             raise UserError(_("Please provide a detailed internal justification (minimum 10 characters)."))
@@ -545,7 +553,7 @@ class ContractorBudgetRevision(models.Model):
                 ) % (self.cost_head, self.currency_id.symbol or '', abs(self.revision_amount), self.currency_id.symbol or '', remaining_block))
 
         self._compute_requires_md()
-        self.state = 'pm_submitted'
+        self.with_context(bypass_state_lock=True).write({'state': 'pm_submitted'})
 
         # Snapshot budget before revision
         self.budget_id._create_version_snapshot(
@@ -580,10 +588,11 @@ class ContractorBudgetRevision(models.Model):
 
     def action_manager_approve(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'pm_submitted'), _("approve budget revision"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only Contractor Managers can approve budget revisions."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'manager_approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -628,7 +637,7 @@ class ContractorBudgetRevision(models.Model):
         if self.state not in ('pm_submitted', 'manager_approved'):
             raise UserError(_("Only submitted or Manager-endorsed revisions can be approved by the Managing Director."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'md_approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -645,6 +654,7 @@ class ContractorBudgetRevision(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'pm_submitted', 'manager_approved'), _("decline budget revision"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only Contractor Managers can decline budget revisions."))
         return self.action_open_reason_wizard(action_type='decline', target_state='declined')

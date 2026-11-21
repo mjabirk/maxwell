@@ -850,8 +850,13 @@ class ContractorTempWageSettlementLine(models.Model):
 class ContractorAgencyReconciliation(models.Model):
     _name = 'contractor.agency.reconciliation'
     _description = 'Manpower Agency Invoice Reconciliation & Audit'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.no.delete.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.state.lock.mixin', 'contractor.no.delete.mixin']
     _order = 'date_end desc, id desc'
+
+    def _get_state_lock_extra_allowed_fields(self, record):
+        if record.state == 'discrepancy_flagged':
+            return ('resolution_notes',)
+        return ()
 
     name = fields.Char(
         string='Reconciliation Reference',
@@ -996,6 +1001,7 @@ class ContractorAgencyReconciliation(models.Model):
     def action_pull_and_reconcile(self):
         """Pulls ERP site hours for workers of this agency and verifies against invoiced billing."""
         self.ensure_one()
+        self._ensure_state(('draft', 'discrepancy_flagged'), _("pull and reconcile ERP hours"))
         atn_lines = self.env['contractor.site.attendance.line'].search([
             ('employee_id.agency_partner_id', '=', self.agency_id.id),
             ('attendance_date', '>=', self.date_start),
@@ -1025,14 +1031,14 @@ class ContractorAgencyReconciliation(models.Model):
                 'agency_invoiced_amount': tot_cost,
             }))
 
-        self.line_ids.unlink()
-        self.write({
+        self.line_ids.with_context(bypass_state_lock=True).unlink()
+        self.with_context(bypass_state_lock=True).write({
             'line_ids': lines,
         })
-        self._compute_reconciliation_totals()
+        self.with_context(bypass_state_lock=True)._compute_reconciliation_totals()
 
         if self.has_variance:
-            self.state = 'discrepancy_flagged'
+            self.with_context(bypass_state_lock=True).write({'state': 'discrepancy_flagged'})
             self.message_post(
                 body=Markup(_("<div class='alert alert-danger'><strong>Discrepancy Flagged:</strong> Agency invoiced amounts/hours mismatch ERP site records by %s %.2f. Vendor bill approval is blocked until resolved.</div>")) % (
                     self.currency_id.symbol or '', self.variance_amount
@@ -1041,7 +1047,7 @@ class ContractorAgencyReconciliation(models.Model):
                 subtype_xmlid='mail.mt_note',
             )
         else:
-            self.state = 'matched'
+            self.with_context(bypass_state_lock=True).write({'state': 'matched'})
             self.message_post(
                 body=Markup(_("<strong>Reconciliation Verified:</strong> Agency hours and amounts match ERP site records precisely.")),
                 message_type='notification',
@@ -1050,6 +1056,7 @@ class ContractorAgencyReconciliation(models.Model):
 
     def action_resolve_discrepancy(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'discrepancy_flagged'), _("resolve agency billing discrepancy"))
         if not (self.env.user.has_group('contractor_core.group_contractor_manager') or self.env.user.has_group('contractor_core.group_contractor_senior_accountant')):
             raise UserError(_("Access Denied: Only a Contractor Manager or Senior Accountant can resolve agency billing discrepancies."))
 
@@ -1057,7 +1064,7 @@ class ContractorAgencyReconciliation(models.Model):
         if len(clean_notes) < 15:
             raise UserError(_("Please document the resolution agreement with the agency (credit note issued, hours revised) in 'Resolution Notes' (minimum 15 characters)."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'resolved',
             'resolved_by': self.env.user.id,
             'resolution_date': fields.Datetime.now(),
@@ -1075,7 +1082,10 @@ class ContractorAgencyReconciliation(models.Model):
 class ContractorAgencyReconciliationLine(models.Model):
     _name = 'contractor.agency.reconciliation.line'
     _description = 'Agency Operative Reconciliation Line'
+    _inherit = ['contractor.line.state.lock.mixin']
     _order = 'employee_id, id'
+    _line_parent_field = 'reconciliation_id'
+    _line_editable_states = ('draft', 'discrepancy_flagged')
 
     reconciliation_id = fields.Many2one(
         'contractor.agency.reconciliation',

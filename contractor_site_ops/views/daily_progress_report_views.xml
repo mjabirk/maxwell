@@ -86,6 +86,8 @@
                             <field name="report_date" readonly="state != 'draft'"/>
                             <field name="site_engineer_id" readonly="state != 'draft'"/>
                             <field name="pm_id"/>
+                            <field name="attendance_id" readonly="state != 'draft'" options="{'no_create': False}"/>
+                            <field name="consumption_id" readonly="state != 'draft'" options="{'no_create': False}"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                             <field name="is_entry_locked" invisible="1"/>
                             <field name="is_locked" invisible="1"/>
@@ -150,7 +152,8 @@
                                     <field name="site_engineer_id"/>
                                     <field name="total_workers"/>
                                     <field name="total_present"/>
-                                    <field name="total_labour_cost" widget="monetary"/>
+                                    <field name="total_labour_cost" widget="monetary"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="state" widget="badge"/>
                                 </list>
                             </field>
@@ -163,7 +166,8 @@
                                     <field name="regular_hours"/>
                                     <field name="overtime_hours"/>
                                     <field name="se_ot_verified" widget="boolean_toggle"/>
-                                    <field name="calculated_labour_cost" widget="monetary"/>
+                                    <field name="calculated_labour_cost" widget="monetary"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                 </list>
                             </field>
                         </page>
@@ -193,7 +197,8 @@
                                     <field name="work_package"/>
                                     <field name="site_verified_qty"/>
                                     <field name="uom_id"/>
-                                    <field name="accrued_subcontractor_cost" widget="monetary"/>
+                                    <field name="accrued_subcontractor_cost" widget="monetary"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="state" widget="badge"/>
                                 </list>
                             </field>

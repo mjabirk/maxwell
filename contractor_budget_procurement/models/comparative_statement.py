@@ -7,7 +7,14 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ContractorComparativeStatement(models.Model):
     _name = 'contractor.comparative.statement'
     _description = 'Contractor Comparative Statement (3-Vendor Matrix)'
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'contractor.version.mixin', 'contractor.reason.mixin', 'contractor.no.delete.mixin']
+    _inherit = [
+        'mail.thread',
+        'mail.activity.mixin',
+        'contractor.version.mixin',
+        'contractor.reason.mixin',
+        'contractor.state.lock.mixin',
+        'contractor.no.delete.mixin',
+    ]
     _order = 'create_date desc, id desc'
 
     name = fields.Char(
@@ -191,6 +198,7 @@ class ContractorComparativeStatement(models.Model):
     def action_submit(self):
         """Hard-Stop validations for 3-Vendor Rule, Sole-Source, Non-Lowest Award, and Budget Availability."""
         self.ensure_one()
+        self._ensure_state('draft', _("submit comparative statement"))
         if not self.line_ids:
             raise UserError(_("Please populate vendor quote lines before submitting the Comparative Statement."))
 
@@ -255,7 +263,7 @@ class ContractorComparativeStatement(models.Model):
         )
 
         self._compute_matrix_analytics()
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'submitted',
         })
 
@@ -297,6 +305,7 @@ class ContractorComparativeStatement(models.Model):
     def action_pm_approve(self):
         """Project Manager signs off comparative evaluation within PM threshold."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve comparative statement"))
         if not (
             self.env.user.has_group('contractor_core.group_contractor_project_manager')
             or self.env.user.has_group('contractor_core.group_contractor_manager')
@@ -315,7 +324,7 @@ class ContractorComparativeStatement(models.Model):
                 self.currency_id.symbol or '', pm_thresh,
             ))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'pm_approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -330,6 +339,7 @@ class ContractorComparativeStatement(models.Model):
     def action_manager_approve(self):
         """Contractor Manager signs off comparative evaluation."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted'), _("approve comparative statement"))
         if not self.env.user.has_group('contractor_core.group_contractor_manager'):
             raise UserError(_("Access Denied: Only a Contractor Manager can approve Comparative Statements."))
 
@@ -344,7 +354,7 @@ class ContractorComparativeStatement(models.Model):
             ))
 
         target_state = 'md_approved' if self.env.user.has_group('contractor_core.group_contractor_md') and self.requires_md_approval else 'manager_approved'
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': target_state,
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -360,10 +370,11 @@ class ContractorComparativeStatement(models.Model):
     def action_md_approve(self):
         """Managing Director grants final executive procurement clearance."""
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted', 'manager_approved'), _("grant MD approval"))
         if not self.env.user.has_group('contractor_core.group_contractor_md'):
             raise UserError(_("Access Denied: Only the Managing Director can authorize this high-value procurement."))
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'md_approved',
             'approver_id': self.env.user.id,
             'approval_date': fields.Datetime.now(),
@@ -443,10 +454,10 @@ class ContractorComparativeStatement(models.Model):
                 )
             created_pos |= po
 
-        self.write({
+        self.with_context(bypass_state_lock=True).write({
             'state': 'pos_created',
         })
-        self.requisition_id.write({
+        self.requisition_id.with_context(bypass_state_lock=True).write({
             'state': 'po_created',
         })
 
@@ -479,6 +490,7 @@ class ContractorComparativeStatement(models.Model):
 
     def action_decline(self):
         self.ensure_one()
+        self._ensure_state(('draft', 'submitted', 'pm_approved', 'manager_approved', 'md_approved'), _("decline comparative statement"))
         if not (self.env.su or self.env.user.has_group('contractor_core.group_contractor_manager')):
             raise AccessError(_("Access Denied: Only a Contractor Manager can decline Comparative Statements."))
         return self.action_open_reason_wizard(action_type='decline', target_state='declined')
@@ -487,7 +499,9 @@ class ContractorComparativeStatement(models.Model):
 class ContractorComparativeStatementLine(models.Model):
     _name = 'contractor.comparative.statement.line'
     _description = 'Bid Matrix Line Item'
+    _inherit = ['contractor.line.state.lock.mixin']
     _order = 'product_id, quoted_price, id'
+    _line_parent_field = 'statement_id'
 
     statement_id = fields.Many2one(
         'contractor.comparative.statement',

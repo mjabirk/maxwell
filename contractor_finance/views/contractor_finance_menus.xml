@@ -1,101 +1,158 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Main Finance & Accounting Governance Category -->
+    <!-- Finance & Accounting Top-Level Category inside Contractor ERP -->
     <menuitem id="menu_contractor_finance_root"
               name="Finance &amp; Accounting Governance"
               parent="contractor_core.menu_contractor_root"
-              sequence="40"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
-    <!-- 1. Fixed Assets & Plant -->
+    <!-- Core Financial Operations inside Contractor ERP -->
+    <menuitem id="menu_contractor_customer_invoices"
+              name="Customer Invoices (AR)"
+              parent="menu_contractor_finance_root"
+              action="account.action_move_out_invoice_type"
+              sequence="2"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_vendor_bills"
+              name="Vendor Bills (AP)"
+              parent="menu_contractor_finance_root"
+              action="account.action_move_in_invoice_type"
+              sequence="4"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_customer_payments"
+              name="Customer Receipts"
+              parent="menu_contractor_finance_root"
+              action="account.action_account_payments"
+              sequence="6"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_vendor_payments"
+              name="Vendor &amp; Advance Payments"
+              parent="menu_contractor_finance_root"
+              action="account.action_account_payments_payable"
+              sequence="7"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_journal_entries"
+              name="Journal Entries"
+              parent="menu_contractor_finance_root"
+              action="account.action_move_journal_line"
+              sequence="8"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <menuitem id="menu_contractor_chart_of_accounts"
+              name="Chart of Accounts"
+              parent="menu_contractor_finance_root"
+              action="account.action_account_form"
+              sequence="9"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
+
+    <!-- Fixed Assets & Verifications -->
     <menuitem id="menu_contractor_fixed_assets"
               name="Fixed Asset Register (NCA)"
               parent="menu_contractor_finance_root"
               action="action_contractor_fixed_asset"
-              sequence="10"/>
+              sequence="10"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_asset_verifications"
               name="Physical Asset Verifications"
               parent="menu_contractor_finance_root"
               action="action_contractor_asset_verification"
-              sequence="20"/>
+              sequence="20"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- 2. Retention Register & DLP -->
+    <!-- Retentions & Bank Reconciliations -->
     <menuitem id="menu_contractor_retention"
               name="Retention Register &amp; DLP Gate"
               parent="menu_contractor_finance_root"
               action="action_contractor_retention_register"
-              sequence="30"/>
+              sequence="30"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- 3. Treasury, Banking & Loans -->
     <menuitem id="menu_contractor_bank_reconciliation"
               name="Bank Reconciliations (Maker-Checker)"
               parent="menu_contractor_finance_root"
               action="action_contractor_bank_reconciliation"
-              sequence="40"/>
+              sequence="40"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
+    <!-- Petty Cash -->
     <menuitem id="menu_contractor_petty_cash_floats"
               name="Site Petty Cash Floats"
               parent="menu_contractor_finance_root"
               action="action_contractor_petty_cash_float"
-              sequence="50"/>
+              sequence="50"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
     <menuitem id="menu_contractor_petty_cash_vouchers"
               name="Petty Cash Vouchers"
               parent="menu_contractor_finance_root"
               action="action_contractor_petty_cash_voucher"
-              sequence="60"/>
+              sequence="60"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,base.group_system"/>
 
+    <!-- Loans & Employee Advances -->
     <menuitem id="menu_contractor_loans"
               name="Financing &amp; Loan Facilities"
               parent="menu_contractor_finance_root"
               action="action_contractor_loan_facility"
-              sequence="70"/>
+              sequence="70"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
     <menuitem id="menu_contractor_employee_advances"
               name="Employee Advances &amp; Loans"
               parent="menu_contractor_finance_root"
               action="action_contractor_employee_advance"
-              sequence="75"/>
+              sequence="75"
+              groups="contractor_core.group_contractor_hr_officer,contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,base.group_system"/>
 
-    <!-- 4. RPT & Partner Accounts -->
+    <!-- Related Parties & Shareholders -->
     <menuitem id="menu_contractor_rpt_register"
               name="Related Party (RPT) Register"
               parent="menu_contractor_finance_root"
               action="action_contractor_related_party"
-              sequence="80"/>
+              sequence="80"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
     <menuitem id="menu_contractor_partner_accounts"
               name="Partner Current Accounts"
               parent="menu_contractor_finance_root"
               action="action_contractor_partner_current_account"
-              sequence="90"/>
+              sequence="90"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
-    <!-- 5. Revenue WIP & Provisions -->
+    <!-- PoC Revenue WIP, Provisions, Period Closing & External Audit -->
     <menuitem id="menu_contractor_revenue_wip"
               name="Project PoC WIP Schedules"
               parent="menu_contractor_finance_root"
               action="action_contractor_project_wip_schedule"
-              sequence="100"/>
+              sequence="100"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_project_manager,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
     <menuitem id="menu_contractor_provisions"
               name="Monthly Accounting Provisions"
               parent="menu_contractor_finance_root"
               action="action_contractor_accounting_provision"
-              sequence="110"/>
+              sequence="110"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
-    <!-- 6. Period Close & Audit -->
     <menuitem id="menu_contractor_period_closing"
               name="Month-End / Year-End Close"
               parent="menu_contractor_finance_root"
               action="action_contractor_period_close"
-              sequence="120"/>
+              sequence="120"
+              groups="contractor_core.group_contractor_accountant,contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
     <menuitem id="menu_contractor_audit_queries"
               name="External Audit Queries"
               parent="menu_contractor_finance_root"
               action="action_contractor_audit_query"
-              sequence="130"/>
+              sequence="130"
+              groups="contractor_core.group_contractor_senior_accountant,contractor_core.group_contractor_manager,contractor_core.group_contractor_md,base.group_system"/>
 
 </odoo>
-

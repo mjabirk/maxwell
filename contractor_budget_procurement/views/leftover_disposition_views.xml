@@ -66,7 +66,8 @@
                             <field name="approver_id" readonly="1" invisible="not approver_id"/>
                             <field name="execution_date" readonly="1" invisible="not execution_date"/>
                             <field name="picking_id" readonly="1" invisible="not picking_id"/>
-                            <field name="cost_adjustment_move_id" readonly="1" invisible="not cost_adjustment_move_id"/>
+                            <field name="cost_adjustment_move_id" readonly="1" invisible="not cost_adjustment_move_id"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                             <field name="requires_md_approval" invisible="1"/>
                         </group>
                     </group>
@@ -77,13 +78,16 @@
                                     <field name="product_id"/>
                                     <field name="qty"/>
                                     <field name="product_uom_id"/>
-                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Surplus"/>
+                                    <field name="unit_cost" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
+                                    <field name="subtotal_cost" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Surplus"
+                                           groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager"/>
                                     <field name="disposition_reason"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
-                            <group class="oe_subtotal_footer oe_right">
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="contractor_core.group_contractor_project_manager,contractor_core.group_contractor_accountant,contractor_core.group_contractor_manager">
                                 <field name="total_value" widget="monetary" options="{'currency_field': 'currency_id'}" class="oe_subtotal_footer_separator"/>
                             </group>
                         </page>
