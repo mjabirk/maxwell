@@ -1,0 +1,8 @@
+id,name,model_id,group_id/id,operation,domain
+payroll_extra_company_rule,Incentives multi company rule,overtime.bonus,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
+access_overtime_bonus_user,overtime_bonus_user,overtime.bonus,base.group_user,cru,"[('create_uid', '=', user.id)]"
+access_overtime_bonus_manager,overtime_bonus_manager,overtime.bonus,payroll_extra.group_benefit_manager,crud,
+access_overtime_bonus_payroll_manager,overtime_bonus_payroll_manager,overtime.bonus,hr_payroll.group_hr_payroll_manager,crud,
+access_overtime_bonus_type_user,overtime_bonus_type_user,overtime.bonus.type,base.group_user,r,
+access_overtime_bonus_type_manager,overtime_bonus_type_manager,overtime.bonus.type,payroll_extra.group_benefit_manager,crud,
+access_overtime_bonus_type_payroll_manager,overtime_bonus_type_payroll_manager,overtime.bonus.type,hr_payroll.group_hr_payroll_manager,crud,
