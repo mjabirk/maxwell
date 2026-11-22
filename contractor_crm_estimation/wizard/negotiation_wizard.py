@@ -40,7 +40,7 @@ class ContractorNegotiationWizard(models.TransientModel):
         default=False,
     )
     revised_margin_type = fields.Selection([
-        ('percentage', 'Percentage Margin (%)'),
+        ('percentage', 'Gross Margin (%)'),
         ('fixed', 'Fixed Monetary Margin'),
     ], string='Revised Margin Mode', default='percentage')
 
@@ -77,7 +77,7 @@ class ContractorNegotiationWizard(models.TransientModel):
         if self.update_margin:
             margin_vals = {'margin_type': self.revised_margin_type}
             if self.revised_margin_type == 'percentage':
-                margin_vals['margin_percent'] = self.revised_margin_percent
+                margin_vals['contractor_margin_percent'] = self.revised_margin_percent
             else:
                 margin_vals['margin_amount'] = self.revised_margin_amount
             wizard_order = order.with_context(from_negotiation_wizard=True)

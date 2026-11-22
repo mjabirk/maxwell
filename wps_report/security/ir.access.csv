@@ -1,0 +1,9 @@
+id,name,model_id,group_id/id,operation,domain
+payroll_automation_multi_company,Payroll Automation Multi Company Rule,payroll.automation,,crud,"[('company_id', 'in', [False] + company_ids)]"
+access_payroll_automation_user,payroll.automation.user,payroll.automation,hr_payroll.group_hr_payroll_user,crud,
+access_payroll_automation_manager,payroll.automation.manager,payroll.automation,hr_payroll.group_hr_payroll_manager,crud,
+access_salary_transfer_sheet,salary.transfer.sheet,salary.transfer.sheet,hr_payroll.group_hr_payroll_user,crud,
+access_hr_wps_sponsor,hr.wps.sponsor.user,hr.wps.sponsor,hr_payroll.group_hr_payroll_user,crud,
+access_salary_transfer_sheet_manager,salary.transfer.sheet.manager,salary.transfer.sheet,hr_payroll.group_hr_payroll_manager,crud,
+access_hr_wps_sponsor_manager,hr.wps.sponsor.manager,hr.wps.sponsor,hr_payroll.group_hr_payroll_manager,crud,
+access_time_off_details_wizard,time.off.details.wizard,time.off.details.wizard,base.group_user,crud,

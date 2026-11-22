@@ -106,10 +106,8 @@ class ContractorDocumentVersion(models.Model):
         for rec in self:
             rec.attachment_count = len(rec.attachment_ids)
 
-    def name_get(self):
-        result = []
+    @api.depends('name', 'version_number', 'res_model', 'res_id')
+    def _compute_display_name(self):
         for record in self:
-            name = record.name or f"v{record.version_number} [{record.res_model} #{record.res_id}]"
-            result.append((record.id, name))
-        return result
+            record.display_name = record.name or f"v{record.version_number} [{record.res_model} #{record.res_id}]"
 

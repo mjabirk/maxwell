@@ -133,5 +133,19 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Open full expanded Form view instead of Quick Create popup on Contracting Leads Kanban -->
+    <record id="crm_case_kanban_view_leads_inherit_contractor" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.lead.inherit.contractor</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                <attribute name="on_create"/>
+                <attribute name="quick_create">false</attribute>
+                <attribute name="quick_create_view"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
 

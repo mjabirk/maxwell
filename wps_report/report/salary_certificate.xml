@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="salary_certificate_report">
+        <style>
+            .top_hide {
+                border-top: hidden;
+            }
+            .show_borders_tr {
+                border: 1px solid #D0D0D0;
+                padding: 1px 0;
+            }
+            .show_borders_td {
+                border: 1px solid #D0D0D0;
+                width: 25%;
+                text-align: center;
+            }
+        </style>
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <b>
+                            <u><h1 class="text-center">Salary Certificate</h1></u><br/>
+                            <div>
+                                <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                    Date: <t t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')" t-options="{'widget': 'date'}"/>
+                                </span>
+                            </div><br/>
+                            <div>
+                                <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                    <u>To Whom It May Concern</u>
+                                </span>
+                            </div><br/>
+                        </b>
+                        <br/>
+                        <div>
+                            <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                This is to certify that <t t-out="o.employee_id.name"/> the holder of <t t-out="o.employee_id.country_id.name"/> passport with number <t t-out="o.employee_id.passport_id"/> and Qatar ID NO:
+                                <t t-out="o.employee_id.identification_id"/> is working in <t t-out="o.employee_id.company_id.name"/> P.O. Box No:31616 Doha-Qatar as
+                                <t t-out="o.employee_id.job_title"/> Since <t t-out="o.employee_id.joining_date" t-options="{'widget': 'date'}"/> &amp; is Earning a Monthly salary of
+                                <t t-out="o.wage + o.accommodation_allowance + o.food_allowance + o.transportation_allowance + o.other_allowance" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>.
+                            </span>
+                        </div>
+                        <br/><br/>
+                        <div>
+                            <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                Note: This Certificate is issued upon employee's request without any liability on <t t-out="o.employee_id.company_id.name"/>
+                            </span>
+                        </div>
+                        <br/><br/>
+                        <b>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>Yours sincerely,</span></div>
+                            <br/>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>HR</span></div>
+                            <br/><br/><br/><br/>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'><t t-out="o.employee_id.company_id.name"/></span></div>
+                        </b>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="salary_certificate_report_tb">
+        <style>
+            .top_hide {
+                border-top: hidden;
+            }
+            .show_borders_tr {
+                border: 1px solid #D0D0D0;
+                padding: 1px 0;
+            }
+            .show_borders_td {
+                border: 1px solid #D0D0D0;
+                width: 25%;
+                text-align: center;
+            }
+        </style>
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <b>
+                            <u><h1 class="text-center">Salary Certificate</h1></u><br/>
+                            <div>
+                                <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                    Date: <t t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')" t-options="{'widget': 'date'}"/>
+                                </span>
+                            </div><br/>
+                            <div>
+                                <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                    <u>To <t t-out="(o.employee_id.primary_bank_account_id or o.employee_id.bank_account_ids[:1]).bank_name or ''"/></u>
+                                </span>
+                            </div><br/>
+                        </b>
+                        <br/>
+                        <div>
+                            <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                This is to certify that <t t-out="o.employee_id.name"/> the holder of <t t-out="o.employee_id.country_id.name"/> passport with number <t t-out="o.employee_id.passport_id"/> and Qatar ID NO:
+                                <t t-out="o.employee_id.identification_id"/> is working in <t t-out="o.employee_id.company_id.name"/> P.O. Box No:31616 Doha-Qatar as
+                                <t t-out="o.employee_id.job_title"/> Since <t t-out="o.employee_id.joining_date" t-options="{'widget': 'date'}"/> &amp; is Earning a Monthly salary of
+                                <t t-out="o.wage + o.accommodation_allowance + o.food_allowance + o.transportation_allowance + o.other_allowance" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>.
+                            </span>
+                        </div>
+                        <br/><br/>
+                        <div>
+                            <span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>
+                                Note: This Certificate is issued upon employee's request without any liability on <t t-out="o.employee_id.company_id.name"/>
+                            </span>
+                        </div>
+                        <br/><br/>
+                        <b>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>Yours sincerely,</span></div>
+                            <br/>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'>HR</span></div>
+                            <br/><br/><br/><br/>
+                            <div><span style='font-family:Georgia, Times, "Times New Roman", serif; font-size: 20px;'><t t-out="o.employee_id.company_id.name"/></span></div>
+                        </b>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

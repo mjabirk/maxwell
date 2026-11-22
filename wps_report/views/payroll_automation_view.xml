@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_payroll_automation_form" model="ir.ui.view">
+        <field name="name">payroll.automation.form</field>
+        <field name="model">payroll.automation</field>
+        <field name="arch" type="xml">
+            <form string="Payroll Automation">
+                <header>
+                    <button string="Generate Payslip Batch Now"
+                        type="object"
+                        name="action_trigger_payroll"
+                        class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Monthly Payroll QNB"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="batch_name" placeholder="e.g. %B %Y Pay Run"/>
+                            <field name="schedule_date"/>
+                            <field name="structure_id"/>
+                            <field name="employee_department_ids" widget="many2many_tags"/>
+                        </group>
+                        <group>
+                            <field name="company_id" readonly="1" options="{'no_open': True}"/>
+                            <field name="bank_list"/>
+                            <field name="email" widget="email"/>
+                            <field name="last_created_date" readonly="1"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_payroll_automation_tree" model="ir.ui.view">
+        <field name="name">payroll.automation.list</field>
+        <field name="model">payroll.automation</field>
+        <field name="arch" type="xml">
+            <list string="Payroll Automations">
+                <field name="name"/>
+                <field name="batch_name"/>
+                <field name="schedule_date"/>
+                <field name="last_created_date"/>
+                <field name="bank_list"/>
+                <field name="email"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="payroll_automation_action" model="ir.actions.act_window">
+        <field name="name">Payroll Automations</field>
+        <field name="res_model">payroll.automation</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new Payroll Automation
+            </p>
+            <p>
+                Configure automated monthly payroll batches, work entries, and WPS transfer sheet delivery.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_payroll_automation"
+        name="Payroll Automations"
+        parent="hr_payroll.menu_hr_salary_configuration"
+        action="payroll_automation_action"
+        sequence="60"/>
+</odoo>

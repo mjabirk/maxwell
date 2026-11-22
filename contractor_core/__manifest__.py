@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor ERP Core Platform Governance',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': 'Reusable platform governance mixins, security roles, central configurable settings, immutable version history, and SLA auto-escalation timers for Contractor ERP suite.',
     'description': """
@@ -59,8 +59,7 @@ Key Components:
     ],
     'data': [
         'security/security.xml',
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_cron.xml',
         'views/res_config_settings_views.xml',
         'views/document_version_views.xml',

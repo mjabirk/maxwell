@@ -348,7 +348,7 @@ class ContractorMaterialRequisition(models.Model):
                 'product_id': line.product_id.id,
                 'name': line.description or line.product_id.display_name,
                 'product_qty': line.qty,
-                'product_uom_id': line.product_uom_id.id,
+                'uom_id': line.product_uom_id.id,
                 'price_unit': line.estimated_unit_cost,
                 'date_planned': fields.Datetime.now(),
             })

@@ -27,8 +27,8 @@ class ContractorReportConsolidatedStock(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 sq.id AS id,
                 sq.product_id AS product_id,
@@ -51,7 +51,7 @@ class ContractorReportConsolidatedStock(models.Model):
             LEFT JOIN stock_warehouse sw ON sw.lot_stock_id = sl.id OR sl.parent_path LIKE ('%%/' || sw.view_location_id || '/%%')
             LEFT JOIN res_company rc ON rc.id = sq.company_id
             WHERE sl.usage = 'internal'
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -84,8 +84,8 @@ class ContractorReportInterprojectSTN(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 l.id AS id,
                 s.id AS stn_id,
@@ -102,7 +102,7 @@ class ContractorReportInterprojectSTN(models.Model):
             FROM contractor_stock_transfer_note_line l
             JOIN contractor_stock_transfer_note s ON s.id = l.stn_id
             LEFT JOIN res_company rc ON rc.id = s.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -135,8 +135,8 @@ class ContractorReportMRApprovalSLA(models.Model):
     company_id = fields.Many2one('res.company', string='Company', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 r.id AS id,
                 r.id AS mr_id,
@@ -156,7 +156,7 @@ class ContractorReportMRApprovalSLA(models.Model):
             FROM contractor_material_requisition r
             LEFT JOIN res_company rc ON rc.id = r.company_id
             WHERE r.submitted_datetime IS NOT NULL
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -186,8 +186,8 @@ class ContractorReportMRRevisionHistory(models.Model):
     company_id = fields.Many2one('res.company', string='Company', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 r.id AS id,
                 r.id AS mr_id,
@@ -199,7 +199,7 @@ class ContractorReportMRRevisionHistory(models.Model):
                 r.write_date AS write_date,
                 r.company_id AS company_id
             FROM contractor_material_requisition r
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -224,8 +224,8 @@ class ContractorReportBudgetOverride(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 b.id AS id,
                 b.id AS budget_id,
@@ -252,7 +252,7 @@ class ContractorReportBudgetOverride(models.Model):
                 GROUP BY budget_id
             ) bl ON bl.budget_id = b.id
             WHERE b.override_approved = TRUE
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -286,8 +286,8 @@ class ContractorReportRFQCompliance(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 cs.id AS id,
                 cs.id AS cs_id,
@@ -308,7 +308,7 @@ class ContractorReportRFQCompliance(models.Model):
                 rc.currency_id AS currency_id
             FROM contractor_comparative_statement cs
             LEFT JOIN res_company rc ON rc.id = cs.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -338,8 +338,8 @@ class ContractorReportSoleSource(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 cs.id AS id,
                 cs.id AS cs_id,
@@ -354,7 +354,7 @@ class ContractorReportSoleSource(models.Model):
             FROM contractor_comparative_statement cs
             LEFT JOIN res_company rc ON rc.id = cs.company_id
             WHERE cs.is_sole_source = TRUE
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -387,8 +387,8 @@ class ContractorReportPOAmendments(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 po.id AS id,
                 po.id AS po_id,
@@ -405,7 +405,7 @@ class ContractorReportPOAmendments(models.Model):
                 po.currency_id AS currency_id
             FROM purchase_order po
             WHERE po.state = 'cancel' OR po.version_number > 1
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -435,8 +435,8 @@ class ContractorReportGoodsRejection(models.Model):
     company_id = fields.Many2one('res.company', string='Company', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 m.id AS id,
                 sp.id AS picking_id,
@@ -452,7 +452,7 @@ class ContractorReportGoodsRejection(models.Model):
             JOIN stock_picking sp ON sp.id = m.picking_id
             JOIN stock_location sl ON sl.id = m.location_dest_id
             WHERE sl.usage = 'supplier' AND sp.state = 'done'
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -482,8 +482,8 @@ class ContractorReportThreeWayExceptions(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 m.id AS id,
                 m.id AS move_id,
@@ -499,7 +499,7 @@ class ContractorReportThreeWayExceptions(models.Model):
                 m.currency_id AS currency_id
             FROM account_move m
             WHERE m.move_type = 'in_invoice' AND m.three_way_match_status = 'exception'
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -528,8 +528,8 @@ class ContractorReportVendorAdvances(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 p.id AS id,
                 p.id AS payment_id,
@@ -543,7 +543,7 @@ class ContractorReportVendorAdvances(models.Model):
                 p.currency_id AS currency_id
             FROM account_payment p
             WHERE p.is_vendor_advance = TRUE
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -577,8 +577,8 @@ class ContractorReportPaymentMakerChecker(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 p.id AS id,
                 p.id AS payment_id,
@@ -605,7 +605,7 @@ class ContractorReportPaymentMakerChecker(models.Model):
                 p.currency_id AS currency_id
             FROM account_payment p
             WHERE p.payment_workflow_state IS NOT NULL
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -638,8 +638,8 @@ class ContractorReportLeftoverDisposition(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 d.id AS id,
                 d.id AS disposition_id,
@@ -653,7 +653,7 @@ class ContractorReportLeftoverDisposition(models.Model):
                 rc.currency_id AS currency_id
             FROM contractor_leftover_disposition d
             LEFT JOIN res_company rc ON rc.id = d.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -687,8 +687,8 @@ class ContractorReportPhysicalStockVariance(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 l.id AS id,
                 s.id AS san_id,
@@ -707,7 +707,7 @@ class ContractorReportPhysicalStockVariance(models.Model):
             FROM contractor_stock_adjustment_note_line l
             JOIN contractor_stock_adjustment_note s ON s.id = l.san_id
             LEFT JOIN res_company rc ON rc.id = s.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -728,8 +728,8 @@ class ContractorReportEmergencyFrequency(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 MIN(po.id) AS id,
                 po.project_id AS project_id,
@@ -742,7 +742,7 @@ class ContractorReportEmergencyFrequency(models.Model):
             FROM purchase_order po
             WHERE po.is_emergency_purchase = TRUE AND po.state NOT IN ('cancel')
             GROUP BY po.project_id, TO_CHAR(po.date_order, 'YYYY-MM'), po.company_id, po.currency_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -768,8 +768,8 @@ class ContractorReportEmergencyPriceVariance(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 pol.id AS id,
                 po.id AS po_id,
@@ -793,7 +793,7 @@ class ContractorReportEmergencyPriceVariance(models.Model):
             JOIN product_product pp ON pp.id = pol.product_id
             JOIN product_template pt ON pt.id = pp.product_tmpl_id
             WHERE po.is_emergency_purchase = TRUE AND po.state NOT IN ('cancel')
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -813,8 +813,8 @@ class ContractorReportEmergencyVendorConc(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 po.partner_id AS id,
                 po.partner_id AS partner_id,
@@ -826,7 +826,7 @@ class ContractorReportEmergencyVendorConc(models.Model):
             FROM purchase_order po
             WHERE po.is_emergency_purchase = TRUE AND po.state NOT IN ('cancel')
             GROUP BY po.partner_id, po.company_id, po.currency_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -852,8 +852,8 @@ class ContractorReportEmergencyReasons(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 MIN(po.id) AS id,
                 po.emergency_reason_code AS emergency_reason_code,
@@ -865,7 +865,7 @@ class ContractorReportEmergencyReasons(models.Model):
             FROM purchase_order po
             WHERE po.is_emergency_purchase = TRUE AND po.state NOT IN ('cancel')
             GROUP BY po.emergency_reason_code, po.project_id, po.company_id, po.currency_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -903,8 +903,8 @@ class ContractorReportEmergencyMDReview(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 po.id AS id,
                 po.id AS po_id,
@@ -923,7 +923,7 @@ class ContractorReportEmergencyMDReview(models.Model):
                 po.currency_id AS currency_id
             FROM purchase_order po
             WHERE po.is_emergency_purchase = TRUE
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -952,8 +952,8 @@ class ContractorReportFreeVsProjectStock(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 sq.id AS id,
                 sq.product_id AS product_id,
@@ -980,5 +980,5 @@ class ContractorReportFreeVsProjectStock(models.Model):
             LEFT JOIN res_company rc ON rc.id = sq.company_id
             WHERE sl.usage = 'internal'
               AND (sq.quantity != 0 OR sq.reserved_quantity != 0)
-        """)
+        )""")
 

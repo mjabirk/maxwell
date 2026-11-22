@@ -995,7 +995,7 @@
                 <field name="date_to"/>
                 <field name="leave_id"/>
                 <field name="employee_id"/>
-                <field name="holiday_status_id"/>
+                <field name="work_entry_type_id"/>
                 <field name="number_of_days"/>
                 <field name="is_critical_project_period"/>
                 <field name="state"/>
@@ -1010,7 +1010,7 @@
         <field name="arch" type="xml">
             <pivot string="Annual Leave Utilization vs Blackout Periods">
                 <field name="employee_id" type="row"/>
-                <field name="holiday_status_id" type="col"/>
+                <field name="work_entry_type_id" type="col"/>
                 <field name="number_of_days" type="measure"/>
             </pivot>
         </field>
@@ -1022,7 +1022,7 @@
         <field name="model">contractor.report.leave.utilization</field>
         <field name="arch" type="xml">
             <graph string="Annual Leave Utilization vs Blackout Periods" type="pie">
-                <field name="holiday_status_id"/>
+                <field name="work_entry_type_id"/>
                 <field name="number_of_days" type="measure"/>
             </graph>
         </field>
@@ -1035,10 +1035,10 @@
         <field name="arch" type="xml">
             <search string="Annual Leave Utilization vs Blackout Periods">
                 <field name="employee_id"/>
-                <field name="holiday_status_id"/>
+                <field name="work_entry_type_id"/>
                 <group>
                     <filter string="Employee" name="group_by_employee_id" context="{'group_by': 'employee_id'}"/>
-                    <filter string="Leave Type" name="group_by_holiday_status_id" context="{'group_by': 'holiday_status_id'}"/>
+                    <filter string="Leave Type" name="group_by_work_entry_type_id" context="{'group_by': 'work_entry_type_id'}"/>
                     <filter string="Blackout Window" name="group_by_is_critical_project_period" context="{'group_by': 'is_critical_project_period'}"/>
                     <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
                 </group>

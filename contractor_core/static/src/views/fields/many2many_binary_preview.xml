@@ -4,25 +4,25 @@
        t-inherit="web.FileInput"
        t-inherit-mode="extension">
         <xpath expr="//input[@type='file']" position="attributes">
-            <attribute name="t-att-accept">props.acceptedFileExtensions || 'image/*,.pdf,.dwg'</attribute>
-            <attribute name="t-att-capture">props.capture || false</attribute>
+            <attribute name="t-att-accept">this.props.acceptedFileExtensions || 'image/*,.pdf,.dwg'</attribute>
+            <attribute name="t-att-capture">this.captureProps.capture || false</attribute>
         </xpath>
     </t>
 
     <t t-name="contractor_core.Many2ManyBinaryField"
-       t-inherit="web.Many2ManyBinaryField"
+       t-inherit="web.Many2XBinary"
        t-inherit-mode="extension">
         <xpath expr="//div[hasclass('oe_add')]/FileInput" position="attributes">
-            <attribute name="acceptedFileExtensions">props.acceptedFileExtensions || 'image/*,.pdf,.dwg'</attribute>
+            <attribute name="acceptedFileExtensions">this.props.acceptedFileExtensions || 'image/*,.pdf,.dwg'</attribute>
         </xpath>
         <xpath expr="//div[hasclass('oe_add')]/FileInput" position="after">
             <FileInput
                 acceptedFileExtensions="'image/*,.pdf,.dwg'"
                 capture="'environment'"
                 multiUpload="true"
-                onUpload.bind="onFileUploaded"
-                resId="props.record.resId"
-                resModel="props.record.resModel"
+                onUpload.bind="this.props.onFileUploaded"
+                resId="this.props.record.resId or 0"
+                resModel="this.props.record.resModel"
             >
                 <button type="button" class="btn btn-secondary ms-1 o_attach_camera" data-tooltip="Take Photo">
                     <span class="fa fa-camera"/>
@@ -33,34 +33,34 @@
     </t>
 
     <t t-name="contractor_core.Many2ManyBinaryField.attachment_preview"
-       t-inherit="web.Many2ManyBinaryField.attachment_preview"
+       t-inherit="web.Many2XBinary.attachment_preview"
        t-inherit-mode="extension">
         <xpath expr="//div[hasclass('o_image_box')]" position="attributes">
-            <attribute name="t-att-data-tooltip">(canPreview(file) ? 'Preview ' : 'Download ') + file.name</attribute>
+            <attribute name="t-att-data-tooltip">(this.canPreview(file) ? 'Preview ' : 'Download ') + file.name</attribute>
         </xpath>
         <xpath expr="//div[hasclass('o_image_box')]/a" position="attributes">
-            <attribute name="t-att-href">canPreview(file) ? getPreviewUrl(file) : url</attribute>
+            <attribute name="t-att-href">this.canPreview(file) ? this.getPreviewUrl(file) : url</attribute>
             <attribute name="download"/>
-            <attribute name="t-att-download">canPreview(file) ? null : ''</attribute>
-            <attribute name="t-att-aria-label">canPreview(file) ? 'Preview' : 'Download'</attribute>
-            <attribute name="t-att-class">canPreview(file) ? 'o_attachment_view' : ''</attribute>
+            <attribute name="t-att-download">this.canPreview(file) ? null : ''</attribute>
+            <attribute name="t-att-aria-label">this.canPreview(file) ? 'Preview' : 'Download'</attribute>
+            <attribute name="t-att-class">this.canPreview(file) ? 'o_attachment_view' : ''</attribute>
             <attribute name="t-on-click">(ev) => this.onPreviewFile(ev, file)</attribute>
         </xpath>
         <xpath expr="//div[hasclass('caption') and not(hasclass('small'))]/a" position="attributes">
-            <attribute name="t-att-href">canPreview(file) ? getPreviewUrl(file) : url</attribute>
+            <attribute name="t-att-href">this.canPreview(file) ? this.getPreviewUrl(file) : url</attribute>
             <attribute name="download"/>
-            <attribute name="t-att-download">canPreview(file) ? null : ''</attribute>
-            <attribute name="t-att-data-tooltip">(canPreview(file) ? 'Preview ' : 'Download ') + file.name</attribute>
+            <attribute name="t-att-download">this.canPreview(file) ? null : ''</attribute>
+            <attribute name="t-att-data-tooltip">(this.canPreview(file) ? 'Preview ' : 'Download ') + file.name</attribute>
             <attribute name="t-on-click">(ev) => this.onPreviewFile(ev, file)</attribute>
         </xpath>
         <xpath expr="//div[hasclass('caption') and hasclass('small')]/a" position="attributes">
-            <attribute name="t-att-href">canPreview(file) ? getPreviewUrl(file) : url</attribute>
+            <attribute name="t-att-href">this.canPreview(file) ? this.getPreviewUrl(file) : url</attribute>
             <attribute name="download"/>
-            <attribute name="t-att-download">canPreview(file) ? null : ''</attribute>
+            <attribute name="t-att-download">this.canPreview(file) ? null : ''</attribute>
             <attribute name="t-on-click">(ev) => this.onPreviewFile(ev, file)</attribute>
         </xpath>
         <xpath expr="//div[hasclass('caption') and hasclass('small')]/a" position="after">
-            <a t-if="canPreview(file)"
+            <a t-if="this.canPreview(file)"
                class="ms-2 small text-muted"
                t-att-href="url"
                download=""

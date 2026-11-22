@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_payroll_structure_form_inherit_wps" model="ir.ui.view">
+        <field name="name">hr.payroll.structure.form.inherit.wps</field>
+        <field name="model">hr.payroll.structure</field>
+        <field name="inherit_id" ref="hr_payroll.view_hr_employee_grade_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_generate_odoo20_salary_rules" 
+                            string="Load Odoo 20 Salary Rules" 
+                            type="object" 
+                            class="oe_highlight"/>
+                </header>
+            </xpath>
+            <xpath expr="//group[@name='salary_details']" position="inside">
+                <field name="use_odoo20_salary_rules"/>
+            </xpath>
+            <xpath expr="//page[@name='salary_rules']/field[@name='rule_ids']" position="before">
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Qatar WPS Salary Rules (Odoo 20 Format)</span>
+                    <button name="action_generate_odoo20_salary_rules" 
+                            string="Load / Refresh Odoo 20 Rules" 
+                            type="object" 
+                            class="btn btn-secondary btn-sm"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

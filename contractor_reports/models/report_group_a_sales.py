@@ -35,8 +35,8 @@ class ContractorReportLeadFunnel(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 l.id AS id,
                 l.id AS lead_id,
@@ -52,7 +52,7 @@ class ContractorReportLeadFunnel(models.Model):
                 c.currency_id AS currency_id
             FROM crm_lead l
             LEFT JOIN res_company c ON c.id = l.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -76,8 +76,8 @@ class ContractorReportWinRate(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 row_number() OVER () AS id,
                 sub.user_id,
@@ -114,7 +114,7 @@ class ContractorReportWinRate(models.Model):
                              ELSE '3. Large (> 250k)'
                          END, l.company_id, c.currency_id
             ) sub
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -142,8 +142,8 @@ class ContractorReportLossDeclineReason(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 l.id AS id,
                 l.id AS lead_id,
@@ -159,7 +159,7 @@ class ContractorReportLossDeclineReason(models.Model):
             FROM crm_lead l
             LEFT JOIN res_company c ON c.id = l.company_id
             WHERE l.contractor_state IN ('lost', 'on_hold', 'declined')
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -196,8 +196,8 @@ class ContractorReportQuoteApprovalSLA(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -215,7 +215,7 @@ class ContractorReportQuoteApprovalSLA(models.Model):
             FROM sale_order so
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.submitted_date IS NOT NULL
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -247,8 +247,8 @@ class ContractorReportQuoteAgeing(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -269,7 +269,7 @@ class ContractorReportQuoteAgeing(models.Model):
             FROM sale_order so
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.contractor_quote_state IN ('sent_to_client', 'under_negotiation')
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -293,8 +293,8 @@ class ContractorReportQuoteConversionTime(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -311,7 +311,7 @@ class ContractorReportQuoteConversionTime(models.Model):
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.contractor_quote_state IN ('accepted', 'converted')
               AND so.acceptance_date IS NOT NULL
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -343,8 +343,8 @@ class ContractorReportNonConvertedQuotes(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -354,14 +354,14 @@ class ContractorReportNonConvertedQuotes(models.Model):
                 ROUND(EXTRACT(DAY FROM (NOW() - so.approved_date)))::integer AS days_since_approval,
                 so.contractor_quote_state AS contractor_quote_state,
                 COALESCE(so.proposed_quotation_value, so.amount_total) AS proposed_quotation_value,
-                so.margin_percent AS margin_percent,
+                so.contractor_margin_percent AS margin_percent,
                 so.company_id AS company_id,
                 so.currency_id AS currency_id
             FROM sale_order so
             WHERE so.approved_date IS NOT NULL
               AND so.project_id IS NULL
               AND so.contractor_quote_state IN ('approved_pending_release', 'sent_to_client', 'under_negotiation', 'accepted', 'declined', 'lost', 'cancelled')
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -384,8 +384,8 @@ class ContractorReportQuoteRevisionLog(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -394,11 +394,11 @@ class ContractorReportQuoteRevisionLog(models.Model):
                 COALESCE(so.total_estimated_cost, 0) AS total_estimated_cost,
                 COALESCE(so.margin_amount, 0) AS margin_amount,
                 COALESCE(so.proposed_quotation_value, so.amount_total) AS proposed_quotation_value,
-                COALESCE(so.effective_margin_pct, so.margin_percent) AS effective_margin_pct,
+                COALESCE(so.effective_margin_pct, so.contractor_margin_percent) AS effective_margin_pct,
                 so.company_id AS company_id,
                 so.currency_id AS currency_id
             FROM sale_order so
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -421,8 +421,8 @@ class ContractorReportDraftStagnation(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -437,7 +437,7 @@ class ContractorReportDraftStagnation(models.Model):
             FROM sale_order so
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.contractor_quote_state = 'draft'
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -476,8 +476,8 @@ class ContractorReportMarginAnalysis(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -489,13 +489,13 @@ class ContractorReportMarginAnalysis(models.Model):
                 COALESCE(so.total_misc_cost, 0) AS total_misc_cost,
                 COALESCE(so.total_estimated_cost, 0) AS total_estimated_cost,
                 COALESCE(so.margin_amount, 0) AS margin_amount,
-                COALESCE(so.effective_margin_pct, so.margin_percent) AS effective_margin_pct,
+                COALESCE(so.effective_margin_pct, so.contractor_margin_percent) AS effective_margin_pct,
                 COALESCE(so.proposed_quotation_value, so.amount_total) AS proposed_quotation_value,
                 so.contractor_quote_state AS contractor_quote_state,
                 so.company_id AS company_id,
                 so.currency_id AS currency_id
             FROM sale_order so
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -518,8 +518,8 @@ class ContractorReportSalesReleaseSLA(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -534,7 +534,7 @@ class ContractorReportSalesReleaseSLA(models.Model):
             FROM sale_order so
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.approved_date IS NOT NULL
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -557,8 +557,8 @@ class ContractorReportPendingClientRelease(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 so.id AS id,
                 so.id AS order_id,
@@ -573,7 +573,7 @@ class ContractorReportPendingClientRelease(models.Model):
             FROM sale_order so
             LEFT JOIN res_company rc ON rc.id = so.company_id
             WHERE so.contractor_quote_state = 'approved_pending_release'
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -615,8 +615,8 @@ class ContractorReportVORegister(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 vo.id AS id,
                 vo.id AS vo_id,
@@ -633,7 +633,7 @@ class ContractorReportVORegister(models.Model):
                 rc.currency_id AS currency_id
             FROM contractor_variation_order vo
             LEFT JOIN res_company rc ON rc.id = vo.company_id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -667,8 +667,8 @@ class ContractorReportVOApprovalSLA(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 vo.id AS id,
                 vo.id AS vo_id,
@@ -684,7 +684,7 @@ class ContractorReportVOApprovalSLA(models.Model):
             FROM contractor_variation_order vo
             LEFT JOIN res_company rc ON rc.id = vo.company_id
             WHERE vo.state NOT IN ('draft')
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -706,8 +706,8 @@ class ContractorReportVOContractRatio(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 p.id AS id,
                 p.id AS project_id,
@@ -742,7 +742,7 @@ class ContractorReportVOContractRatio(models.Model):
                 WHERE state IN ('manager_approved', 'md_approved', 'client_accepted', 'integrated')
                 GROUP BY project_id
             ) vo_sum ON vo_sum.project_id = p.id
-        """)
+        )""")
 
 
 # -------------------------------------------------------------------------
@@ -775,8 +775,8 @@ class ContractorReportVODeclined(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     @property
-    def _table_query(self):
-        return SQL("""
+    def _table_sql(self) -> SQL:
+        return SQL("""(
             SELECT
                 vo.id AS id,
                 vo.id AS vo_id,
@@ -793,5 +793,5 @@ class ContractorReportVODeclined(models.Model):
             LEFT JOIN project_project p ON p.id = vo.project_id
             LEFT JOIN res_company rc ON rc.id = vo.company_id
             WHERE vo.state IN ('declined', 'withdrawn')
-        """)
+        )""")
 

@@ -258,17 +258,6 @@ class PurchaseOrder(models.Model):
             elif self.comparative_statement_id and self.comparative_statement_id.project_id:
                 self.project_id = self.comparative_statement_id.project_id
 
-    def _prepare_picking(self):
-        res = super()._prepare_picking()
-        if self.is_central_stock_purchase:
-            res['is_central_stock_purchase'] = True
-            res['project_id'] = False
-        elif self.project_id:
-            res['project_id'] = self.project_id.id
-        elif self.requisition_id and self.requisition_id.project_id:
-            res['project_id'] = self.requisition_id.project_id.id
-        return res
-
     revision_reason = fields.Text(
         string='Last Revision Reason',
         tracking=True,
@@ -448,6 +437,7 @@ class PurchaseOrderLine(models.Model):
         'product_id',
         'name',
         'product_qty',
+        'uom_id',
         'product_uom_id',
         'product_uom',
         'price_unit',
@@ -993,7 +983,7 @@ class ContractorLeftoverDisposition(models.Model):
             moves.append((0, 0, {
                 'description_picking': f"Surplus Disposition: {line.product_id.display_name}",
                 'product_id': line.product_id.id,
-                'product_uom': line.product_uom_id.id,
+                'uom_id': line.product_uom_id.id,
                 'product_uom_qty': line.qty,
                 'location_id': source_location.id,
                 'location_dest_id': dest_location.id,

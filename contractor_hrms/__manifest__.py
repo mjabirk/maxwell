@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor HRMS, Payroll & Tool Custody',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP/Human Resources',
     'summary': '3-Category Workforce Master, Overtime Cost Engine, 3-Track Payroll, Hand/Power Tool Custody, Leave Salaries & Statutory EOSB Exit Settlements',
     'description': """
@@ -32,8 +32,7 @@ Comprehensive human resource and labor governance suite engineered for general, 
     ],
     'data': [
         'security/security_groups.xml',
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/hr_employee_views.xml',

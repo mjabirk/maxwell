@@ -249,7 +249,7 @@ class ContractorEmployeeExit(models.Model):
                 unpaid_leaves = self.env['hr.leave'].sudo().search([
                     ('employee_id', '=', exit_rec.employee_id.id),
                     ('state', '=', 'validate'),
-                ]).filtered(lambda l: l.holiday_status_id.exclude_from_eosb_accrual or l.holiday_status_id.unpaid)
+                ]).filtered(lambda l: l.work_entry_type_id.exclude_from_eosb_accrual or l.work_entry_type_id.unpaid)
                 unpaid_days = sum(unpaid_leaves.mapped('number_of_days'))
             days = max(gross_days - unpaid_days, 0.0)
             years = days / 365.25
@@ -358,7 +358,7 @@ class ContractorEmployeeExit(models.Model):
         taken = self.env['hr.leave'].sudo().search([
             ('employee_id', '=', emp.id),
             ('state', '=', 'validate'),
-        ]).filtered(lambda l: not l.holiday_status_id.unpaid and not l.holiday_status_id.exclude_from_eosb_accrual)
+        ]).filtered(lambda l: not l.work_entry_type_id.unpaid and not l.work_entry_type_id.exclude_from_eosb_accrual)
         remaining_days = max(0.0, sum(allocs.mapped('number_of_days')) - sum(taken.mapped('number_of_days')))
         daily_basic = (emp.monthly_basic_salary or emp.monthly_total_salary or 0.0) / 30.0
         unused_leave_val = round(remaining_days * daily_basic, 2)
@@ -508,7 +508,7 @@ class ContractorEmployeeExit(models.Model):
                 ('company_ids', 'in', self.company_id.ids),
             ], limit=1)
             payable_acc = self.company_id.default_payroll_payable_account_id or self.env['account.account'].search([
-                ('account_type', 'in', ['liability_current', 'payable']),
+                ('account_type', 'in', ['liability_current', 'liability_payable']),
                 ('company_ids', 'in', self.company_id.ids),
             ], limit=1) or expense_acc
 

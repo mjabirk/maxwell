@@ -236,7 +236,7 @@
                     <!-- Margin Inputs -->
                     <group string="Margin Configuration" groups="contractor_core.group_contractor_sales_admin,contractor_core.group_contractor_manager">
                         <group>
-                            <field name="margin_percent" invisible="margin_type != 'percentage'" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
+                            <field name="contractor_margin_percent" invisible="margin_type != 'percentage'" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
                             <field name="margin_amount" invisible="margin_type != 'fixed'" readonly="contractor_quote_state not in ('draft', 'submitted')"/>
                         </group>
                         <group>

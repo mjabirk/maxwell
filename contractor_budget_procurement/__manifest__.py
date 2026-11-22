@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor Budget & Procurement Governance',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': 'Project Budget Real-Time Tracking, 3-Vendor RFQ Rule, Inter-Project Stock Transfers, Material Requisitions, GRN Controls, and Emergency Procurement',
     'author': 'Antigravity DeepMind',
@@ -13,8 +13,7 @@
         'stock_account',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/project_budget_views.xml',

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor Site Operations & Daily Cost Governance',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': '48-Hour Entry Lock, Staff Scheduling & Double-Booking Block, DPR Continuity, Attendance & OT Approval, Storekeeper Reconciliation, and Automatic Daily Cost Posting',
     'author': 'Antigravity DeepMind',
@@ -12,8 +12,7 @@
         'hr_attendance',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_sequence.xml',
         'views/site_staff_schedule_views.xml',
         'views/daily_progress_report_views.xml',

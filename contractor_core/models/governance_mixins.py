@@ -816,6 +816,26 @@ class StockPicking(models.Model):
                 picking._sync_analytic_distribution_from_project()
         return res
 
+    def _prepare_return_picking_default_values(self):
+        vals = super()._prepare_return_picking_default_values()
+        if getattr(self, 'is_central_stock_purchase', False):
+            vals['is_central_stock_purchase'] = True
+            vals['project_id'] = False
+        elif self.project_id:
+            vals['project_id'] = self.project_id.id
+        return vals
+
+    def _prepare_return_move_default_values(self, move_id):
+        vals = super()._prepare_return_move_default_values(move_id)
+        if getattr(move_id, 'is_central_stock_purchase', False) or getattr(self, 'is_central_stock_purchase', False):
+            vals['is_central_stock_purchase'] = True
+            vals['project_id'] = False
+        elif move_id.project_id:
+            vals['project_id'] = move_id.project_id.id
+        elif self.project_id:
+            vals['project_id'] = self.project_id.id
+        return vals
+
 
 # --- 6.2 Stock Move, Stock Rule & Return Picking Enforcement ---
 class StockMove(models.Model):
@@ -932,7 +952,9 @@ class StockMove(models.Model):
             if not project and 'sale_line_id' in self._fields:
                 project = self.mapped('sale_line_id.order_id.project_id')[:1]
             if not project and 'purchase_line_id' in self._fields:
-                project = self.mapped('purchase_line_id.order_id.project_id')[:1]
+                po = self.mapped('purchase_line_id.order_id')[:1]
+                if po:
+                    project = po.project_id or (getattr(po, 'requisition_id', False) and po.requisition_id.project_id)
             if not project and 'project_id' in self.env['stock.location']._fields:
                 project = self.mapped('location_dest_id.project_id')[:1] or self.mapped('location_id.project_id')[:1]
             if not project and 'project_id' in self.env['stock.warehouse']._fields:
@@ -954,7 +976,9 @@ class StockMove(models.Model):
             if not project and 'sale_line_id' in self._fields:
                 project = self.mapped('sale_line_id.order_id.project_id')[:1]
             if not project and 'purchase_line_id' in self._fields:
-                project = self.mapped('purchase_line_id.order_id.project_id')[:1]
+                po = self.mapped('purchase_line_id.order_id')[:1]
+                if po:
+                    project = po.project_id or (getattr(po, 'requisition_id', False) and po.requisition_id.project_id)
             if project:
                 vals['project_id'] = project.id
         return vals
@@ -1002,24 +1026,12 @@ class StockRule(models.Model):
                 fields_list.append(fname)
         return fields_list
 
-    def _push_prepare_move_copy_values(self, move_to_copy, new_date):
-        vals = super()._push_prepare_move_copy_values(move_to_copy, new_date)
+    def _push_prepare_move_copy_values(self, move_to_copy):
+        vals = super()._push_prepare_move_copy_values(move_to_copy)
         if move_to_copy.is_central_stock_purchase:
             vals['is_central_stock_purchase'] = True
         elif move_to_copy.project_id:
             vals['project_id'] = move_to_copy.project_id.id
-        return vals
-
-
-class StockReturnPicking(models.TransientModel):
-    _inherit = 'stock.return.picking'
-
-    def _prepare_picking_default_values_based_on(self, picking):
-        vals = super()._prepare_picking_default_values_based_on(picking)
-        if getattr(picking, 'is_central_stock_purchase', False):
-            vals['is_central_stock_purchase'] = True
-        elif picking.project_id:
-            vals['project_id'] = picking.project_id.id
         return vals
 
 

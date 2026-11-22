@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="loan_report_analysis_reg" model="ir.actions.report">
+        <field name="name">Report</field>
+        <field name="model">hr.leave</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.timeoff_report_qweb</field>
+        <field name="binding_type">report</field>
+        <field name="binding_model_id" ref="hr_holidays.model_hr_leave"/>
+    </record>
+
+    <!-- Salary Certificate on hr.employee for Payroll Admin group -->
+    <record id="salary_certificate_reg" model="ir.actions.report">
+        <field name="name">Salary Certificate</field>
+        <field name="model">hr.employee</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.salary_certificate_report</field>
+        <field name="binding_type">report</field>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+        <field name="group_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_manager'))]"/>
+    </record>
+
+    <record id="salary_certificate_reg_tb" model="ir.actions.report">
+        <field name="name">Salary Certificate to Bank</field>
+        <field name="model">hr.employee</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.salary_certificate_report_tb</field>
+        <field name="binding_type">report</field>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+        <field name="group_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_manager'))]"/>
+    </record>
+
+    <!-- Salary Certificate also on hr.version for Payroll Admin group -->
+    <record id="salary_certificate_version_reg" model="ir.actions.report">
+        <field name="name">Salary Certificate</field>
+        <field name="model">hr.version</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.salary_certificate_report</field>
+        <field name="binding_type">report</field>
+        <field name="binding_model_id" ref="hr.model_hr_version"/>
+        <field name="group_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_manager'))]"/>
+    </record>
+
+    <record id="salary_certificate_version_reg_tb" model="ir.actions.report">
+        <field name="name">Salary Certificate to Bank</field>
+        <field name="model">hr.version</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.salary_certificate_report_tb</field>
+        <field name="binding_type">report</field>
+        <field name="binding_model_id" ref="hr.model_hr_version"/>
+        <field name="group_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_manager'))]"/>
+    </record>
+</odoo>

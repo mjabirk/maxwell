@@ -129,10 +129,19 @@
                 <attribute name="action"></attribute>
                 <attribute name="type"></attribute>
             </xpath>
-            <xpath expr="//a[@name='action_view_tasks' and hasclass('o_project_kanban_box')]" position="attributes">
-                <attribute name="class">o_project_kanban_box me-1 d-none</attribute>
+        </field>
+    </record>
+
+    <record id="view_project_card_open_form_contractor" model="ir.ui.view">
+        <field name="name">project.project.card.open.form.contractor</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_card"/>
+        <field name="priority">210</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='action_view_tasks']" position="attributes">
+                <attribute name="class">d-none</attribute>
             </xpath>
-            <xpath expr="//a[@name='action_view_tasks' and hasclass('o_project_kanban_box')]" position="after">
+            <xpath expr="//div[@name='action_view_tasks']" position="after">
                 <a class="o_project_kanban_box me-1" type="open">
                     <div class="fw-bold text-primary">
                         <field name="project_code" invisible="not project_code"/>

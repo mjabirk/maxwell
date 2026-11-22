@@ -311,7 +311,7 @@ class ContractorSiteConsumption(models.Model):
                 'description_picking': f"Site Consumption {self.name}: {line.product_id.display_name}",
                 'product_id': line.product_id.id,
                 'product_uom_qty': line.consumed_today_qty,
-                'product_uom': (line.product_uom_id or line.product_id.uom_id).id,
+                'uom_id': (line.product_uom_id or line.product_id.uom_id).id,
                 'location_id': src_loc.id,
                 'location_dest_id': dest_loc.id,
                 'company_id': company.id,

@@ -141,7 +141,7 @@ class ContractorVariationOrder(models.Model):
 
     # Margin & Total Pricing
     margin_type = fields.Selection([
-        ('percentage', 'Percentage Margin (%)'),
+        ('percentage', 'Gross Margin (%)'),
         ('fixed', 'Fixed Monetary Margin'),
     ], string='Margin Mode', default='percentage', required=True)
 

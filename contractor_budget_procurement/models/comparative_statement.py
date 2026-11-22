@@ -412,7 +412,7 @@ class ContractorComparativeStatement(models.Model):
                     'product_id': l.product_id.id,
                     'name': l.description or l.product_id.display_name,
                     'product_qty': l.qty,
-                    'product_uom_id': l.product_uom_id.id,
+                    'uom_id': l.product_uom_id.id,
                     'price_unit': l.quoted_price,
                     'date_planned': fields.Datetime.now(),
                 }))

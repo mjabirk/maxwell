@@ -112,12 +112,12 @@ class SaleOrder(models.Model):
 
     # Margin Control & Pricing Calculation
     margin_type = fields.Selection([
-        ('percentage', 'Percentage Margin (%)'),
+        ('percentage', 'Gross Margin (%)'),
         ('fixed', 'Fixed Monetary Margin'),
     ], string='Margin Mode', default='percentage', required=True)
 
-    margin_percent = fields.Float(
-        string='Margin (%)',
+    contractor_margin_percent = fields.Float(
+        string='Markup (%)',
         default=15.0,
         digits=(16, 2),
     )
@@ -335,7 +335,7 @@ class SaleOrder(models.Model):
             order.total_misc_cost = misc
             order.total_estimated_cost = labour + material + legal + misc
 
-    @api.depends('total_estimated_cost', 'margin_type', 'margin_percent', 'margin_amount')
+    @api.depends('total_estimated_cost', 'margin_type', 'contractor_margin_percent', 'margin_amount')
     def _compute_margin_values(self):
         ctx = self.env.context
         allow_input_sync = ctx.get('from_negotiation_wizard') or ctx.get('from_revision_action')
@@ -345,7 +345,7 @@ class SaleOrder(models.Model):
                 order._is_post_conversion_locked() or order._is_post_approval_locked()
             )
             if order.margin_type == 'percentage':
-                pct = order.margin_percent or 0.0
+                pct = order.contractor_margin_percent or 0.0
                 m_amt = cost * (pct / 100.0)
                 if (not is_locked or allow_input_sync) and abs((order.margin_amount or 0.0) - m_amt) > 1e-6:
                     order.margin_amount = m_amt
@@ -358,10 +358,10 @@ class SaleOrder(models.Model):
                 eff_pct = (m_amt / proposed * 100.0) if proposed > 0 else 0.0
                 order.proposed_quotation_value = proposed
                 order.effective_margin_pct = eff_pct
-                if (not is_locked or allow_input_sync) and abs((order.margin_percent or 0.0) - eff_pct) > 1e-6:
-                    order.margin_percent = eff_pct
+                if (not is_locked or allow_input_sync) and abs((order.contractor_margin_percent or 0.0) - eff_pct) > 1e-6:
+                    order.contractor_margin_percent = eff_pct
 
-    @api.onchange('margin_type', 'margin_percent', 'margin_amount', 'total_estimated_cost')
+    @api.onchange('margin_type', 'contractor_margin_percent', 'margin_amount', 'total_estimated_cost')
     def _onchange_margin_sync_lines(self):
         self._compute_margin_values()
         if self.proposed_quotation_value > 0:
@@ -415,7 +415,7 @@ class SaleOrder(models.Model):
         'est_legal_line_ids',
         'est_misc_line_ids',
         'margin_type',
-        'margin_percent',
+        'contractor_margin_percent',
         'margin_amount',
         'pricelist_id',
         'currency_id',
@@ -513,7 +513,7 @@ class SaleOrder(models.Model):
         sync_triggers = {
             'est_labour_line_ids', 'est_material_line_ids',
             'est_legal_line_ids', 'est_misc_line_ids',
-            'margin_type', 'margin_percent', 'margin_amount',
+            'margin_type', 'contractor_margin_percent', 'margin_amount',
         }
         if not self.env.context.get('skip_estimation_sync') and (sync_triggers & set(vals.keys())):
             for rec in self:
@@ -1261,7 +1261,7 @@ class SaleOrder(models.Model):
                 ) % (order.name, order.contractor_quote_state))
         return super().action_confirm()
 
-    def _create_invoices(self, grouped=False, final=False, date=None):
+    def _create_invoices(self, final=False, grouped=False):
         """Hard-Stop Invoicing Gate: Prevents invoice creation without client acceptance documents."""
         for order in self:
             if not order.acceptance_document_ids:
@@ -1271,5 +1271,5 @@ class SaleOrder(models.Model):
                     "Contractor governance mandates verified client acceptance documents (Signed Quote, LPO, or Contract) "
                     "before generating customer invoices."
                 ) % order.name)
-        return super()._create_invoices(grouped=grouped, final=final, date=date)
+        return super()._create_invoices(final=final, grouped=grouped)
 

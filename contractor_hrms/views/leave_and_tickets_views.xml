@@ -2,15 +2,15 @@
 <odoo>
 
     <!-- ================================================================= -->
-    <!-- 0. Inherit hr.leave.type for Pay Percentage & EOSB Exclusion      -->
+    <!-- 0. Inherit hr.work.entry.type for Pay Percentage & EOSB Exclusion -->
     <!-- ================================================================= -->
     <record id="edit_holiday_status_form_contractor_hrms" model="ir.ui.view">
-        <field name="name">hr.leave.type.form.contractor.hrms</field>
-        <field name="model">hr.leave.type</field>
-        <field name="inherit_id" ref="hr_holidays.edit_holiday_status_form"/>
+        <field name="name">hr.work.entry.type.form.contractor.hrms</field>
+        <field name="model">hr.work.entry.type</field>
+        <field name="inherit_id" ref="hr_holidays.hr_work_entry_type_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
-                <group string="Contractor Payroll &amp; EOSB Policy">
+                <group string="Contractor Payroll &amp; EOSB Policy" invisible="not time_off_selectable">
                     <group>
                         <field name="leave_pay_percentage"/>
                         <field name="exclude_from_eosb_accrual"/>

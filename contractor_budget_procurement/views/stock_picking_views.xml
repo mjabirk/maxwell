@@ -33,7 +33,7 @@
                 <field name="project_id" required="not is_central_stock_purchase" readonly="state in ('done', 'cancel') or is_central_stock_purchase"/>
             </xpath>
 
-            <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="after">
+            <xpath expr="//field[@name='move_ids']/list/column" position="after">
                 <field name="project_id" optional="show" readonly="state in ('done', 'cancel')"/>
             </xpath>
 

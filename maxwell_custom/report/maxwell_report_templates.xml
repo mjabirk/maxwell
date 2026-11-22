@@ -162,7 +162,12 @@
                                     <span t-field="line.name"/>
                                 </td>
                                 <td style="border-top: 0 none !important; border-bottom: 0 none !important; border-left: 1px solid #000000 !important; border-right: 1px solid #000000 !important; padding: 2px 4px; text-align: center; vertical-align: top;">
-                                    <span t-if="line.product_uom_id" t-out="line.product_uom_id.name"/>
+                                    <t t-if="doc_type == 'purchase'">
+                                        <span t-if="line.uom_id" t-out="line.uom_id.name"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span t-if="line.product_uom_id" t-out="line.product_uom_id.name"/>
+                                    </t>
                                 </td>
                                 <td style="border-top: 0 none !important; border-bottom: 0 none !important; border-left: 1px solid #000000 !important; border-right: 1px solid #000000 !important; padding: 2px 6px; text-align: center; vertical-align: top;">
                                     <t t-if="doc_type == 'sale'">

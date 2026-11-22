@@ -68,13 +68,13 @@ class ResUsers(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         users = super().create(vals_list)
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return users
 
     def write(self, vals):
         res = super().write(vals)
         if any(k in vals for k in ('contractor_menu_mode', 'contractor_hidden_menu_ids', 'group_ids', 'company_id', 'active')):
-            self.env.registry.clear_cache()
+            self.env.transaction.invalidate_ormcache()
         return res
 
     @api.model
@@ -104,7 +104,7 @@ class ResUsers(models.Model):
                 if unlink_cmds:
                     admin_user.sudo().write({'group_ids': unlink_cmds})
 
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return True
 
 

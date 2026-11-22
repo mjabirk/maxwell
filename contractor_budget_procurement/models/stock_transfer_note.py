@@ -532,7 +532,7 @@ class ContractorStockTransferNote(models.Model):
             (0, 0, {
                 'description_picking': f"STN Transfer: {line.product_id.display_name} ({self.donor_project_id.name} -> {self.receiving_project_id.name})",
                 'product_id': line.product_id.id,
-                'product_uom': line.product_uom_id.id,
+                'uom_id': line.product_uom_id.id,
                 'product_uom_qty': line.qty,
                 'location_id': self.donor_location_id.id,
                 'location_dest_id': self.receiving_location_id.id,

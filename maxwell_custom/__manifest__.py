@@ -1,6 +1,6 @@
 {
     'name': 'Maxwell Custom Reports (Sales, Purchase & Invoice)',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Reporting',
     'summary': 'Maxwell Trading and Contracting WLL custom PDF report format for Sales Order, Purchase Order, and Invoice',
     'description': """

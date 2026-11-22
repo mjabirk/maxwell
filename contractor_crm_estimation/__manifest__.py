@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor CRM & Cost Estimation',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': 'CRM lead qualification, site visit upload gates, 4-block cost estimation, margin governance, customer acceptance, and variation order management.',
     'description': """
@@ -50,10 +50,10 @@ This module provides complete front-end commercial lifecycle governance for cont
         'sale_management',
         'project',
         'stock',
+        'maxwell_custom',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_sequence.xml',
         'views/site_visit_views.xml',
         'views/crm_lead_views.xml',
@@ -63,6 +63,7 @@ This module provides complete front-end commercial lifecycle governance for cont
         'views/variation_order_views.xml',
         'views/negotiation_wizard_views.xml',
         'views/contractor_crm_menus.xml',
+        'report/sale_order_estimation_report.xml',
     ],
     'installable': True,
     'application': True,

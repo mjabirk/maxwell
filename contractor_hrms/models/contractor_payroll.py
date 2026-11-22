@@ -189,7 +189,7 @@ class ContractorPayrollRun(models.Model):
                 ('date_to', '>=', self.date_start),
             ])
             for lv in leaves:
-                if lv.holiday_status_id.unpaid or 'unpaid' in lv.holiday_status_id.name.lower():
+                if lv.work_entry_type_id.unpaid or 'unpaid' in lv.work_entry_type_id.name.lower():
                     unpaid_days += lv.number_of_days
 
             unpaid_deduction = (gross / days_in_period * unpaid_days) if days_in_period > 0 else 0.0
@@ -300,7 +300,7 @@ class ContractorPayrollRun(models.Model):
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1)
         payable_acc = self.company_id.default_payroll_payable_account_id or self.env['account.account'].search([
-            ('account_type', 'in', ['liability_current', 'payable']),
+            ('account_type', 'in', ['liability_current', 'liability_payable']),
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1) or salary_expense_acc
 
@@ -686,7 +686,7 @@ class ContractorTempWageSettlement(models.Model):
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1)
         cash_or_payable = self.company_id.default_payroll_payable_account_id or self.env['account.account'].search([
-            ('account_type', 'in', ['liability_current', 'payable']),
+            ('account_type', 'in', ['liability_current', 'liability_payable']),
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1) or wage_exp
 

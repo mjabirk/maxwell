@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor Finance, Accounting & Audit Governance',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP/Accounting',
     'summary': 'Non-Current Asset Register, 3-Way Bill Matching, 3-Step Payment Maker-Checker, DLP Retentions, Bank Recs, RPT Controls, PoC WIP Revenue & 10-Point Period Close Lockout',
     'description': """
@@ -52,8 +52,7 @@ Enterprise construction financial controls, treasury management, and statutory a
         'purchase_stock',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/fixed_asset_views.xml',

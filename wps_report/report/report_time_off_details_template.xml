@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Landscape Paperformat -->
+    <record id="paperformat_time_off_landscape" model="report.paperformat">
+        <field name="name">Time Off Landscape</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">25</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">20</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- Report Action -->
+    <record id="action_report_time_off_details" model="ir.actions.report">
+        <field name="name">Time Off Details</field>
+        <field name="model">hr.employee</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">wps_report.report_time_off_details</field>
+        <field name="paperformat_id" ref="wps_report.paperformat_time_off_landscape"/>
+        <field name="group_ids" eval="[(4, ref('hr_holidays.group_hr_holidays_manager'))]"/>
+    </record>
+
+    <!-- QWeb Template -->
+    <template id="report_time_off_details">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="emp">
+                <t t-call="web.external_layout">
+                    <div class="page" t-att-style="'page-break-before: always;' if not emp_first else None">
+                        <div class="text-center fw-bold">
+                            <span>Time Off Details of <t t-out="emp.name"/></span>
+                            <br/>
+                            <span>From: <t t-out="date_from"/> To: <t t-out="date_to"/></span>
+                        </div>
+
+                        <table class="table table-bordered table-sm mt-3">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th t-if="holiday_type == 'all'">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="leaves" t-value="leave_data.get(emp.id)"/>
+                                <t t-if="leaves">
+                                    <tr t-foreach="leaves" t-as="leave">
+                                        <td><span t-field="leave.work_entry_type_id.name"/></td>
+                                        <td><span t-field="leave.name"/></td>
+                                        <td><span t-field="leave.date_from" t-options='{"widget": "date"}'/></td>
+                                        <td><span t-field="leave.date_to" t-options='{"widget": "date"}'/></td>
+                                        <td t-if="holiday_type == 'all'">
+                                            <span t-field="leave.state"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-else="">
+                                    <tr>
+                                        <td t-att-colspan="5 if holiday_type == 'all' else 4" class="text-center text-muted">
+                                            No time-off records found for this period.
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

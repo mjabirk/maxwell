@@ -1,9 +1,11 @@
 /** @odoo-module */
 
+import { t, useProps } from "@odoo/owl";
 import { patch } from "@web/core/utils/patch";
+import { FileInput } from "@web/core/file_input/file_input";
 import { FileModel } from "@web/core/file_viewer/file_model";
 import { useFileViewer } from "@web/core/file_viewer/file_viewer_hook";
-import { Many2ManyBinaryField } from "@web/views/fields/many2many_binary/many2many_binary_field";
+import { Many2XBinary } from "@web/views/fields/many2x_binary/many2x_binary";
 
 const EXT_TO_MIMETYPE = {
     pdf: "application/pdf",
@@ -32,7 +34,16 @@ const EXT_TO_MIMETYPE = {
     dwg: "application/acad",
 };
 
-patch(Many2ManyBinaryField.prototype, {
+patch(FileInput.prototype, {
+    setup() {
+        super.setup(...arguments);
+        this.captureProps = useProps({
+            capture: t.string().optional(),
+        });
+    },
+});
+
+patch(Many2XBinary.prototype, {
     setup() {
         super.setup(...arguments);
         this.fileViewer = useFileViewer();
@@ -69,7 +80,7 @@ patch(Many2ManyBinaryField.prototype, {
         }
         ev.preventDefault();
         ev.stopPropagation();
-        const viewableFiles = this.files
+        const viewableFiles = this.props.files
             .map((f) => this._toFileModel(f))
             .filter((f) => f.isViewable);
         const startFile = viewableFiles.find((f) => f.id === target.id) || target;

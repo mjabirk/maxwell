@@ -10,7 +10,7 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 # 0. Leave Type Policy Extension (Paid %, Unpaid EOSB Exclusion)
 # =========================================================================
 class HrLeaveTypeContractor(models.Model):
-    _inherit = 'hr.leave.type'
+    _inherit = 'hr.work.entry.type'
 
     leave_pay_percentage = fields.Float(
         string='Leave Pay Policy (%)',
@@ -76,7 +76,7 @@ class HrLeaveContractor(models.Model):
                     "Temporary workers are paid on daily site hours logged; Manpower supply personnel are administered through their supply agency."
                 ) % (leave.employee_id.name, dict(self.env['hr.employee']._fields['workforce_category'].selection).get(leave.employee_id.workforce_category)))
 
-    @api.depends('employee_id', 'holiday_status_id')
+    @api.depends('employee_id', 'work_entry_type_id')
     def _compute_leave_balance(self):
         for leave in self:
             if leave.employee_id:
@@ -88,9 +88,9 @@ class HrLeaveContractor(models.Model):
                     ('employee_id', '=', leave.employee_id.id),
                     ('state', '=', 'validate'),
                 ]
-                if leave.holiday_status_id:
-                    alloc_domain.append(('holiday_status_id', '=', leave.holiday_status_id.id))
-                    taken_domain.append(('holiday_status_id', '=', leave.holiday_status_id.id))
+                if leave.work_entry_type_id:
+                    alloc_domain.append(('work_entry_type_id', '=', leave.work_entry_type_id.id))
+                    taken_domain.append(('work_entry_type_id', '=', leave.work_entry_type_id.id))
                 allocations = self.env['hr.leave.allocation'].search(alloc_domain)
                 taken_leaves = self.env['hr.leave'].search(taken_domain)
                 allocated_days = sum(allocations.mapped('number_of_days'))
@@ -115,14 +115,14 @@ class HrLeaveContractor(models.Model):
             subtype_xmlid='mail.mt_note',
         )
 
-    def action_validate(self):
+    def _action_validate(self, check_state=True):
         for leave in self:
             if leave.is_critical_project_period and not leave.pm_acknowledged_by_id:
                 raise UserError(_(
                     "Project Milestone Hard-Stop:\n\n"
                     "This leave falls in a critical project period. Project Manager acknowledgement is strictly mandatory before approval."
                 ))
-        res = super().action_validate()
+        res = super()._action_validate(check_state=check_state)
         # Automatically mark draft site attendance lines overlapping approved leave dates as On Leave
         AttendanceLine = self.env['contractor.site.attendance.line'].sudo()
         for leave in self:
@@ -259,7 +259,7 @@ class ContractorLeaveSalaryRequest(models.Model):
         copy=False,
     )
 
-    @api.depends('employee_id', 'leave_id', 'leave_id.holiday_status_id.leave_pay_percentage')
+    @api.depends('employee_id', 'leave_id', 'leave_id.work_entry_type_id.leave_pay_percentage')
     def _compute_leave_salary_amount(self):
         for req in self:
             if not req.employee_id or not req.leave_id:
@@ -279,7 +279,7 @@ class ContractorLeaveSalaryRequest(models.Model):
             daily_rate = basic_hr * std_daily
 
             days = req.leave_id.number_of_days or 0.0
-            ltype = req.leave_id.holiday_status_id
+            ltype = req.leave_id.work_entry_type_id
             is_unpaid = ltype.unpaid or ltype.exclude_from_eosb_accrual or ('unpaid' in (ltype.name or '').lower())
             if is_unpaid:
                 pay_pct = 0.0
@@ -357,7 +357,7 @@ class ContractorLeaveSalaryRequest(models.Model):
                 ('company_ids', 'in', self.company_id.ids),
             ], limit=1)
             payable_acc = self.company_id.default_payroll_payable_account_id or self.env['account.account'].search([
-                ('account_type', 'in', ['liability_current', 'payable']),
+                ('account_type', 'in', ['liability_current', 'liability_payable']),
                 ('company_ids', 'in', self.company_id.ids),
             ], limit=1) or expense_acc
 
@@ -584,7 +584,7 @@ class ContractorTicketAllowanceRequest(models.Model):
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1)
         payable_acc = self.company_id.default_payroll_payable_account_id or self.env['account.account'].search([
-            ('account_type', 'in', ['liability_current', 'payable']),
+            ('account_type', 'in', ['liability_current', 'liability_payable']),
             ('company_ids', 'in', self.company_id.ids),
         ], limit=1) or expense_acc
 

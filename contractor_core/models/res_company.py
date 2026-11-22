@@ -331,6 +331,6 @@ class ResCompany(models.Model):
     def write(self, vals):
         res = super().write(vals)
         if any(k in vals for k in ('restrict_menus_by_role', 'restrict_contractor_top_menus_only')):
-            self.env.registry.clear_cache()
+            self.env.transaction.invalidate_ormcache()
         return res
 

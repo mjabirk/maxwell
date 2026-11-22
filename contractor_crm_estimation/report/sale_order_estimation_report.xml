@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Report Action: Quotation / Order with Estimation (without costs/margins) -->
+    <record id="action_report_saleorder_with_estimation" model="ir.actions.report">
+        <field name="name">Quotation / Order with Estimation</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">contractor_crm_estimation.report_saleorder_with_estimation</field>
+        <field name="print_report_name">(object.state in ('draft', 'sent') and 'Quotation with Estimation - %s' % (object.name)) or 'Order with Estimation - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
+    </record>
+
+    <!-- Main QWeb Report Template -->
+    <template id="report_saleorder_with_estimation">
+        <t t-call="web.html_container">
+            <t t-set="include_estimation_breakdown" t-value="True"/>
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="maxwell_custom.report_saleorder_document_maxwell" t-lang="doc.partner_id.lang"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- Inject Estimation Breakdown (without cost/rate/margin) directly below Amount In Words box -->
+    <template id="maxwell_unified_document_layout_inherit_estimation" inherit_id="maxwell_custom.maxwell_unified_document_layout">
+        <xpath expr="//table[.//span[contains(text(), 'Amount In Words')]]" position="after">
+            <t t-if="include_estimation_breakdown and doc_type == 'sale'">
+                <div class="mt-2 mb-3" style="font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 13px; color: #000000;">
+                    <div style="background-color: #c6c6c6; border: 1px solid #000000; padding: 4px 8px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 0.4px;">
+                        ESTIMATION BREAKDOWN
+                    </div>
+
+                    <t t-set="has_any_estimation" t-value="bool(doc_obj.est_labour_line_ids or doc_obj.est_material_line_ids or doc_obj.est_legal_line_ids or doc_obj.est_misc_line_ids)"/>
+                    <t t-if="not has_any_estimation">
+                        <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; border-top: 0 none; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 13px; color: #000000;">
+                            <tbody>
+                                <tr>
+                                    <td style="border: 1px solid #000000 !important; padding: 6px 8px; text-align: center; font-style: italic;">
+                                        No estimation lines recorded.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+
+                    <!-- Block 1: Labor Estimation -->
+                    <t t-if="doc_obj.est_labour_line_ids">
+                        <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-top: 6px; page-break-inside: avoid; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 12.5px; color: #000000;">
+                            <thead>
+                                <tr>
+                                    <th colspan="5" style="background-color: #c6c6c6; border: 1px solid #000000 !important; padding: 4px 8px; text-align: left; font-weight: bold;">
+                                        Block 1: Labor Estimation
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #e6e6e6;">
+                                    <th style="width: 6%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;">#</th>
+                                    <th style="width: 24%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Worker Category</th>
+                                    <th style="width: 24%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Trade / Classification</th>
+                                    <th style="width: 30%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Role / Crew Designation</th>
+                                    <th style="width: 16%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: right;">Estimated Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc_obj.est_labour_line_ids" t-as="line">
+                                    <tr>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;" t-out="line_index + 1"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="dict(line._fields['worker_category']._description_selection(line.env)).get(line.worker_category, '')"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="dict(line._fields['trade']._description_selection(line.env)).get(line.trade, '')"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.role_designation or (line.employee_id.name if line.employee_id else '') or '-'"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: right;" t-out="('%.2f' % (line.estimated_hours or 0.0)) if line.calculation_mode == 'hours_rate' else 'Lump Sum'"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+
+                    <!-- Block 2: Material Estimation -->
+                    <t t-if="doc_obj.est_material_line_ids">
+                        <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-top: 6px; page-break-inside: avoid; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 12.5px; color: #000000;">
+                            <thead>
+                                <tr>
+                                    <th colspan="5" style="background-color: #c6c6c6; border: 1px solid #000000 !important; padding: 4px 8px; text-align: left; font-weight: bold;">
+                                        Block 2: Material Estimation
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #e6e6e6;">
+                                    <th style="width: 6%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;">#</th>
+                                    <th style="width: 26%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Item / Product</th>
+                                    <th style="width: 44%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Description &amp; Specs</th>
+                                    <th style="width: 12%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: right;">Qty</th>
+                                    <th style="width: 12%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;">UoM</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc_obj.est_material_line_ids" t-as="line">
+                                    <tr>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;" t-out="line_index + 1"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.product_id.display_name if line.product_id else 'Non-Catalog / Custom Item'"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.item_description or '-'"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: right;" t-out="'%.2f' % (line.quantity or 0.0)"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;" t-out="line.uom_id.name or '-'"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+
+                    <!-- Block 3: Legal, Permits & Statutory Requirements -->
+                    <t t-if="doc_obj.est_legal_line_ids">
+                        <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-top: 6px; page-break-inside: avoid; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 12.5px; color: #000000;">
+                            <thead>
+                                <tr>
+                                    <th colspan="4" style="background-color: #c6c6c6; border: 1px solid #000000 !important; padding: 4px 8px; text-align: left; font-weight: bold;">
+                                        Block 3: Legal, Permits &amp; Statutory Requirements
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #e6e6e6;">
+                                    <th style="width: 6%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;">#</th>
+                                    <th style="width: 28%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Permit / License Type</th>
+                                    <th style="width: 38%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Description</th>
+                                    <th style="width: 28%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Issuing Authority / Agency</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc_obj.est_legal_line_ids" t-as="line">
+                                    <tr>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;" t-out="line_index + 1"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="dict(line._fields['fee_category']._description_selection(line.env)).get(line.fee_category, '')"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.description or '-'"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.issuing_authority or '-'"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+
+                    <!-- Block 4: Miscellaneous & Site Indirects -->
+                    <t t-if="doc_obj.est_misc_line_ids">
+                        <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-top: 6px; page-break-inside: avoid; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 12.5px; color: #000000;">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" style="background-color: #c6c6c6; border: 1px solid #000000 !important; padding: 4px 8px; text-align: left; font-weight: bold;">
+                                        Block 4: Miscellaneous &amp; Site Indirects
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #e6e6e6;">
+                                    <th style="width: 6%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;">#</th>
+                                    <th style="width: 34%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Category</th>
+                                    <th style="width: 60%; border: 1px solid #000000 !important; padding: 3px 6px; text-align: left;">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="doc_obj.est_misc_line_ids" t-as="line">
+                                    <tr>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px; text-align: center;" t-out="line_index + 1"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="dict(line._fields['misc_category']._description_selection(line.env)).get(line.misc_category, '')"/>
+                                        <td style="border: 1px solid #000000 !important; padding: 3px 6px;" t-out="line.description or '-'"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </xpath>
+    </template>
+</odoo>

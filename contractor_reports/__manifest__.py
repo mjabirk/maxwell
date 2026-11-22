@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Contractor ERP - Analytics & 67 Standard Reports',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'category': 'Contractor ERP/Analytics',
     'summary': '67 Standard Analytical Reports for Construction ERP: Sales, Estimation, Procurement, Stores, Site Operations, HRMS & Finance',
     'description': """
 Contractor ERP Analytics Suite
 ==============================
-Provides 67 comprehensive PostgreSQL analytical views (_auto = False) and Odoo 19 list, pivot, graph, and search views across 4 core business domains:
+Provides 67 comprehensive PostgreSQL analytical views (_auto = False) and Odoo 20 list, pivot, graph, and search views across 4 core business domains:
 
 1. Group A (16 Reports): Sales, Quotations & Variation Orders
 2. Group B (19 Reports): Procurement, Inventory & Emergency Purchases
@@ -20,8 +20,7 @@ Provides 67 comprehensive PostgreSQL analytical views (_auto = False) and Odoo 1
         'contractor_finance',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        'security/ir.access.csv',
         'views/report_group_a_sales_views.xml',
         'views/report_group_b_procurement_views.xml',
         'views/report_group_c_site_hrms_views.xml',

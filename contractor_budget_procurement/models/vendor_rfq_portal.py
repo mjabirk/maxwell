@@ -134,7 +134,7 @@ class ContractorRfqVendorInvite(models.Model):
     @api.depends('access_token')
     def _compute_portal_url(self):
         base_url = (
-            self.env['ir.config_parameter'].sudo().get_param('web.base.url') or ''
+            self.env['ir.config_parameter'].sudo().get_str('web.base.url') or ''
         ).rstrip('/')
         for rec in self:
             rec_id = rec.id if isinstance(rec.id, int) else False

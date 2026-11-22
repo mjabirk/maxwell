@@ -54,12 +54,6 @@
         <field name="target">new</field>
     </record>
 
-    <menuitem id="menu_contractor_tool_bulk_wizard"
-              name="Bulk Tool Issue / Return"
-              parent="contractor_hrms.menu_contractor_hrms_root"
-              action="action_contractor_tool_bulk_wizard"
-              sequence="75"/>
-
     <!-- Button on hr.employee & contractor.tool.asset -->
     <record id="view_employee_form_contractor_hrms_ux" model="ir.ui.view">
         <field name="name">hr.employee.form.contractor.hrms.ux</field>

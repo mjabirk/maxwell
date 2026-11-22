@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_payslip_inherit_wps" inherit_id="hr_payroll.report_payslip">
+        <xpath expr="//div[@id='to_pay']" position="after">
+            <div id="settlement_and_policy_notes" class="mt-2" style="page-break-inside: avoid;">
+                <!-- Header: Top border removed, minimal bottom margin, reduced font size -->
+                <h6 class="fw-bold mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: #495057;">
+                    Benefits &amp; Settlement Calculation Guide
+                </h6>
+
+                <!-- Side-by-Side Equal Height Boxes -->
+                <div class="row g-1 mb-1 d-flex align-items-stretch">
+                    <!-- EOS Breakdown -->
+                    <div class="col-6 d-flex">
+                        <div class="alert alert-secondary w-100 py-1 px-2 mb-0 d-flex flex-column" role="alert" style="font-size: 0.68rem; line-height: 1.25;">
+                            <strong class="d-block" style="font-size: 0.72rem;">End of Service (EOS)</strong>
+                            <div class="mb-1" style="font-size: 0.65rem;">
+                                EOS = (EOS Days × Net Days ÷ 365) × Daily Wage
+                            </div>
+                            <ul class="list-unstyled mb-0" style="font-size: 0.65rem; line-height: 1.25;">
+                                <li>• <strong>EOS Days:</strong> Annual EOS entitlement set in contract (<span t-out="o.version_id.eos_days or 0"/> days/year).</li>
+                                <li>• <strong>Net Days:</strong> Total calendar days minus absent days.</li>
+                                <li>• <strong>Daily Wage:</strong> Basic Wage ÷ (365 ÷ 12).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Leave Pay Breakdown -->
+                    <div class="col-6 d-flex">
+                        <div class="alert alert-secondary w-100 py-1 px-2 mb-0 d-flex flex-column" role="alert" style="font-size: 0.68rem; line-height: 1.25;">
+                            <strong class="d-block" style="font-size: 0.72rem;">Leave Pay Settlement</strong>
+                            <div class="mb-1" style="font-size: 0.65rem;">
+                                Leave Pay = Remaining Days × Daily Rate
+                            </div>
+                            <ul class="list-unstyled mb-0" style="font-size: 0.65rem; line-height: 1.25;">
+                                <li>• <strong>Remaining Days:</strong> Accrued days − Utilized days.</li>
+                                <li>• <strong>Accrued Days:</strong> (<span t-out="o.version_id.leave_pay_days or 0"/> days × Net Days) ÷ 365.</li>
+                                <li>• <strong>Net Days:</strong> Total calendar days minus absent days.</li>
+                                <li>• <strong>Utilized Days:</strong> Eligible leave days taken and already paid by the company.</li>
+                                <li>• <strong>Daily Rate:</strong> (Basic + Accommodation) ÷ (365 ÷ 12).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Air Ticket Policy -->
+                <div class="alert alert-secondary py-1 px-2 mb-1" role="alert" style="font-size: 0.65rem; line-height: 1.25;">
+                    <strong class="d-block" style="font-size: 0.7rem;">Air Ticket Policy:</strong>
+                    <span>
+                        Employee is eligible for an air ticket after
+                        <span class="fw-bold" t-out="round(o.version_id.leave_period / 365) if o.version_id.leave_period else 0"/>
+                        year(s) of service. The company will book a flight ticket to the employee's home country airport where a direct flight is available, or pay the equivalent ticket fare checked one month prior to contract termination.
+                    </span>
+                </div>
+
+                <!-- Sick Leave Policy -->
+                <div class="alert alert-secondary py-1 px-2 mb-0" role="alert" style="font-size: 0.65rem; line-height: 1.25;">
+                    <strong class="d-block" style="font-size: 0.7rem;">Sick Leave Policy:</strong>
+                    <span>
+                        Sick leave is only considered valid sick leave if supported by an approved governmental document; otherwise, it will be treated as an absent day.
+                    </span>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 import hmac
 from markupsafe import Markup
 from odoo import http, fields, _
@@ -166,12 +165,11 @@ class ContractorRfqPortalController(http.Controller):
             raw_bytes = fobj.read()
             if not raw_bytes:
                 continue
-            b64_data = base64.b64encode(raw_bytes)
             mimetype = getattr(fobj, 'content_type', None) or 'application/octet-stream'
             uploaded_names.append(fobj.filename)
             inv_att = att_model.create({
                 'name': fobj.filename,
-                'datas': b64_data,
+                'raw': raw_bytes,
                 'res_model': 'contractor.rfq.vendor.invite',
                 'res_id': invite.id,
                 'mimetype': mimetype,
@@ -180,7 +178,7 @@ class ContractorRfqPortalController(http.Controller):
             if invite.requisition_id:
                 mr_att = att_model.create({
                     'name': f"{invite.vendor_id.name} - {fobj.filename}",
-                    'datas': b64_data,
+                    'raw': raw_bytes,
                     'res_model': 'contractor.material.requisition',
                     'res_id': invite.requisition_id.id,
                     'mimetype': mimetype,

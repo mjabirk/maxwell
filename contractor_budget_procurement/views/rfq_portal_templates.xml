@@ -19,15 +19,15 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                         <div>
                             <div class="text-uppercase small fw-semibold mx-rfq-accent">Maxwell Trading &amp; Contracting W.L.L — Supplier RFQ Portal</div>
-                            <h1 class="h3 mb-1 text-white">Request for Quotation: <t t-esc="invite.name"/></h1>
+                            <h1 class="h3 mb-1 text-white">Request for Quotation: <t t-out="invite.name"/></h1>
                             <div class="small text-white-50">
-                                Issuing Entity: <strong class="text-white" t-esc="company.name"/>
-                                <t t-if="invite.project_id"> | Project: <strong class="text-white" t-esc="invite.project_id.name"/></t>
+                                Issuing Entity: <strong class="text-white" t-out="company.name"/>
+                                <t t-if="invite.project_id"> | Project: <strong class="text-white" t-out="invite.project_id.name"/></t>
                             </div>
                         </div>
                         <div class="text-md-end">
                             <span class="badge bg-light text-dark px-3 py-2 fs-6">
-                                MR Ref: <t t-esc="invite.requisition_id.name"/>
+                                MR Ref: <t t-out="invite.requisition_id.name"/>
                             </span>
                         </div>
                     </div>
@@ -40,8 +40,8 @@
                         <div class="card mx-rfq-card h-100">
                             <div class="card-body">
                                 <div class="text-muted small text-uppercase">Invited Vendor</div>
-                                <div class="fw-bold fs-5" t-esc="invite.vendor_id.name"/>
-                                <div class="small text-muted" t-if="invite.vendor_email" t-esc="invite.vendor_email"/>
+                                <div class="fw-bold fs-5" t-out="invite.vendor_id.name"/>
+                                <div class="small text-muted" t-if="invite.vendor_email" t-out="invite.vendor_email"/>
                             </div>
                         </div>
                     </div>
@@ -50,10 +50,10 @@
                             <div class="card-body">
                                 <div class="text-muted small text-uppercase">Submission Deadline</div>
                                 <div class="fw-bold fs-5">
-                                    <t t-if="invite.deadline_date" t-esc="invite.deadline_date"/>
+                                    <t t-if="invite.deadline_date" t-out="invite.deadline_date"/>
                                     <t t-else="">Open Until Closed</t>
                                 </div>
-                                <div class="small text-muted">Currency: <strong t-esc="currency.name"/> (<t t-esc="currency.symbol"/>)</div>
+                                <div class="small text-muted">Currency: <strong t-out="currency.name"/> (<t t-out="currency.symbol"/>)</div>
                             </div>
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                                     <span t-else="" class="badge bg-secondary fs-6">Closed / Expired</span>
                                 </div>
                                 <div class="small text-muted mt-1" t-if="invite.submitted_datetime">
-                                    Submitted: <t t-esc="invite.submitted_datetime"/>
+                                    Submitted: <t t-out="invite.submitted_datetime"/>
                                 </div>
                             </div>
                         </div>
@@ -76,7 +76,7 @@
                 </div>
 
                 <div t-if="error_message" class="alert alert-danger shadow-sm mb-4" role="alert">
-                    <strong>Submission Error:</strong> <t t-esc="error_message"/>
+                    <strong>Submission Error:</strong> <t t-out="error_message"/>
                 </div>
 
                 <t t-if="readonly_mode">
@@ -96,15 +96,15 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-sm-4">
                                     <div class="text-muted small">Vendor Quote Ref No.</div>
-                                    <div class="fw-semibold" t-esc="invite.vendor_reference or '-'"/>
+                                    <div class="fw-semibold" t-out="invite.vendor_reference or '-'"/>
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="text-muted small">Delivery Lead Time</div>
-                                    <div class="fw-semibold"><t t-esc="invite.delivery_days"/> Day(s)</div>
+                                    <div class="fw-semibold"><t t-out="invite.delivery_days"/> Day(s)</div>
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="text-muted small">Offered Payment Terms</div>
-                                    <div class="fw-semibold" t-esc="invite.payment_terms or '-'"/>
+                                    <div class="fw-semibold" t-out="invite.payment_terms or '-'"/>
                                 </div>
                             </div>
 
@@ -116,26 +116,26 @@
                                             <th>Description</th>
                                             <th class="text-end">Qty</th>
                                             <th>UoM</th>
-                                            <th class="text-end">Quoted Unit Price (<t t-esc="currency.symbol"/>)</th>
-                                            <th class="text-end">Subtotal (<t t-esc="currency.symbol"/>)</th>
+                                            <th class="text-end">Quoted Unit Price (<t t-out="currency.symbol"/>)</th>
+                                            <th class="text-end">Subtotal (<t t-out="currency.symbol"/>)</th>
                                             <th>Brand / Spec Note</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr t-foreach="invite.line_ids" t-as="line">
-                                            <td class="fw-semibold" t-esc="line.product_id.display_name"/>
-                                            <td t-esc="line.description"/>
-                                            <td class="text-end" t-esc="'%.2f' % line.qty"/>
-                                            <td t-esc="line.product_uom_id.name"/>
-                                            <td class="text-end" t-esc="'%.2f' % line.quoted_price"/>
-                                            <td class="text-end fw-bold" t-esc="'%.2f' % line.subtotal"/>
-                                            <td t-esc="line.vendor_line_note or '-'"/>
+                                            <td class="fw-semibold" t-out="line.product_id.display_name"/>
+                                            <td t-out="line.description"/>
+                                            <td class="text-end" t-out="'%.2f' % line.qty"/>
+                                            <td t-out="line.product_uom_id.name"/>
+                                            <td class="text-end" t-out="'%.2f' % line.quoted_price"/>
+                                            <td class="text-end fw-bold" t-out="'%.2f' % line.subtotal"/>
+                                            <td t-out="line.vendor_line_note or '-'"/>
                                         </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr class="table-primary">
-                                            <th colspan="5" class="text-end">Total Quoted Amount (<t t-esc="currency.name"/>)</th>
-                                            <th class="text-end fs-5" t-esc="'%s %.2f' % (currency.symbol or '', invite.total_quoted_amount)"/>
+                                            <th colspan="5" class="text-end">Total Quoted Amount (<t t-out="currency.name"/>)</th>
+                                            <th class="text-end fs-5" t-out="'%s %.2f' % (currency.symbol or '', invite.total_quoted_amount)"/>
                                             <th></th>
                                         </tr>
                                     </tfoot>
@@ -144,14 +144,14 @@
 
                             <div class="mb-3" t-if="invite.vendor_notes">
                                 <div class="text-muted small">Commercial Remarks</div>
-                                <div class="p-3 bg-light rounded" t-esc="invite.vendor_notes"/>
+                                <div class="p-3 bg-light rounded" t-out="invite.vendor_notes"/>
                             </div>
 
                             <div t-if="attachment_links">
                                 <div class="text-muted small mb-2">Attached Quotation Files</div>
                                 <ul class="list-group">
                                     <li class="list-group-item d-flex justify-content-between align-items-center" t-foreach="attachment_links" t-as="att">
-                                        <span><i class="fa fa-file-pdf-o text-danger me-2"/><t t-esc="att['name']"/></span>
+                                        <span><i class="fa fa-file-pdf-o text-danger me-2"/><t t-out="att['name']"/></span>
                                         <a class="btn btn-sm btn-outline-primary" t-att-href="att['url']" target="_blank">Download</a>
                                     </li>
                                 </ul>
@@ -169,7 +169,7 @@
                         <div class="card mx-rfq-card mb-4">
                             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                 <h2 class="h5 mb-0">1. Itemized Pricing Schedule</h2>
-                                <span class="small text-muted">Enter your unit price per item in <strong t-esc="currency.name"/></span>
+                                <span class="small text-muted">Enter your unit price per item in <strong t-out="currency.name"/></span>
                             </div>
                             <div class="card-body p-0 p-md-3">
                                 <div class="table-responsive">
@@ -180,7 +180,7 @@
                                                 <th style="min-width: 180px;">Description</th>
                                                 <th class="text-end">Qty</th>
                                                 <th>UoM</th>
-                                                <th style="min-width: 140px;" class="text-end">Unit Price (<t t-esc="currency.symbol"/>)</th>
+                                                <th style="min-width: 140px;" class="text-end">Unit Price (<t t-out="currency.symbol"/>)</th>
                                                 <th style="min-width: 130px;" class="text-end">Subtotal</th>
                                                 <th style="min-width: 180px;">Brand / Spec Note</th>
                                             </tr>
@@ -189,10 +189,10 @@
                                             <t t-foreach="invite.line_ids" t-as="line">
                                                 <t t-set="saved_input" t-value="line_inputs.get(line.id, {})"/>
                                                 <tr class="rfq-line-row">
-                                                    <td class="fw-semibold" t-esc="line.product_id.display_name"/>
-                                                    <td class="small text-muted" t-esc="line.description"/>
-                                                    <td class="text-end fw-semibold" t-esc="'%.2f' % line.qty"/>
-                                                    <td t-esc="line.product_uom_id.name"/>
+                                                    <td class="fw-semibold" t-out="line.product_id.display_name"/>
+                                                    <td class="small text-muted" t-out="line.description"/>
+                                                    <td class="text-end fw-semibold" t-out="'%.2f' % line.qty"/>
+                                                    <td t-out="line.product_uom_id.name"/>
                                                     <td>
                                                         <input type="number"
                                                                step="0.01"
@@ -205,7 +205,7 @@
                                                                t-att-value="saved_input.get('price', 0.0)"/>
                                                     </td>
                                                     <td class="text-end fw-bold rfq-line-subtotal" t-attf-id="subtotal_#{line.id}">
-                                                        <t t-esc="'%.2f' % saved_input.get('subtotal', 0.0)"/>
+                                                        <t t-out="'%.2f' % saved_input.get('subtotal', 0.0)"/>
                                                     </td>
                                                     <td>
                                                         <input type="text"
@@ -222,9 +222,9 @@
                             </div>
                             <div class="card-footer bg-white py-3">
                                 <div class="mx-total-bar p-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
-                                    <span class="fw-semibold text-uppercase">Grand Total Quoted Value (<t t-esc="currency.name"/>)</span>
+                                    <span class="fw-semibold text-uppercase">Grand Total Quoted Value (<t t-out="currency.name"/>)</span>
                                     <span class="fs-4 fw-bold mx-rfq-accent">
-                                        <span t-esc="currency.symbol or ''"/> <span id="rfq-grand-total">0.00</span>
+                                        <span t-out="currency.symbol or ''"/> <span id="rfq-grand-total">0.00</span>
                                     </span>
                                 </div>
                             </div>
@@ -256,7 +256,7 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold" for="vendor_notes">Vendor Commercial Remarks / Validity</label>
                                     <textarea class="form-control" id="vendor_notes" name="vendor_notes" rows="3"
-                                              placeholder="Specify quotation validity period, warranty, or delivery conditions..."><t t-esc="vendor_notes"/></textarea>
+                                              placeholder="Specify quotation validity period, warranty, or delivery conditions..."><t t-out="vendor_notes"/></textarea>
                                 </div>
 
                                 <div class="mb-2">
@@ -336,7 +336,7 @@
             <div class="mx-rfq-banner py-4 mb-5">
                 <div class="container">
                     <div class="text-uppercase small fw-semibold" style="color:#c8963e;">Maxwell Trading &amp; Contracting W.L.L — Supplier RFQ Portal</div>
-                    <h1 class="h3 mb-0 text-white">Quotation Confirmation: <t t-esc="invite.name"/></h1>
+                    <h1 class="h3 mb-0 text-white">Quotation Confirmation: <t t-out="invite.name"/></h1>
                 </div>
             </div>
             <div class="container pb-5">
@@ -346,34 +346,34 @@
                         <h2 class="h4 fw-bold mb-2">Thank You! Your Quotation Has Been Submitted</h2>
                         <p class="text-muted mb-4">
                             We have received your commercial bid and attached document(s) for Material Requisition
-                            <strong t-esc="invite.requisition_id.name"/>.
+                            <strong t-out="invite.requisition_id.name"/>.
                         </p>
                         <div class="table-responsive text-start mb-4">
                             <table class="table table-bordered mb-0">
                                 <tbody>
                                     <tr>
                                         <th class="bg-light">RFQ Reference</th>
-                                        <td t-esc="invite.name"/>
+                                        <td t-out="invite.name"/>
                                     </tr>
                                     <tr>
                                         <th class="bg-light">Vendor</th>
-                                        <td t-esc="invite.vendor_id.name"/>
+                                        <td t-out="invite.vendor_id.name"/>
                                     </tr>
                                     <tr>
                                         <th class="bg-light">Vendor Quote Ref</th>
-                                        <td t-esc="invite.vendor_reference or '-'"/>
+                                        <td t-out="invite.vendor_reference or '-'"/>
                                     </tr>
                                     <tr>
                                         <th class="bg-light">Total Quoted Value</th>
-                                        <td class="fw-bold" t-esc="'%s %.2f' % (currency.symbol or '', invite.total_quoted_amount)"/>
+                                        <td class="fw-bold" t-out="'%s %.2f' % (currency.symbol or '', invite.total_quoted_amount)"/>
                                     </tr>
                                     <tr>
                                         <th class="bg-light">Delivery / Payment Terms</th>
-                                        <td><t t-esc="invite.delivery_days"/> Days | <t t-esc="invite.payment_terms"/></td>
+                                        <td><t t-out="invite.delivery_days"/> Days | <t t-out="invite.payment_terms"/></td>
                                     </tr>
                                     <tr t-if="uploaded_names">
                                         <th class="bg-light">Uploaded Files</th>
-                                        <td t-esc="', '.join(uploaded_names)"/>
+                                        <td t-out="', '.join(uploaded_names)"/>
                                     </tr>
                                 </tbody>
                             </table>
