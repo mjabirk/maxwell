@@ -88,7 +88,7 @@ class CrmLead(models.Model):
         ('lost', 'Lost'),
         ('on_hold', 'On Hold'),
         ('declined', 'Declined / Rejected'),
-    ], string='Contractor Pipeline Stage', default='open', tracking=True, required=True, copy=False)
+    ], string='Contractor Pipeline Stage', default='open', tracking=True, required=True, copy=False, group_expand=True)
 
     requires_fresh_cost_review = fields.Boolean(
         string='Requires Fresh Cost Review',
@@ -198,6 +198,10 @@ class CrmLead(models.Model):
         until at least one Site Visit record is marked 'completed' with observations/uploads.
         """
         self.ensure_one()
+        if self.contractor_state in ('won', 'lost', 'declined'):
+            raise UserError(_(
+                "Lead '%s' is closed (%s). Reopen the lead before creating a new Cost Estimate."
+            ) % (self.name, self.contractor_state))
         if not self.has_completed_site_visit:
             raise UserError(_(
                 "Site Visit Upload Gate Enforced:\n\n"
@@ -221,6 +225,14 @@ class CrmLead(models.Model):
             },
         }
 
+    def action_sale_quotations_new(self):
+        """Redirect standard sale_crm New Quotation through the Site Visit Upload Gate."""
+        return self.action_create_cost_estimate()
+
+    def action_new_quotation(self):
+        """Redirect standard sale_crm quotation action through the Site Visit Upload Gate."""
+        return self.action_create_cost_estimate()
+
     def action_view_site_visits(self):
         self.ensure_one()
         action = self.env['ir.actions.act_window']._for_xml_id('contractor_crm_estimation.action_contractor_site_visit')
@@ -240,6 +252,6 @@ class CrmLead(models.Model):
             'res_model': 'sale.order',
             'view_mode': 'list,form',
             'domain': [('lead_id', '=', self.id)],
-            'context': {'default_lead_id': self.id, 'default_partner_id': self.partner_id.id},
+            'context': {'default_lead_id': self.id, 'default_partner_id': self.partner_id.id, 'create': False},
         }
 

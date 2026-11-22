@@ -47,6 +47,7 @@ This module provides complete front-end commercial lifecycle governance for cont
     'depends': [
         'contractor_core',
         'crm',
+        'sale_crm',
         'sale_management',
         'project',
         'stock',

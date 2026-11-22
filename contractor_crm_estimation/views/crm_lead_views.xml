@@ -55,6 +55,20 @@
                 <field name="contractor_state" widget="statusbar" statusbar_visible="open,site_visit,quoted,sent_to_client,negotiation,won"/>
             </xpath>
 
+            <!-- Hide Default CRM Won, Lost, Restore Buttons & Standard Stage Pipeline Bar -->
+            <xpath expr="//header/button[@name='action_set_won_rainbowman']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='%(crm.crm_lead_lost_action)d']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='action_restore']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//header/field[@name='stage_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
             <!-- Stat Buttons -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button class="oe_stat_button" type="object" name="action_view_site_visits" icon="fa-camera">
@@ -116,6 +130,24 @@
         </field>
     </record>
 
+    <!-- Hide sale_crm New Quotation button & duplicate Quotations/Orders stat buttons -->
+    <record id="crm_case_form_view_oppor_inherit_contractor" model="ir.ui.view">
+        <field name="name">crm.lead.oppor.inherited.crm.contractor</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="sale_crm.crm_case_form_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_sale_quotations_new']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//div[@name='button_box']//button[@name='action_view_sale_quotation']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//div[@name='button_box']//button[@name='action_view_sale_order']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Filter & Search Views for Contractor CRM -->
     <record id="view_crm_lead_filter_inherit_contractor" model="ir.ui.view">
         <field name="name">crm.lead.search.inherit.contractor</field>
@@ -134,7 +166,7 @@
         </field>
     </record>
 
-    <!-- Open full expanded Form view instead of Quick Create popup on Contracting Leads Kanban -->
+    <!-- Open full expanded Form view and group Kanban by non-draggable contractor_state -->
     <record id="crm_case_kanban_view_leads_inherit_contractor" model="ir.ui.view">
         <field name="name">crm.lead.kanban.lead.inherit.contractor</field>
         <field name="model">crm.lead</field>
@@ -144,6 +176,39 @@
                 <attribute name="on_create"/>
                 <attribute name="quick_create">false</attribute>
                 <attribute name="quick_create_view"/>
+                <attribute name="default_group_by">contractor_state</attribute>
+                <attribute name="records_draggable">false</attribute>
+                <attribute name="groups_draggable">false</attribute>
+                <attribute name="group_create">false</attribute>
+                <attribute name="group_delete">false</attribute>
+                <attribute name="group_edit">false</attribute>
+            </xpath>
+            <xpath expr="//kanban/field[@name='stage_id']" position="after">
+                <field name="contractor_state"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Pipeline List view: hide standard Mark Lost button & stage_id, show contractor_state -->
+    <record id="crm_case_tree_view_oppor_inherit_contractor" model="ir.ui.view">
+        <field name="name">crm.lead.list.opportunity.inherit.contractor</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='%(crm.crm_lead_lost_action)d']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='stage_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="contractor_state"
+                       widget="badge"
+                       optional="show"
+                       decoration-success="contractor_state == 'won'"
+                       decoration-info="contractor_state in ('open', 'site_visit', 'quoted', 'sent_to_client', 'negotiation')"
+                       decoration-warning="contractor_state == 'on_hold'"
+                       decoration-danger="contractor_state in ('lost', 'declined')"/>
             </xpath>
         </field>
     </record>
