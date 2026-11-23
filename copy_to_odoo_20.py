@@ -425,6 +425,30 @@ class AccountingMigrator:
             "mail_notify_force_send": False,
             "no_reset_password": True,
         }
+        self._src_banks_by_id: Optional[Dict[int, Dict[str, Any]]] = None
+        self._dst_company_country_cache: Dict[int, Optional[int]] = {}
+
+    def _get_src_banks_by_id(self) -> Dict[int, Dict[str, Any]]:
+        """Lazily load source res.bank records for Odoo 20+ inline partner bank mapping."""
+        if self._src_banks_by_id is None:
+            if self.src.fields_get("res.bank"):
+                banks = self.src.search_read(
+                    "res.bank",
+                    [],
+                    ["id", "name", "bic", "street", "street2", "zip", "city", "state", "country", "active"],
+                    context=self.src_ctx_all,
+                )
+                self._src_banks_by_id = {b["id"]: b for b in banks}
+            else:
+                self._src_banks_by_id = {}
+        return self._src_banks_by_id
+
+    def _get_dst_company_country_id(self, dst_cid: int, dst_ctx: dict) -> Optional[int]:
+        """Return cached destination company country_id for fallback on required tax fields."""
+        if dst_cid not in self._dst_company_country_cache:
+            rows = self.dst.read("res.company", [dst_cid], ["country_id"], context=dst_ctx)
+            self._dst_company_country_cache[dst_cid] = m2o_id(rows[0].get("country_id")) if rows else None
+        return self._dst_company_country_cache[dst_cid]
 
     def dst_company_ctx(self, src_company_id: Optional[int], extra: Optional[dict] = None) -> dict:
         ctx = dict(self.dst_ctx_quiet)
@@ -598,25 +622,34 @@ class AccountingMigrator:
                 )
                 self.state.set_map("res.country.state", s["id"], dst_id)
 
-        # Banks
-        for b in self.src.search_read(
-            "res.bank", [], ["id", "name", "bic", "country", "active"], context=self.src_ctx_all
-        ):
-            if self.state.get_dst("res.bank", b["id"]):
-                continue
-            domain = [["bic", "=", b["bic"]]] if b.get("bic") else [["name", "=", b["name"]]]
-            existing = self.dst.search("res.bank", domain, limit=1, context=self.dst_ctx_quiet)
-            if existing:
-                self.state.set_map("res.bank", b["id"], existing[0])
-            elif not self.dry_run:
-                vals = {
-                    "name": b["name"],
-                    "bic": b.get("bic") or False,
-                    "country": self.state.get_dst("res.country", m2o_id(b.get("country"))) or False,
-                    "active": b.get("active", True),
-                }
-                dst_id = self.dst.create("res.bank", vals, context=self.dst_ctx_quiet)
-                self.state.set_map("res.bank", b["id"], dst_id)
+        # Banks (Odoo 20 removed res.bank and merged bank attributes onto res.partner.bank)
+        src_has_res_bank = bool(self.src.fields_get("res.bank"))
+        dst_has_res_bank = bool(self.dst.fields_get("res.bank"))
+        if src_has_res_bank and dst_has_res_bank:
+            for b in self.src.search_read(
+                "res.bank", [], ["id", "name", "bic", "country", "active"], context=self.src_ctx_all
+            ):
+                if self.state.get_dst("res.bank", b["id"]):
+                    continue
+                domain = [["bic", "=", b["bic"]]] if b.get("bic") else [["name", "=", b["name"]]]
+                existing = self.dst.search("res.bank", domain, limit=1, context=self.dst_ctx_quiet)
+                if existing:
+                    self.state.set_map("res.bank", b["id"], existing[0])
+                elif not self.dry_run:
+                    vals = {
+                        "name": b["name"],
+                        "bic": b.get("bic") or False,
+                        "country": self.state.get_dst("res.country", m2o_id(b.get("country"))) or False,
+                        "active": b.get("active", True),
+                    }
+                    dst_id = self.dst.create("res.bank", vals, context=self.dst_ctx_quiet)
+                    self.state.set_map("res.bank", b["id"], dst_id)
+        elif src_has_res_bank and not dst_has_res_bank:
+            src_banks = self._get_src_banks_by_id()
+            log.info(
+                "Destination has no 'res.bank' model (Odoo 20+); cached %d source banks to inline into res.partner.bank in Phase 6.",
+                len(src_banks),
+            )
 
         # Account Tags
         for t in self.src.search_read(
@@ -853,6 +886,32 @@ class AccountingMigrator:
                         dst_tx_id = existing[0]
                         self.state.set_map("account.tax", tx["id"], dst_tx_id)
                     elif not self.dry_run:
+                        dst_country_id = (
+                            self.state.get_dst("res.country", m2o_id(tx.get("country_id")))
+                            or self._get_dst_company_country_id(dst_cid, dst_ctx)
+                            or False
+                        )
+                        dst_tax_group_id = self.state.get_dst("account.tax.group", m2o_id(tx.get("tax_group_id")))
+                        if not dst_tax_group_id:
+                            fallback_tg = self.dst.search(
+                                "account.tax.group",
+                                [["company_id", "=", dst_cid]],
+                                limit=1,
+                                context=dst_ctx,
+                            )
+                            if fallback_tg:
+                                dst_tax_group_id = fallback_tg[0]
+                            else:
+                                dst_tax_group_id = self.dst.create(
+                                    "account.tax.group",
+                                    {
+                                        "name": "Taxes",
+                                        "sequence": 10,
+                                        "company_id": dst_cid,
+                                        "country_id": dst_country_id,
+                                    },
+                                    context=dst_ctx,
+                                )
                         vals = {
                             "name": tx["name"],
                             "type_tax_use": tx["type_tax_use"],
@@ -868,8 +927,8 @@ class AccountingMigrator:
                             "description": tx.get("description") or False,
                             "invoice_label": tx.get("invoice_label") or False,
                             "company_id": dst_cid,
-                            "tax_group_id": self.state.get_dst("account.tax.group", m2o_id(tx.get("tax_group_id"))) or False,
-                            "country_id": self.state.get_dst("res.country", m2o_id(tx.get("country_id"))) or False,
+                            "tax_group_id": dst_tax_group_id,
+                            "country_id": dst_country_id,
                             "tax_exigibility": tx.get("tax_exigibility") or "on_invoice",
                             "cash_basis_transition_account_id": self.state.get_dst(
                                 "account.account", m2o_id(tx.get("cash_basis_transition_account_id"))
@@ -1299,14 +1358,28 @@ class AccountingMigrator:
                 log.error("Failed creating partner %s (%d): %s", p.get("name"), p["id"], exc)
 
         # Partner Bank Accounts (needed for journals & payments)
+        src_acc_field = "account_number" if self.src.has_field("res.partner.bank", "account_number") else "acc_number"
+        dst_acc_field = "account_number" if self.dst.has_field("res.partner.bank", "account_number") else "acc_number"
+        src_holder_field = "holder_name" if self.src.has_field("res.partner.bank", "holder_name") else "acc_holder_name"
+        dst_holder_field = "holder_name" if self.dst.has_field("res.partner.bank", "holder_name") else "acc_holder_name"
+        dst_has_bank_id = self.dst.has_field("res.partner.bank", "bank_id")
+        src_banks_by_id = {} if dst_has_bank_id else self._get_src_banks_by_id()
+
         src_banks = self.src.search_read(
             "res.partner.bank",
             [],
-            ["id", "acc_number", "partner_id", "bank_id", "currency_id", "company_id", "active"],
+            [
+                "id", src_acc_field, "partner_id", "bank_id", "currency_id", "company_id",
+                "active", src_holder_field, "allow_out_payment",
+                "bank_name", "bank_bic", "street", "street2", "zip", "city", "state_id", "country_id",
+            ],
             context=self.src_ctx_all,
         )
         for pb in src_banks:
             if self.state.get_dst("res.partner.bank", pb["id"]):
+                continue
+            acc_num = pb.get(src_acc_field)
+            if not acc_num:
                 continue
             dst_partner = self.state.get_dst("res.partner", m2o_id(pb.get("partner_id")))
             if not dst_partner:
@@ -1315,26 +1388,46 @@ class AccountingMigrator:
             dst_cid = self.state.get_dst("res.company", src_cid) if src_cid else False
             existing = self.dst.search(
                 "res.partner.bank",
-                [["acc_number", "=", pb["acc_number"]], ["partner_id", "=", dst_partner]],
+                [[dst_acc_field, "=", acc_num], ["partner_id", "=", dst_partner]],
                 limit=1,
                 context=self.dst_ctx_quiet,
             )
             if existing:
                 self.state.set_map("res.partner.bank", pb["id"], existing[0])
             elif not self.dry_run:
-                vals = {
-                    "acc_number": pb["acc_number"],
+                vals: Dict[str, Any] = {
+                    dst_acc_field: acc_num,
                     "partner_id": dst_partner,
-                    "bank_id": self.state.get_dst("res.bank", m2o_id(pb.get("bank_id"))) or False,
-                    "currency_id": self.state.get_dst("res.currency", m2o_id(pb.get("currency_id"))) or False,
                     "company_id": dst_cid or False,
                     "active": pb.get("active", True),
+                    dst_holder_field: pb.get(src_holder_field) or False,
+                    "allow_out_payment": pb.get("allow_out_payment", False),
                 }
+                if dst_has_bank_id:
+                    vals["bank_id"] = self.state.get_dst("res.bank", m2o_id(pb.get("bank_id"))) or False
+                    vals["currency_id"] = self.state.get_dst("res.currency", m2o_id(pb.get("currency_id"))) or False
+                else:
+                    src_bank = src_banks_by_id.get(m2o_id(pb.get("bank_id")) or 0) or {}
+                    src_state_id = m2o_id(src_bank.get("state")) or m2o_id(pb.get("state_id"))
+                    src_country_id = m2o_id(src_bank.get("country")) or m2o_id(pb.get("country_id"))
+                    vals.update(
+                        {
+                            "bank_name": src_bank.get("name") or pb.get("bank_name") or False,
+                            "bank_bic": src_bank.get("bic") or pb.get("bank_bic") or False,
+                            "street": src_bank.get("street") or pb.get("street") or False,
+                            "street2": src_bank.get("street2") or pb.get("street2") or False,
+                            "zip": src_bank.get("zip") or pb.get("zip") or False,
+                            "city": src_bank.get("city") or pb.get("city") or False,
+                            "state_id": self.state.get_dst("res.country.state", src_state_id) or False,
+                            "country_id": self.state.get_dst("res.country", src_country_id) or False,
+                        }
+                    )
                 try:
                     dst_id = self.dst.create("res.partner.bank", vals, context=self.dst_ctx_quiet)
                     self.state.set_map("res.partner.bank", pb["id"], dst_id)
                 except Exception as exc:
                     self.state.log_error("partner_banks", "res.partner.bank", pb["id"], str(exc))
+                    log.error("Failed creating partner bank %s (%d): %s", acc_num, pb["id"], exc)
 
     # -------------------------------------------------------------------------
     # STEP 7: PRODUCTS & UOMS (Referenced in Invoice/Bill Lines)
@@ -1658,7 +1751,7 @@ class AccountingMigrator:
                     "sequence": sl.get("sequence", 10),
                     "display_type": dt,
                 }
-                if dt not in ("line_section", "line_note"):
+                if dt not in ("line_section", "line_subsection", "line_note"):
                     dst_acc = self.state.get_dst("account.account", m2o_id(sl.get("account_id")))
                     if not dst_acc:
                         raise ValueError(f"Unmapped account {sl.get('account_id')} on line {sl['id']}")
@@ -1788,6 +1881,7 @@ class AccountingMigrator:
         log.info("=== Phase 10: Payments (account.payment) ===")
         dst_memo_field = "memo" if self.dst.has_field("account.payment", "memo") else "ref"
         src_memo_field = "memo" if self.src.has_field("account.payment", "memo") else "ref"
+        dst_has_pay_workflow = self.dst.has_field("account.payment", "payment_workflow_state")
 
         for src_cid in self.get_source_company_ids():
             dst_cid = self.state.get_dst("res.company", src_cid)
@@ -1848,19 +1942,27 @@ class AccountingMigrator:
                         if "is_internal_transfer" in p:
                             vals["is_internal_transfer"] = p["is_internal_transfer"]
 
+                        src_state = p.get("state")
+                        if dst_has_pay_workflow and src_state in ("posted", "in_process", "paid", "reconciled"):
+                            vals["payment_workflow_state"] = "released"
+
                         dst_pid = self.dst.create("account.payment", vals, context=dst_ctx)
 
-                        src_state = p.get("state")
-                        if src_state in ("posted", "in_process", "paid"):
+                        if src_state in ("posted", "in_process", "paid", "reconciled"):
                             self.dst.call("account.payment", "action_post", {"ids": [dst_pid]}, context=dst_ctx)
-                            if src_state == "paid":
+                            if src_state in ("paid", "reconciled"):
                                 try:
                                     self.dst.call(
                                         "account.payment", "action_validate", {"ids": [dst_pid]}, context=dst_ctx
                                     )
                                 except Exception:
                                     pass
-                        elif src_state in ("cancel", "canceled", "rejected"):
+                        elif src_state == "rejected":
+                            try:
+                                self.dst.call("account.payment", "action_reject", {"ids": [dst_pid]}, context=dst_ctx)
+                            except Exception:
+                                self.dst.call("account.payment", "action_cancel", {"ids": [dst_pid]}, context=dst_ctx)
+                        elif src_state in ("cancel", "canceled"):
                             self.dst.call("account.payment", "action_cancel", {"ids": [dst_pid]}, context=dst_ctx)
 
                         self.state.set_map("account.payment", src_pid, dst_pid)
@@ -2052,6 +2154,8 @@ class AccountingMigrator:
         if self.skip_attachments:
             return
         log.info("=== Phase 13: Attachments (ir.attachment) ===")
+        src_bin_field = "datas" if self.src.has_field("ir.attachment", "datas") else "raw"
+        dst_bin_field = "raw" if self.dst.has_field("ir.attachment", "raw") else "datas"
         target_models = [
             "account.move",
             "account.payment",
@@ -2085,12 +2189,12 @@ class AccountingMigrator:
                     total_copied += len(pending_atts)
                     continue
 
-                # Fetch small batches because `datas` contains base64 file binaries
+                # Fetch small batches because binary content contains base64 file payloads
                 for att_batch in chunked(pending_atts, ATTACHMENT_BATCH_SIZE):
                     atts = self.src.read(
                         "ir.attachment",
                         att_batch,
-                        ["id", "name", "type", "datas", "url", "mimetype", "description", "res_model", "res_id", "company_id"],
+                        ["id", "name", "type", src_bin_field, "url", "mimetype", "description", "res_model", "res_id", "company_id"],
                         context=self.src_ctx_all,
                     )
                     for a in atts:
@@ -2112,7 +2216,10 @@ class AccountingMigrator:
                             if a.get("type") == "url":
                                 vals["url"] = a.get("url") or False
                             else:
-                                vals["datas"] = a.get("datas") or False
+                                bin_val = a.get(src_bin_field)
+                                if isinstance(bin_val, dict):
+                                    bin_val = bin_val.get("content") or False
+                                vals[dst_bin_field] = bin_val or False
 
                             dst_aid = self.dst.create("ir.attachment", vals, context=self.dst_ctx_quiet)
                             self.state.set_map("ir.attachment", src_aid, dst_aid)
@@ -2184,7 +2291,11 @@ class AccountingMigrator:
     def run(self, retry_errors: bool = False):
         v19 = self.src.check_connection()
         v20 = self.dst.check_connection()
-        log.info("Connected -> Source: %s | Destination: %s", v19.get("server_version"), v20.get("server_version"))
+        log.info(
+            "Connected -> Source: %s | Destination: %s",
+            v19.get("version") or v19.get("server_version"),
+            v20.get("version") or v20.get("server_version"),
+        )
 
         if retry_errors:
             errs = self.state.get_unresolved_errors()
@@ -2222,8 +2333,9 @@ class AccountingMigrator:
         unresolved = self.state.get_unresolved_errors()
         if unresolved:
             log.warning(
-                "Migration finished with %d unresolved errors. Inspect 'migration_state.db' or re-run with --retry-errors.",
+                "Migration finished with %d unresolved errors. Inspect '%s' or re-run with --retry-errors.",
                 len(unresolved),
+                self.state.db_path,
             )
         else:
             log.info("Migration completed cleanly with 0 errors!")
