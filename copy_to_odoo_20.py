@@ -268,7 +268,11 @@ class OdooJSON2Client:
                     )
 
                 return resp.json()
-            except (requests.ConnectionError, requests.Timeout, requests.ChunkedEncodingError) as exc:
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            ) as exc:
                 last_err = exc
                 wait = min(2 ** attempt, 30)
                 log.warning(
