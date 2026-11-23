@@ -472,7 +472,7 @@ class ContractorSiteAttendanceLine(models.Model):
             if hasattr(line.employee_id, 'get_employee_rate_on_date'):
                 rate = line.employee_id.get_employee_rate_on_date(target_date)
             elif hasattr(line.employee_id, 'hourly_cost'):
-                rate = line.employee_id.hourly_cost or 0.0
+                rate = line.employee_id.sudo().hourly_cost or 0.0
             line.hourly_rate = rate
 
             # 2. Determine OT Multiplier

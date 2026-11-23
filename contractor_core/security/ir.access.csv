@@ -22,5 +22,7 @@ access_contractor_approval_inbox_md,contractor.approval.inbox.md,contractor.appr
 access_contractor_approval_inbox_sys,contractor.approval.inbox.system,contractor.approval.inbox,base.group_system,crud,
 access_hr_employee_contractor_se_read,hr.employee.contractor.se.read,hr.employee,contractor_core.group_contractor_site_engineer,r,
 access_hr_employee_contractor_sales_read,hr.employee.contractor.sales.read,hr.employee,contractor_core.group_contractor_sales_admin,r,
+access_hr_version_contractor_se_read,hr.version.contractor.se.read,hr.version,contractor_core.group_contractor_site_engineer,r,
+access_hr_version_contractor_sales_read,hr.version.contractor.sales.read,hr.version,contractor_core.group_contractor_sales_admin,r,
 rule_contractor_dated_rate_history_multi_company,Contractor Dated Rate History Multi-Company,contractor.dated.rate.history,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"
 rule_contractor_approval_inbox_multi_company,Contractor Approval Inbox Multi-Company,contractor.approval.inbox,,crud,"['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]"

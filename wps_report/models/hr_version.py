@@ -4,18 +4,18 @@ from odoo import api, models, fields
 class HrVersion(models.Model):
     _inherit = 'hr.version'
 
-    accommodation_allowance = fields.Monetary('Accommodation Allowance', default=0, tracking=True, help="Monthly Accommodation Allowance.")
-    food_allowance = fields.Monetary('Food Allowance', default=0, tracking=True, help="Monthly Food Allowance.")
-    transportation_allowance = fields.Monetary('Transportation Allowance', default=0, tracking=True, help="Monthly Transportation Allowance.")
-    other_allowance = fields.Monetary('Other Allowance', default=0, tracking=True, help="Monthly Other Allowance.")
-    rp_charge = fields.Monetary('RP Charge', default=0, tracking=True)
-    air_ticket = fields.Monetary('Air Ticket', default=0, tracking=True)
-    leave_pay_days = fields.Integer("Leave Pay Days")
-    eos_days = fields.Integer("End Of Service Days")
-    leave_period = fields.Integer("Leave Period")
-    leave_accrual_amount = fields.Monetary("Leave pay Accrual per Day", compute='_compute_accrual_amount')
-    eos_accrual_amount = fields.Monetary("EOS Accrual per Day", compute='_compute_accrual_amount')
-    total_salary = fields.Monetary('Total Salary', compute='_compute_total_salary', store=True, tracking=True, help="Total monthly salary including wage and all allowances.")
+    accommodation_allowance = fields.Monetary('Accommodation Allowance', default=0, tracking=True, help="Monthly Accommodation Allowance.", groups="hr_payroll.group_hr_payroll_user")
+    food_allowance = fields.Monetary('Food Allowance', default=0, tracking=True, help="Monthly Food Allowance.", groups="hr_payroll.group_hr_payroll_user")
+    transportation_allowance = fields.Monetary('Transportation Allowance', default=0, tracking=True, help="Monthly Transportation Allowance.", groups="hr_payroll.group_hr_payroll_user")
+    other_allowance = fields.Monetary('Other Allowance', default=0, tracking=True, help="Monthly Other Allowance.", groups="hr_payroll.group_hr_payroll_user")
+    rp_charge = fields.Monetary('RP Charge', default=0, tracking=True, groups="hr_payroll.group_hr_payroll_user")
+    air_ticket = fields.Monetary('Air Ticket', default=0, tracking=True, groups="hr_payroll.group_hr_payroll_user")
+    leave_pay_days = fields.Integer("Leave Pay Days", groups="hr_payroll.group_hr_payroll_user")
+    eos_days = fields.Integer("End Of Service Days", groups="hr_payroll.group_hr_payroll_user")
+    leave_period = fields.Integer("Leave Period", groups="hr_payroll.group_hr_payroll_user")
+    leave_accrual_amount = fields.Monetary("Leave pay Accrual per Day", compute='_compute_accrual_amount', groups="hr_payroll.group_hr_payroll_user")
+    eos_accrual_amount = fields.Monetary("EOS Accrual per Day", compute='_compute_accrual_amount', groups="hr_payroll.group_hr_payroll_user")
+    total_salary = fields.Monetary('Total Salary', compute='_compute_total_salary', store=True, tracking=True, help="Total monthly salary including wage and all allowances.", groups="hr_payroll.group_hr_payroll_user")
 
     @api.depends('wage', 'accommodation_allowance', 'food_allowance', 'transportation_allowance', 'other_allowance')
     def _compute_total_salary(self):

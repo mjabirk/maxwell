@@ -64,6 +64,7 @@ Key Components:
         'views/res_config_settings_views.xml',
         'views/document_version_views.xml',
         'views/dated_rate_history_views.xml',
+        'views/employee_picker_views.xml',
         'views/reason_wizard_views.xml',
         'views/contractor_menus.xml',
         'views/executive_approval_inbox_views.xml',

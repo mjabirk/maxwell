@@ -142,7 +142,7 @@
                                 <field name="est_labour_line_ids" readonly="state not in ('draft', 'submitted')">
                                     <list editable="bottom">
                                         <field name="worker_category"/>
-                                        <field name="employee_id" optional="show"/>
+                                        <field name="employee_id" optional="show" options="{'no_create': True, 'no_open': True}" context="{'list_view_ref': 'contractor_core.view_employee_contractor_picker_list'}"/>
                                         <field name="trade"/>
                                         <field name="role_designation"/>
                                         <field name="calculation_mode"/>

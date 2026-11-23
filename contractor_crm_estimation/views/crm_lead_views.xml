@@ -102,7 +102,7 @@
             <xpath expr="//group[@name='lead_partner']" position="after">
                 <group string="Contractor Governance &amp; Assignment">
                     <field name="assigned_manager_id" options="{'no_create': True}"/>
-                    <field name="assigned_engineer_id" widget="many2one_avatar_employee"/>
+                    <field name="assigned_engineer_id" widget="many2one_avatar_employee" options="{'no_create': True, 'no_open': True}" context="{'list_view_ref': 'contractor_core.view_employee_contractor_picker_list'}"/>
                     <field name="expected_project_type"/>
                     <field name="project_location"/>
                     <field name="enquiry_date" readonly="1"/>

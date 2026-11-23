@@ -63,7 +63,7 @@
                         <page string="Scheduled Operatives (Double-Booking Protected)" name="page_lines">
                             <field name="line_ids" readonly="state != 'draft'">
                                 <list string="Workforce Lines" editable="bottom">
-                                    <field name="employee_id"/>
+                                    <field name="employee_id" options="{'no_create': True, 'no_open': True}" context="{'list_view_ref': 'contractor_core.view_employee_contractor_picker_list'}"/>
                                     <field name="worker_category" widget="badge"
                                            decoration-info="worker_category == 'permanent'"
                                            decoration-warning="worker_category == 'temporary'"

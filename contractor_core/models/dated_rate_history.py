@@ -156,10 +156,9 @@ class ContractorDatedRateHistory(models.Model):
         if not employee_id:
             return 0.0
 
-        if not target_date:
-            target_date = fields.Date.context_today(self)
+        target_date = fields.Date.to_date(target_date) if target_date else fields.Date.context_today(self)
 
-        record = self.search([
+        record = self.sudo().search([
             ('employee_id', '=', employee_id),
             ('effective_date', '<=', target_date),
             '|',
@@ -167,18 +166,35 @@ class ContractorDatedRateHistory(models.Model):
             ('effective_to', '>=', target_date),
         ], order='effective_date desc, id desc', limit=1)
 
-        if record:
+        if record and record.effective_hourly_rate > 0.0:
             return record.effective_hourly_rate
 
         # Fallback to employee base rate or hourly cost
-        employee = self.env['hr.employee'].browse(employee_id)
-        if hasattr(employee, 'hourly_cost') and employee.hourly_cost:
+        employee = self.env['hr.employee'].sudo().browse(employee_id).exists()
+        if not employee:
+            return 0.0
+
+        if getattr(employee, 'effective_hourly_rate', 0.0) > 0.0:
+            return employee.effective_hourly_rate
+
+        if getattr(employee, 'hourly_cost', 0.0) > 0.0:
             return employee.hourly_cost
 
         company = employee.company_id or self.env.company
         standard_monthly_hours = company.standard_monthly_hours or 208.0
 
-        # Check for wage on employee contract if hr_contract is present
+        # Resolve Odoo 20 hr.version (contract)
+        version = employee._get_version(target_date) if hasattr(employee, '_get_version') else (
+            getattr(employee, 'version_id', False) or getattr(employee, 'current_version_id', False)
+        )
+        if version:
+            if getattr(version, 'wage_type', 'monthly') == 'hourly' and getattr(version, 'hourly_wage', 0.0) > 0.0:
+                return version.hourly_wage
+            monthly_wage = getattr(version, 'total_salary', 0.0) or getattr(version, 'wage', 0.0)
+            if monthly_wage > 0.0 and standard_monthly_hours > 0:
+                return monthly_wage / standard_monthly_hours
+
+        # Legacy contract_id fallback
         if hasattr(employee, 'contract_id') and employee.contract_id:
             contract = employee.contract_id
             if hasattr(contract, 'wage') and contract.wage and standard_monthly_hours > 0:

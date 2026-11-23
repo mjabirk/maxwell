@@ -180,14 +180,15 @@ class ContractorCostLabourLine(models.Model):
         RateHistory = self.env['contractor.dated.rate.history'].sudo()
         today = fields.Date.context_today(self)
         if self.employee_id:
-            emp = self.employee_id
+            emp = self.employee_id.sudo()
             emp_cat = getattr(emp, 'workforce_category', False) or getattr(emp, 'worker_category', False)
             if emp_cat in ('permanent', 'temporary'):
                 self.worker_category = emp_cat
             elif emp_cat == 'manpower_supply':
                 self.worker_category = 'temporary'
-            if not self.role_designation and emp.job_title:
-                self.role_designation = emp.job_title
+            job_label = emp.job_title or (emp.job_id.name if emp.job_id else False)
+            if not self.role_designation and job_label:
+                self.role_designation = job_label
             rate_val = RateHistory.get_rate_on_date(emp.id, today)
             if not rate_val:
                 rate_val = (
