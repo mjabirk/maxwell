@@ -3,7 +3,7 @@ import json
 import sys
 from markupsafe import Markup
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.orm.models import MetaModel
 
 
@@ -1089,18 +1089,60 @@ class AccountMoveLine(models.Model):
         ], limit=1)
         return project.id if project else False
 
+    def _is_legacy_project_exempt(self):
+        """Return True when this line is exempt from mandatory Project Code enforcement
+        because it belongs to an imported legacy record or predates the company's
+        configured Project Code enforcement start date.
+        Normal new entries remain strictly restricted.
+        """
+        self.ensure_one()
+        move = self.move_id
+        company = self.company_id or (move.company_id if move else self.env.company)
+
+        # 1. Record already tagged as an imported legacy entry
+        if move and move.is_legacy_import:
+            return True
+
+        # 2. Cutoff date: historical entries strictly before the go-live date
+        start_date = company.project_restriction_start_date if company else False
+        entry_date = (
+            (move.date if move else False)
+            or (move.invoice_date if move else False)
+            or self.date
+        )
+        if start_date and entry_date and entry_date < start_date:
+            return True
+
+        # 3. Active import context (Odoo CSV/Excel import when enabled in Settings,
+        #    or authorized migration script context)
+        if self.env.context.get('import_file') and company and company.allow_legacy_import_without_project:
+            return True
+        # Note: @api.constrains runs under sudo() in Odoo 20 (env.su=True while keeping
+        # the caller's env.uid), so check uid == 1 or base.group_system rather than env.su.
+        if self.env.context.get('contractor_legacy_import') and (
+            (company and company.allow_legacy_import_without_project)
+            or self.env.uid == 1
+            or self.env.user.has_group('base.group_system')
+        ):
+            return True
+
+        return False
+
     @api.constrains('project_id', 'account_id', 'display_type', 'analytic_distribution')
     def _check_operational_project_required(self):
         """Enforces Project Code on operational cost and revenue lines.
         Balance sheet accounts (receivable, payable, tax, cash/bank) are excluded.
         General ledger entries (move_type == 'entry') without a move-level project_id
         are allowed for company-wide corporate accruals/settlements unless linked to a project.
+        Imported legacy entries and entries dated prior to the configured cutoff date are exempt.
         """
         for line in self:
-            if line.display_type in ('line_section', 'line_note'):
+            if line.display_type in ('line_section', 'line_subsection', 'line_note'):
                 continue
             account = line.account_id
             if not account:
+                continue
+            if line._is_legacy_project_exempt():
                 continue
             # Operational lines belong to income or expense account types
             is_income = account.internal_group == 'income' or account.account_type in ('income', 'income_other')
@@ -1185,6 +1227,21 @@ class AccountMove(models.Model):
         index=True,
         help='Project associated with this invoice / bill.'
     )
+    is_legacy_import = fields.Boolean(
+        string='Imported Legacy Record',
+        default=False,
+        copy=False,
+        index=True,
+        help='Marks historical accounting entries imported from a legacy system so they remain exempt from mandatory Project Code validation while all new entries strictly require a Project Code.',
+    )
+
+    @api.model
+    def _can_mark_legacy_import(self, company_id=False):
+        """Return True if the caller or company configuration permits tagging legacy imports."""
+        company = self.env['res.company'].browse(company_id) if company_id else self.env.company
+        if company and company.allow_legacy_import_without_project:
+            return True
+        return bool(self.env.su or self.env.user.has_group('base.group_system'))
 
     @api.depends('invoice_line_ids.project_id', 'line_ids.project_id')
     def _compute_project_id(self):
@@ -1203,6 +1260,18 @@ class AccountMove(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            can_mark = self._can_mark_legacy_import(vals.get('company_id'))
+            if vals.get('is_legacy_import'):
+                if not can_mark:
+                    vals['is_legacy_import'] = False
+            else:
+                if self.env.context.get('contractor_legacy_import') and can_mark:
+                    vals['is_legacy_import'] = True
+                elif self.env.context.get('import_file'):
+                    company = self.env['res.company'].browse(vals['company_id']) if vals.get('company_id') else self.env.company
+                    if company and company.allow_legacy_import_without_project:
+                        vals['is_legacy_import'] = True
+
             proj_id = vals.get('project_id') or self.env.context.get('default_project_id')
             if not proj_id and vals.get('invoice_origin'):
                 proj_id = self.env['stock.picking']._resolve_project_id_from_origin(vals['invoice_origin'])
@@ -1215,6 +1284,11 @@ class AccountMove(models.Model):
                             if not cmd[2].get('project_id'):
                                 cmd[2]['project_id'] = proj_id
         return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get('is_legacy_import') and not (self.env.su or self.env.user.has_group('base.group_system')):
+            raise AccessError(_("Only System Administrators can mark existing accounting entries as legacy imports."))
+        return super().write(vals)
 
 
 # --- 6.4 Sale Order Enforcement ---

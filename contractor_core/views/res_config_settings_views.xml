@@ -506,6 +506,25 @@
                                 </div>
                             </div>
                         </setting>
+
+                        <setting id="setting_legacy_import_project_governance"
+                                 string="Legacy Data Import &amp; Project Code Cutoff"
+                                 help="Allow importing historical accounting entries without a Project Code while strictly enforcing Project Code on all new entries.">
+                            <div class="content-group">
+                                <div class="row mt8">
+                                    <label for="allow_legacy_import_without_project" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="allow_legacy_import_without_project"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="project_restriction_start_date" class="col-lg-5 o_light_label"/>
+                                    <div class="col-lg-7">
+                                        <field name="project_restriction_start_date" class="oe_inline"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
                     </block>
 
                 </app>

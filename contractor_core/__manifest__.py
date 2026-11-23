@@ -62,6 +62,7 @@ Key Components:
         'security/ir.access.csv',
         'data/ir_cron.xml',
         'views/res_config_settings_views.xml',
+        'views/account_move_views.xml',
         'views/document_version_views.xml',
         'views/dated_rate_history_views.xml',
         'views/employee_picker_views.xml',

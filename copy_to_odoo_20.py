@@ -406,6 +406,7 @@ class AccountingMigrator:
         only_company_id: Optional[int] = None,
         skip_attachments: bool = False,
         skip_chatter: bool = False,
+        allow_legacy_import: bool = True,
     ):
         self.src = src
         self.dst = dst
@@ -414,6 +415,7 @@ class AccountingMigrator:
         self.only_company_id = only_company_id
         self.skip_attachments = skip_attachments
         self.skip_chatter = skip_chatter
+        self.allow_legacy_import = allow_legacy_import
 
         self.src_ctx_all = {"active_test": False}
         self.dst_ctx_quiet = {
@@ -1681,9 +1683,10 @@ class AccountingMigrator:
             if not dst_cid:
                 continue
             src_ctx = self.src_company_ctx(src_cid)
-            dst_ctx = self.dst_company_ctx(
-                src_cid, {"check_move_validity": False, "skip_invoice_sync": True}
-            )
+            extra_ctx = {"check_move_validity": False, "skip_invoice_sync": True}
+            if self.allow_legacy_import:
+                extra_ctx["contractor_legacy_import"] = True
+            dst_ctx = self.dst_company_ctx(src_cid, extra_ctx)
 
             domain: list = [["company_id", "=", src_cid]]
             if only_ids is not None:
@@ -1820,6 +1823,8 @@ class AccountingMigrator:
             # Preserve exact Odoo 19 sequence name
             if mv.get("name") and mv["name"] != "/":
                 move_vals["name"] = mv["name"]
+            if self.allow_legacy_import:
+                move_vals["is_legacy_import"] = True
 
             dst_mid = self.dst.create("account.move", move_vals, context=dst_ctx)
 
@@ -2353,6 +2358,11 @@ def main():
     parser.add_argument("--company-id", type=int, default=None, help="Source res.company ID to migrate (default: all).")
     parser.add_argument("--skip-attachments", action="store_true", help="Skip ir.attachment migration.")
     parser.add_argument("--skip-chatter", action="store_true", help="Skip mail.message chatter migration.")
+    parser.add_argument(
+        "--strict-project",
+        action="store_true",
+        help="Enforce Contractor ERP mandatory Project Code constraint even on migrated historical moves (default: mark migrated moves as legacy imports so old data imports without Project Code).",
+    )
     parser.add_argument("--state-db", default=STATE_DB_PATH, help="Path to SQLite resume DB.")
     args = parser.parse_args()
 
@@ -2374,6 +2384,7 @@ def main():
         only_company_id=args.company_id,
         skip_attachments=args.skip_attachments,
         skip_chatter=args.skip_chatter,
+        allow_legacy_import=not args.strict_project,
     )
     migrator.run(retry_errors=args.retry_errors)
 

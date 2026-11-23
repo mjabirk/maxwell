@@ -296,6 +296,16 @@ class ResConfigSettings(models.TransientModel):
         string='Default Payroll & Settlement Payable Account',
         check_company=True,
     )
+    allow_legacy_import_without_project = fields.Boolean(
+        related='company_id.allow_legacy_import_without_project',
+        readonly=False,
+        string='Allow Legacy Data Import Without Project Code',
+    )
+    project_restriction_start_date = fields.Date(
+        related='company_id.project_restriction_start_date',
+        readonly=False,
+        string='Enforce Project Code From Date',
+    )
 
     # -------------------------------------------------------------------------
     # 7. Role-Based Menu & UI Access Controls

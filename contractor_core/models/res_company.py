@@ -313,6 +313,15 @@ class ResCompany(models.Model):
         check_company=True,
         help='Default payable/liability account used for payroll runs, temporary wage settlements, leave salary, ticket allowances, and EOSB.',
     )
+    allow_legacy_import_without_project = fields.Boolean(
+        string='Allow Legacy Data Import Without Project Code',
+        default=False,
+        help='When enabled, historical accounting entries imported via Odoo CSV/Excel import or migration scripts can be created without a Project Code and are tagged as Imported Legacy Records. Normal new entries created in the UI remain strictly restricted. Disable after migration completes.',
+    )
+    project_restriction_start_date = fields.Date(
+        string='Enforce Project Code From Date',
+        help='Optional go-live cutoff date. Operational accounting lines dated strictly before this date are treated as historical data and exempt from the mandatory Project Code restriction. Entries on or after this date (all new entries) strictly require a Project Code.',
+    )
 
     # -------------------------------------------------------------------------
     # 7. Role-Based Menu & UI Access Controls
