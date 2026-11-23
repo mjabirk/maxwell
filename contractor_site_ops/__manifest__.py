@@ -4,7 +4,7 @@
     'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': '48-Hour Entry Lock, Staff Scheduling & Double-Booking Block, DPR Continuity, Attendance & OT Approval, Storekeeper Reconciliation, and Automatic Daily Cost Posting',
-    'author': 'Antigravity DeepMind',
+    'author': 'Lareal',
     'license': 'LGPL-3',
     'depends': [
         'contractor_budget_procurement',

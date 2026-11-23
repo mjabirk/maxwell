@@ -4,7 +4,7 @@
     'version': '20.0.1.0.0',
     'category': 'Contractor ERP',
     'summary': 'Project Budget Real-Time Tracking, 3-Vendor RFQ Rule, Inter-Project Stock Transfers, Material Requisitions, GRN Controls, and Emergency Procurement',
-    'author': 'Antigravity DeepMind',
+    'author': 'Lareal',
     'license': 'LGPL-3',
     'depends': [
         'contractor_crm_estimation',

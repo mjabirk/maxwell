@@ -22,7 +22,7 @@ Comprehensive human resource and labor governance suite engineered for general, 
 - Air ticket allowance tracking with contractual renewal cycles and early-release justifications.
 - Employee separation and exit settlements with statutory EOSB calculation, tool clearance gates, and automatic system access revocation.
     """,
-    'author': 'Contractor ERP Suite Team',
+    'author': 'Lareal',
     'website': 'https://www.contractorerp.internal',
     'license': 'LGPL-3',
     'depends': [

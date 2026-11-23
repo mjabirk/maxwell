@@ -14,7 +14,7 @@ Provides 67 comprehensive PostgreSQL analytical views (_auto = False) and Odoo 2
 3. Group C1 (19 Reports): Site Operations, Daily Tracking & Workforce HRMS
 4. Group C2 (13 Reports): Construction Accounting, Treasury & WIP Profitability
     """,
-    'author': 'Antigravity Deepmind',
+    'author': 'Lareal',
     'license': 'LGPL-3',
     'depends': [
         'contractor_finance',

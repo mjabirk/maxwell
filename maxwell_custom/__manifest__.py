@@ -12,7 +12,7 @@ Updates the PDF print format for:
 - Customer Invoice / Vendor Bill (`account.move`)
 to match the official Maxwell Trading and Contracting WLL layout.
     """,
-    'author': 'Maxwell Trading and Contracting WLL',
+    'author': 'Lareal',
     'depends': ['web', 'sale', 'purchase', 'account'],
     'data': [
         'views/sale_order_views.xml',

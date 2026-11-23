@@ -43,7 +43,7 @@ Enterprise construction financial controls, treasury management, and statutory a
     * Reopening requires Contractor Manager signoff and audit logging.
     * External auditor query and statutory adjustment tracking.
     """,
-    'author': 'Contractor ERP Suite Team',
+    'author': 'Lareal',
     'website': 'https://www.contractorerp.internal',
     'license': 'LGPL-3',
     'depends': [

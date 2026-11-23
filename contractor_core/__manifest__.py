@@ -42,7 +42,7 @@ Key Components:
 4. **SLA Reminder & Auto-Escalation Engine:**
    - Hourly cron job evaluating quotation approval, sales release, material requisition, and follow-up SLAs.
     """,
-    'author': 'Contractor ERP Suite',
+    'author': 'Lareal',
     'website': 'https://github.com/contractor-erp',
     'license': 'LGPL-3',
     'depends': [

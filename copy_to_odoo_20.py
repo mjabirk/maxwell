@@ -765,16 +765,18 @@ class AccountingMigrator:
             dst_existing = self.dst.search_read(
                 "account.account",
                 [],
-                ["id", "code", "name", "company_ids", "company_id"],
+                ["id", "code", "name", "reconcile", "company_ids", "company_id"],
                 context=dst_ctx,
             )
             dst_by_code = {}
+            dst_reconcile_by_id = {}
             for da in dst_existing:
                 dcids = da.get("company_ids") or []
                 dcid = m2o_id(da.get("company_id"))
                 if (dcids and dst_cid in dcids) or (dcid == dst_cid) or (not dcids and not dcid):
                     if da.get("code"):
                         dst_by_code[str(da["code"]).strip()] = da["id"]
+                        dst_reconcile_by_id[da["id"]] = bool(da.get("reconcile"))
 
             created_cnt = 0
             mapped_cnt = 0
@@ -789,12 +791,25 @@ class AccountingMigrator:
                             {"company_ids": [[4, dst_cid]]},
                             context=dst_ctx,
                         )
+                    if acc.get("reconcile") and not dst_reconcile_by_id.get(existing_mapped, True) and not self.dry_run:
+                        try:
+                            self.dst.write("account.account", [existing_mapped], {"reconcile": True}, context=dst_ctx)
+                            dst_reconcile_by_id[existing_mapped] = True
+                        except Exception as exc:
+                            log.warning("Could not enable reconcile on account (%d): %s", existing_mapped, exc)
                     mapped_cnt += 1
                     continue
 
                 code = str(acc.get("code") or "").strip()
                 if code and code in dst_by_code:
-                    self.state.set_map("account.account", acc["id"], dst_by_code[code])
+                    dst_aid = dst_by_code[code]
+                    if acc.get("reconcile") and not dst_reconcile_by_id.get(dst_aid) and not self.dry_run:
+                        try:
+                            self.dst.write("account.account", [dst_aid], {"reconcile": True}, context=dst_ctx)
+                            dst_reconcile_by_id[dst_aid] = True
+                        except Exception as exc:
+                            log.warning("Could not enable reconcile on account [%s] (%d): %s", code, dst_aid, exc)
+                    self.state.set_map("account.account", acc["id"], dst_aid)
                     mapped_cnt += 1
                     continue
 
@@ -1773,6 +1788,53 @@ class AccountingMigrator:
                 for mv in moves:
                     self._copy_single_move(mv, line_fields, src_ctx, dst_ctx, dst_cid)
 
+    def _build_move_line_vals(self, sl: dict) -> Dict[str, Any]:
+        """Translate a source account.move.line dict into destination create/command values."""
+        dt = sl.get("display_type") or "product"
+        lvals: Dict[str, Any] = {
+            "name": sl.get("name") or "/",
+            "sequence": sl.get("sequence", 10),
+            "display_type": dt,
+        }
+        if dt not in ("line_section", "line_subsection", "line_note"):
+            dst_acc = self.state.get_dst("account.account", m2o_id(sl.get("account_id")))
+            if not dst_acc:
+                raise ValueError(f"Unmapped account {sl.get('account_id')} on line {sl['id']}")
+            lvals.update(
+                {
+                    "account_id": dst_acc,
+                    "partner_id": self.state.get_dst("res.partner", m2o_id(sl.get("partner_id"))) or False,
+                    "currency_id": self.state.get_dst("res.currency", m2o_id(sl.get("currency_id"))) or False,
+                    "amount_currency": sl.get("amount_currency", 0.0),
+                    "debit": sl.get("debit", 0.0),
+                    "credit": sl.get("credit", 0.0),
+                    "date_maturity": sl.get("date_maturity") or False,
+                    "product_id": self.state.get_dst("product.product", m2o_id(sl.get("product_id"))) or False,
+                    "product_uom_id": self.state.get_dst("uom.uom", m2o_id(sl.get("product_uom_id"))) or False,
+                    "quantity": sl.get("quantity", 1.0),
+                    "price_unit": sl.get("price_unit", 0.0),
+                    "discount": sl.get("discount", 0.0),
+                    "tax_line_id": self.state.get_dst("account.tax", m2o_id(sl.get("tax_line_id"))) or False,
+                    "tax_repartition_line_id": self.state.get_dst(
+                        "account.tax.repartition.line", m2o_id(sl.get("tax_repartition_line_id"))
+                    ) or False,
+                    "analytic_distribution": self.remap_analytic_distribution(
+                        sl.get("analytic_distribution")
+                    ),
+                }
+            )
+            tids = [self.state.get_dst("account.tax", t) for t in (sl.get("tax_ids") or [])]
+            tids = [t for t in tids if t]
+            if tids:
+                lvals["tax_ids"] = [[6, 0, tids]]
+            ttags = [
+                self.state.get_dst("account.account.tag", t) for t in (sl.get("tax_tag_ids") or [])
+            ]
+            ttags = [t for t in ttags if t]
+            if ttags:
+                lvals["tax_tag_ids"] = [[6, 0, ttags]]
+        return lvals
+
     def _copy_single_move(
         self, mv: dict, line_fields: List[str], src_ctx: dict, dst_ctx: dict, dst_cid: int
     ):
@@ -1788,53 +1850,7 @@ class AccountingMigrator:
             line_by_id = {l["id"]: l for l in src_lines}
             ordered_src_lines = [line_by_id[lid] for lid in src_line_ids if lid in line_by_id]
 
-            line_cmds = []
-            for sl in ordered_src_lines:
-                dt = sl.get("display_type") or "product"
-                lvals: Dict[str, Any] = {
-                    "name": sl.get("name") or "/",
-                    "sequence": sl.get("sequence", 10),
-                    "display_type": dt,
-                }
-                if dt not in ("line_section", "line_subsection", "line_note"):
-                    dst_acc = self.state.get_dst("account.account", m2o_id(sl.get("account_id")))
-                    if not dst_acc:
-                        raise ValueError(f"Unmapped account {sl.get('account_id')} on line {sl['id']}")
-                    lvals.update(
-                        {
-                            "account_id": dst_acc,
-                            "partner_id": self.state.get_dst("res.partner", m2o_id(sl.get("partner_id"))) or False,
-                            "currency_id": self.state.get_dst("res.currency", m2o_id(sl.get("currency_id"))) or False,
-                            "amount_currency": sl.get("amount_currency", 0.0),
-                            "debit": sl.get("debit", 0.0),
-                            "credit": sl.get("credit", 0.0),
-                            "date_maturity": sl.get("date_maturity") or False,
-                            "product_id": self.state.get_dst("product.product", m2o_id(sl.get("product_id"))) or False,
-                            "product_uom_id": self.state.get_dst("uom.uom", m2o_id(sl.get("product_uom_id"))) or False,
-                            "quantity": sl.get("quantity", 1.0),
-                            "price_unit": sl.get("price_unit", 0.0),
-                            "discount": sl.get("discount", 0.0),
-                            "tax_line_id": self.state.get_dst("account.tax", m2o_id(sl.get("tax_line_id"))) or False,
-                            "tax_repartition_line_id": self.state.get_dst(
-                                "account.tax.repartition.line", m2o_id(sl.get("tax_repartition_line_id"))
-                            ) or False,
-                            "analytic_distribution": self.remap_analytic_distribution(
-                                sl.get("analytic_distribution")
-                            ),
-                        }
-                    )
-                    tids = [self.state.get_dst("account.tax", t) for t in (sl.get("tax_ids") or [])]
-                    tids = [t for t in tids if t]
-                    if tids:
-                        lvals["tax_ids"] = [[6, 0, tids]]
-                    ttags = [
-                        self.state.get_dst("account.account.tag", t) for t in (sl.get("tax_tag_ids") or [])
-                    ]
-                    ttags = [t for t in ttags if t]
-                    if ttags:
-                        lvals["tax_tag_ids"] = [[6, 0, ttags]]
-
-                line_cmds.append([0, 0, lvals])
+            line_cmds = [[0, 0, self._build_move_line_vals(sl)] for sl in ordered_src_lines]
 
             move_vals: Dict[str, Any] = {
                 "move_type": mv.get("move_type", "entry"),
@@ -1894,6 +1910,51 @@ class AccountingMigrator:
             elif src_state == "cancel" and dst_state == "draft":
                 self.dst.call("account.move", "button_cancel", {"ids": [dst_mid]}, context=dst_ctx)
 
+            # Guarantee exact invoice_date_due & line date_maturity (Odoo 20 recomputes due date from needed_terms on post)
+            if mv.get("move_type") in (
+                "out_invoice", "out_refund", "in_invoice", "in_refund", "out_receipt", "in_receipt"
+            ) and mv.get("invoice_date_due"):
+                src_due = mv["invoice_date_due"]
+                cur_info = self.dst.read("account.move", [dst_mid], ["invoice_date_due", "state"], context=dst_ctx)
+                if cur_info:
+                    dst_due = cur_info[0].get("invoice_date_due")
+                    cur_state = cur_info[0].get("state")
+                    if str(dst_due or "") != str(src_due):
+                        if cur_state == "posted":
+                            self.dst.call("account.move", "button_draft", {"ids": [dst_mid]}, context=dst_ctx)
+                        self.dst.write(
+                            "account.move",
+                            [dst_mid],
+                            {"invoice_payment_term_id": False, "invoice_date_due": src_due},
+                            context=dst_ctx,
+                        )
+                        dst_pt_lines = self.dst.search_read(
+                            "account.move.line",
+                            [["move_id", "=", dst_mid], ["display_type", "=", "payment_term"]],
+                            ["id", "date_maturity"],
+                            order="id asc",
+                            context=dst_ctx,
+                        )
+                        src_pt_lines = [
+                            sl for sl in ordered_src_lines
+                            if (sl.get("display_type") or "product") == "payment_term"
+                        ]
+                        if len(src_pt_lines) == len(dst_pt_lines):
+                            for s_pt, d_pt in zip(src_pt_lines, dst_pt_lines):
+                                s_mat = s_pt.get("date_maturity") or src_due
+                                if s_mat and str(d_pt.get("date_maturity") or "") != str(s_mat):
+                                    self.dst.write(
+                                        "account.move.line", [d_pt["id"]], {"date_maturity": s_mat}, context=dst_ctx
+                                    )
+                        else:
+                            for d_pt in dst_pt_lines:
+                                if str(d_pt.get("date_maturity") or "") != str(src_due):
+                                    self.dst.write(
+                                        "account.move.line", [d_pt["id"]], {"date_maturity": src_due}, context=dst_ctx
+                                    )
+                        if cur_state == "posted":
+                            self.dst.call("account.move", "action_post", {"ids": [dst_mid]}, context=dst_ctx)
+
             # Map move and its lines 1-to-1
             self.state.set_map("account.move", src_mid, dst_mid)
             self._map_move_lines(src_mid, dst_mid, ordered_src_lines, dst_ctx)
@@ -1903,6 +1964,25 @@ class AccountingMigrator:
         except Exception as exc:
             self.state.log_error("moves", "account.move", src_mid, str(exc))
             log.error("Failed migrating move %s (%d): %s", mv.get("name"), src_mid, exc)
+
+    def _move_line_matches(self, sl: dict, dl: dict, require_partner: bool = False) -> bool:
+        """Return True if a source move line matches a destination move line on account and amounts."""
+        dt_s = sl.get("display_type") or "product"
+        dt_d = dl.get("display_type") or "product"
+        if dt_s in ("line_section", "line_subsection", "line_note") or dt_d in ("line_section", "line_subsection", "line_note"):
+            return dt_s == dt_d and (sl.get("name") or "") == (dl.get("name") or "")
+        t_acc = self.state.get_dst("account.account", m2o_id(sl.get("account_id")))
+        if m2o_id(dl.get("account_id")) != t_acc:
+            return False
+        if abs((dl.get("debit") or 0.0) - (sl.get("debit") or 0.0)) >= 0.005:
+            return False
+        if abs((dl.get("credit") or 0.0) - (sl.get("credit") or 0.0)) >= 0.005:
+            return False
+        if require_partner:
+            t_par = self.state.get_dst("res.partner", m2o_id(sl.get("partner_id")))
+            if m2o_id(dl.get("partner_id")) != t_par:
+                return False
+        return True
 
     def _map_move_lines(
         self, src_mid: int, dst_mid: int, src_lines: List[dict], dst_ctx: dict
@@ -1914,28 +1994,38 @@ class AccountingMigrator:
             order="id asc",
             context=dst_ctx,
         )
-        # Fast path: exact same line count & order
-        if len(src_lines) == len(dst_lines):
+        # Fast path only when every positional pair matches account and amounts
+        if len(src_lines) == len(dst_lines) and all(
+            self._move_line_matches(sl, dl, require_partner=False)
+            for sl, dl in zip(src_lines, dst_lines)
+        ):
             for sl, dl in zip(src_lines, dst_lines):
                 self.state.set_map("account.move.line", sl["id"], dl["id"])
             return
 
-        # Fallback: match by (account_id, partner_id, debit, credit)
-        used = set()
+        # Deterministic multi-pass matching for reordered/auto-generated move lines
+        used: Set[int] = set()
         for sl in src_lines:
-            t_acc = self.state.get_dst("account.account", m2o_id(sl.get("account_id")))
-            t_par = self.state.get_dst("res.partner", m2o_id(sl.get("partner_id")))
-            for dl in dst_lines:
-                if dl["id"] in used:
-                    continue
-                if (
-                    m2o_id(dl.get("account_id")) == t_acc
-                    and m2o_id(dl.get("partner_id")) == t_par
-                    and abs((dl.get("debit") or 0.0) - (sl.get("debit") or 0.0)) < 0.005
-                    and abs((dl.get("credit") or 0.0) - (sl.get("credit") or 0.0)) < 0.005
-                ):
-                    self.state.set_map("account.move.line", sl["id"], dl["id"])
-                    used.add(dl["id"])
+            matched_dl = None
+            for pass_idx in (1, 2, 3):
+                for dl in dst_lines:
+                    if dl["id"] in used:
+                        continue
+                    if pass_idx == 1:
+                        if self._move_line_matches(sl, dl, require_partner=True) and (sl.get("name") or "") == (dl.get("name") or ""):
+                            matched_dl = dl
+                            break
+                    elif pass_idx == 2:
+                        if self._move_line_matches(sl, dl, require_partner=True):
+                            matched_dl = dl
+                            break
+                    else:
+                        if self._move_line_matches(sl, dl, require_partner=False):
+                            matched_dl = dl
+                            break
+                if matched_dl:
+                    self.state.set_map("account.move.line", sl["id"], matched_dl["id"])
+                    used.add(matched_dl["id"])
                     break
 
     # -------------------------------------------------------------------------
@@ -2041,7 +2131,8 @@ class AccountingMigrator:
                                 src_lines = self.src.search_read(
                                     "account.move.line",
                                     [["move_id", "=", src_mid]],
-                                    ["id", "account_id", "partner_id", "debit", "credit"],
+                                    ["id", "account_id", "partner_id", "debit", "credit", "display_type", "name"],
+                                    order="id asc",
                                     context=src_ctx,
                                 )
                                 self._map_move_lines(src_mid, dst_mid, src_lines, dst_ctx)
@@ -2057,12 +2148,27 @@ class AccountingMigrator:
     # -------------------------------------------------------------------------
     def migrate_bank_statements(self):
         log.info("=== Phase 11: Bank Statements & Statement Lines ===")
+        src_ml_fields = [
+            "id", "name", "sequence", "display_type", "account_id", "partner_id",
+            "currency_id", "amount_currency", "debit", "credit", "date_maturity",
+            "tax_ids", "tax_tag_ids", "analytic_distribution",
+        ]
         for src_cid in self.get_source_company_ids():
             dst_cid = self.state.get_dst("res.company", src_cid)
             if not dst_cid:
                 continue
             src_ctx = self.src_company_ctx(src_cid)
             dst_ctx = self.dst_company_ctx(src_cid)
+
+            dst_journals = self.dst.search_read(
+                "account.journal",
+                [["company_id", "=", dst_cid]],
+                ["id", "default_account_id"],
+                context=dst_ctx,
+            )
+            dst_journal_default_acc = {
+                j["id"]: m2o_id(j.get("default_account_id")) for j in dst_journals
+            }
 
             # 11.1 Bank Statements
             stmts = self.src.search_read(
@@ -2104,7 +2210,7 @@ class AccountingMigrator:
             fields = [
                 "id", "date", "payment_ref", "ref", "amount", "amount_currency",
                 "foreign_currency_id", "partner_id", "partner_name", "account_number",
-                "journal_id", "statement_id", "move_id", "transaction_type",
+                "journal_id", "statement_id", "move_id", "transaction_type", "is_reconciled",
             ]
             for batch in chunked(st_line_ids, BATCH_SIZE):
                 pending = [i for i in batch if not self.state.get_dst("account.bank.statement.line", i)]
@@ -2114,6 +2220,7 @@ class AccountingMigrator:
                 for sl in lines:
                     src_slid = sl["id"]
                     try:
+                        dst_jid = self.state.get_dst("account.journal", m2o_id(sl.get("journal_id")))
                         vals = {
                             "date": sl["date"],
                             "payment_ref": sl.get("payment_ref") or "/",
@@ -2126,16 +2233,15 @@ class AccountingMigrator:
                             "partner_id": self.state.get_dst("res.partner", m2o_id(sl.get("partner_id"))) or False,
                             "partner_name": sl.get("partner_name") or False,
                             "account_number": sl.get("account_number") or False,
-                            "journal_id": self.state.get_dst("account.journal", m2o_id(sl.get("journal_id"))),
+                            "journal_id": dst_jid,
                             "statement_id": self.state.get_dst(
                                 "account.bank.statement", m2o_id(sl.get("statement_id"))
                             ) or False,
                             "transaction_type": sl.get("transaction_type") or False,
                         }
                         dst_slid = self.dst.create("account.bank.statement.line", vals, context=dst_ctx)
-                        self.state.set_map("account.bank.statement.line", src_slid, dst_slid)
 
-                        # Map auto-created move & lines
+                        # Sync counterpart lines (replace Odoo 20 default suspense line) & map move lines
                         src_mid = m2o_id(sl.get("move_id"))
                         if src_mid:
                             dst_sl = self.dst.read(
@@ -2143,21 +2249,58 @@ class AccountingMigrator:
                             )[0]
                             dst_mid = m2o_id(dst_sl.get("move_id"))
                             if dst_mid:
-                                self.state.set_map("account.move", src_mid, dst_mid)
                                 src_ml = self.src.search_read(
                                     "account.move.line",
                                     [["move_id", "=", src_mid]],
-                                    ["id", "account_id", "partner_id", "debit", "credit"],
+                                    src_ml_fields,
+                                    order="id asc",
                                     context=src_ctx,
                                 )
+                                dst_liq_acc = dst_journal_default_acc.get(dst_jid)
+                                if dst_liq_acc and src_ml:
+                                    dst_ml = self.dst.search_read(
+                                        "account.move.line",
+                                        [["move_id", "=", dst_mid]],
+                                        ["id", "account_id", "partner_id", "debit", "credit", "display_type", "name"],
+                                        order="id asc",
+                                        context=dst_ctx,
+                                    )
+                                    src_counterparts = [
+                                        l for l in src_ml
+                                        if (l.get("display_type") or "product") not in ("line_section", "line_subsection", "line_note")
+                                        and self.state.get_dst("account.account", m2o_id(l.get("account_id"))) != dst_liq_acc
+                                    ]
+                                    dst_non_liq = [
+                                        l for l in dst_ml
+                                        if m2o_id(l.get("account_id")) != dst_liq_acc
+                                    ]
+                                    needs_sync = len(src_counterparts) != len(dst_non_liq)
+                                    if not needs_sync:
+                                        for s_cp, d_cp in zip(src_counterparts, dst_non_liq):
+                                            if not self._move_line_matches(s_cp, d_cp, require_partner=False):
+                                                needs_sync = True
+                                                break
+                                    if needs_sync and src_counterparts:
+                                        st_extra = {"check_move_validity": False, "skip_invoice_sync": True}
+                                        if self.allow_legacy_import:
+                                            st_extra["contractor_legacy_import"] = True
+                                        st_mv_ctx = self.dst_company_ctx(src_cid, st_extra)
+                                        cmds = [[2, d_cp["id"], 0] for d_cp in dst_non_liq]
+                                        for s_cp in src_counterparts:
+                                            cmds.append([0, 0, self._build_move_line_vals(s_cp)])
+                                        self.dst.call("account.move", "button_draft", {"ids": [dst_mid]}, context=st_mv_ctx)
+                                        self.dst.write("account.move", [dst_mid], {"line_ids": cmds}, context=st_mv_ctx)
+                                        self.dst.call("account.move", "action_post", {"ids": [dst_mid]}, context=st_mv_ctx)
+                                self.state.set_map("account.move", src_mid, dst_mid)
                                 self._map_move_lines(src_mid, dst_mid, src_ml, dst_ctx)
+                        self.state.set_map("account.bank.statement.line", src_slid, dst_slid)
                         self.state.resolve_error("statements", "account.bank.statement.line", src_slid)
                     except Exception as exc:
                         self.state.log_error("statements", "account.bank.statement.line", src_slid, str(exc))
                         log.error("Failed statement line %d: %s", src_slid, exc)
 
     # -------------------------------------------------------------------------
-    # STEP 12: RECONCILIATIONS (account.partial.reconcile)
+    # STEP 12: RECONCILIATIONS (account.partial.reconcile & account.full.reconcile)
     # -------------------------------------------------------------------------
     def migrate_reconciliations(self):
         log.info("=== Phase 12: Reconciliations (account.partial.reconcile) ===")
@@ -2166,7 +2309,9 @@ class AccountingMigrator:
             if not dst_cid:
                 continue
             src_ctx = self.src_company_ctx(src_cid)
-            dst_ctx = self.dst_company_ctx(src_cid)
+            rec_ctx = self.dst_company_ctx(
+                src_cid, {"no_exchange_difference": True, "no_cash_basis": True}
+            )
 
             rec_ids = self.src.search(
                 "account.partial.reconcile",
@@ -2178,38 +2323,118 @@ class AccountingMigrator:
             if self.dry_run:
                 continue
 
+            pr_fields = [
+                "id", "debit_move_id", "credit_move_id", "amount",
+                "debit_amount_currency", "credit_amount_currency",
+                "debit_currency_id", "credit_currency_id", "full_reconcile_id",
+            ]
+            src_full_rec_ids: Set[int] = set()
             for batch in chunked(rec_ids, BATCH_SIZE):
-                pending = [rid for rid in batch if not self.state.get_dst("account.partial.reconcile", rid)]
-                if not pending:
-                    continue
                 recs = self.src.read(
                     "account.partial.reconcile",
-                    pending,
-                    ["id", "debit_move_id", "credit_move_id"],
+                    batch,
+                    pr_fields,
                     context=src_ctx,
                 )
                 for r in recs:
                     src_rid = r["id"]
+                    fr_id = m2o_id(r.get("full_reconcile_id"))
+                    if fr_id:
+                        src_full_rec_ids.add(fr_id)
+                    if self.state.get_dst("account.partial.reconcile", src_rid):
+                        continue
                     dst_debit = self.state.get_dst("account.move.line", m2o_id(r.get("debit_move_id")))
                     dst_credit = self.state.get_dst("account.move.line", m2o_id(r.get("credit_move_id")))
                     if not dst_debit or not dst_credit:
                         continue
                     try:
-                        self.dst.call(
-                            "account.move.line",
-                            "reconcile",
-                            {"ids": [dst_debit, dst_credit]},
-                            context=dst_ctx,
+                        # Check if exact partial reconciliation already exists (idempotent re-run)
+                        existing_prs = self.dst.search_read(
+                            "account.partial.reconcile",
+                            [["debit_move_id", "=", dst_debit], ["credit_move_id", "=", dst_credit]],
+                            ["id", "amount"],
+                            context=rec_ctx,
                         )
-                        self.state.set_map("account.partial.reconcile", src_rid, 1)
+                        target_amt = r.get("amount") or 0.0
+                        matched_pr = next(
+                            (ex for ex in existing_prs if abs((ex.get("amount") or 0.0) - target_amt) < 0.005),
+                            None,
+                        )
+                        if matched_pr:
+                            self.state.set_map("account.partial.reconcile", src_rid, matched_pr["id"])
+                            self.state.resolve_error("reconcile", "account.partial.reconcile", src_rid)
+                            continue
+
+                        pr_vals: Dict[str, Any] = {
+                            "debit_move_id": dst_debit,
+                            "credit_move_id": dst_credit,
+                            "amount": target_amt,
+                            "debit_amount_currency": r.get("debit_amount_currency", 0.0),
+                            "credit_amount_currency": r.get("credit_amount_currency", 0.0),
+                        }
+                        dst_d_curr = self.state.get_dst("res.currency", m2o_id(r.get("debit_currency_id")))
+                        dst_c_curr = self.state.get_dst("res.currency", m2o_id(r.get("credit_currency_id")))
+                        if dst_d_curr:
+                            pr_vals["debit_currency_id"] = dst_d_curr
+                        if dst_c_curr:
+                            pr_vals["credit_currency_id"] = dst_c_curr
+
+                        dst_pr_id = self.dst.create("account.partial.reconcile", pr_vals, context=rec_ctx)
+                        self.state.set_map("account.partial.reconcile", src_rid, dst_pr_id)
                         self.state.resolve_error("reconcile", "account.partial.reconcile", src_rid)
                     except Exception as exc:
-                        # Skip already-reconciled warnings cleanly
-                        if "already reconciled" in str(exc).lower():
-                            self.state.set_map("account.partial.reconcile", src_rid, 1)
-                        else:
-                            self.state.log_error("reconcile", "account.partial.reconcile", src_rid, str(exc))
-                            log.warning("Reconcile %d skipped: %s", src_rid, exc)
+                        self.state.log_error("reconcile", "account.partial.reconcile", src_rid, str(exc))
+                        log.warning("Reconcile %d skipped: %s", src_rid, exc)
+
+            # Create matching account.full.reconcile groups for fully reconciled chains
+            pending_frs = [
+                fid for fid in sorted(src_full_rec_ids)
+                if not self.state.get_dst("account.full.reconcile", fid)
+            ]
+            for fbatch in chunked(pending_frs, BATCH_SIZE):
+                full_recs = self.src.read(
+                    "account.full.reconcile",
+                    fbatch,
+                    ["id", "partial_reconcile_ids", "reconciled_line_ids"],
+                    context=src_ctx,
+                )
+                for fr in full_recs:
+                    src_frid = fr["id"]
+                    dst_prs = [
+                        self.state.get_dst("account.partial.reconcile", pid)
+                        for pid in (fr.get("partial_reconcile_ids") or [])
+                    ]
+                    dst_lines = [
+                        self.state.get_dst("account.move.line", lid)
+                        for lid in (fr.get("reconciled_line_ids") or [])
+                    ]
+                    if not dst_prs or not dst_lines or any(p is None for p in dst_prs) or any(l is None for l in dst_lines):
+                        continue
+                    try:
+                        pr_rows = self.dst.read(
+                            "account.partial.reconcile",
+                            dst_prs,
+                            ["id", "full_reconcile_id"],
+                            context=rec_ctx,
+                        )
+                        existing_fr = next(
+                            (m2o_id(row.get("full_reconcile_id")) for row in pr_rows if m2o_id(row.get("full_reconcile_id"))),
+                            None,
+                        )
+                        if existing_fr:
+                            self.state.set_map("account.full.reconcile", src_frid, existing_fr)
+                            continue
+                        dst_frid = self.dst.create(
+                            "account.full.reconcile",
+                            {
+                                "partial_reconcile_ids": [[6, 0, dst_prs]],
+                                "reconciled_line_ids": [[6, 0, dst_lines]],
+                            },
+                            context=rec_ctx,
+                        )
+                        self.state.set_map("account.full.reconcile", src_frid, dst_frid)
+                    except Exception as exc:
+                        log.warning("Full reconcile %d skipped: %s", src_frid, exc)
 
     # -------------------------------------------------------------------------
     # STEP 13: ATTACHMENTS (ir.attachment) & CHATTER NOTES (mail.message)
@@ -2367,10 +2592,13 @@ class AccountingMigrator:
             log.info("Retrying %d previously failed records...", len(errs))
             failed_moves = [e[2] for e in errs if e[1] == "account.move"]
             failed_pays = [e[2] for e in errs if e[1] == "account.payment"]
+            failed_stmts = [e[2] for e in errs if e[1] in ("account.bank.statement", "account.bank.statement.line")]
             if failed_moves:
                 self.migrate_moves(only_ids=failed_moves)
             if failed_pays:
                 self.migrate_payments(only_ids=failed_pays)
+            if failed_stmts:
+                self.migrate_bank_statements()
             self.migrate_reconciliations()
             self.migrate_attachments()
             return

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'WPS report for Qatar',
-    'author': 'Arcxion',
+    'author': 'Lareal',
     'license': 'OPL-1',
-    'website': 'https://arcxion.com/',
     'support': 'info@arcxion.com',
     'version': '20.0.1.0.0',
     'category': 'Payroll',

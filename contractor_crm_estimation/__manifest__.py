@@ -41,7 +41,7 @@ This module provides complete front-end commercial lifecycle governance for cont
    - Integration Hard-Stop: Requires client signed acceptance documents.
    - Traceable Integration: Appends accepted VOs as separate, segregated line items (VO 1, VO 2...) on the master budget.
     """,
-    'author': 'Contractor ERP Suite',
+    'author': 'Lareal',
     'website': 'https://github.com/contractor-erp',
     'license': 'LGPL-3',
     'depends': [
