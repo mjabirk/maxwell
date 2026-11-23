@@ -452,6 +452,46 @@ class AccountingMigrator:
             self._dst_company_country_cache[dst_cid] = m2o_id(rows[0].get("country_id")) if rows else None
         return self._dst_company_country_cache[dst_cid]
 
+    def _ensure_bank_accounts_trusted(self, bank_ids: Optional[List[int]] = None):
+        """Mark destination res.partner.bank records as trusted (allow_out_payment=True)
+        so Odoo 20 allows posting migrated customer invoices and outbound payments linked to them.
+        """
+        if self.dry_run or not self.dst.has_field("res.partner.bank", "allow_out_payment"):
+            return
+        if bank_ids is None:
+            untrusted_ids = self.dst.search(
+                "res.partner.bank",
+                [["allow_out_payment", "=", False]],
+                context=self.dst_ctx_quiet,
+            )
+        else:
+            target_ids = sorted({int(bid) for bid in bank_ids if bid})
+            if not target_ids:
+                return
+            rows = self.dst.read(
+                "res.partner.bank",
+                target_ids,
+                ["id", "allow_out_payment"],
+                context=self.dst_ctx_quiet,
+            )
+            untrusted_ids = [r["id"] for r in rows if not r.get("allow_out_payment")]
+        if not untrusted_ids:
+            return
+        trusted_count = 0
+        for bid in untrusted_ids:
+            try:
+                self.dst.write(
+                    "res.partner.bank",
+                    [bid],
+                    {"allow_out_payment": True},
+                    context=self.dst_ctx_quiet,
+                )
+                trusted_count += 1
+            except Exception as exc:
+                log.warning("Could not trust destination bank account %d: %s", bid, exc)
+        if trusted_count:
+            log.info("Marked %d destination bank account(s) as trusted (allow_out_payment=True).", trusted_count)
+
     def dst_company_ctx(self, src_company_id: Optional[int], extra: Optional[dict] = None) -> dict:
         ctx = dict(self.dst_ctx_quiet)
         if src_company_id:
@@ -1403,7 +1443,7 @@ class AccountingMigrator:
                     "company_id": dst_cid or False,
                     "active": pb.get("active", True),
                     dst_holder_field: pb.get(src_holder_field) or False,
-                    "allow_out_payment": pb.get("allow_out_payment", False),
+                    "allow_out_payment": True,
                 }
                 if dst_has_bank_id:
                     vals["bank_id"] = self.state.get_dst("res.bank", m2o_id(pb.get("bank_id"))) or False
@@ -1430,6 +1470,8 @@ class AccountingMigrator:
                 except Exception as exc:
                     self.state.log_error("partner_banks", "res.partner.bank", pb["id"], str(exc))
                     log.error("Failed creating partner bank %s (%d): %s", acc_num, pb["id"], exc)
+
+        self._ensure_bank_accounts_trusted()
 
     # -------------------------------------------------------------------------
     # STEP 7: PRODUCTS & UOMS (Referenced in Invoice/Bill Lines)
@@ -1821,18 +1863,35 @@ class AccountingMigrator:
                 "line_ids": line_cmds,
             }
             # Preserve exact Odoo 19 sequence name
+            existing_mv = []
             if mv.get("name") and mv["name"] != "/":
                 move_vals["name"] = mv["name"]
+                existing_mv = self.dst.search_read(
+                    "account.move",
+                    [
+                        ["name", "=", mv["name"]],
+                        ["journal_id", "=", dst_jid],
+                        ["company_id", "=", dst_cid],
+                    ],
+                    ["id", "state"],
+                    limit=1,
+                    context=dst_ctx,
+                )
             if self.allow_legacy_import:
                 move_vals["is_legacy_import"] = True
 
-            dst_mid = self.dst.create("account.move", move_vals, context=dst_ctx)
+            if existing_mv:
+                dst_mid = existing_mv[0]["id"]
+                dst_state = existing_mv[0].get("state")
+            else:
+                dst_mid = self.dst.create("account.move", move_vals, context=dst_ctx)
+                dst_state = "draft"
 
             # Transition to exact state (posted / cancel / draft)
             src_state = mv.get("state")
-            if src_state == "posted":
+            if src_state == "posted" and dst_state == "draft":
                 self.dst.call("account.move", "action_post", {"ids": [dst_mid]}, context=dst_ctx)
-            elif src_state == "cancel":
+            elif src_state == "cancel" and dst_state == "draft":
                 self.dst.call("account.move", "button_cancel", {"ids": [dst_mid]}, context=dst_ctx)
 
             # Map move and its lines 1-to-1
@@ -2303,6 +2362,7 @@ class AccountingMigrator:
         )
 
         if retry_errors:
+            self._ensure_bank_accounts_trusted()
             errs = self.state.get_unresolved_errors()
             log.info("Retrying %d previously failed records...", len(errs))
             failed_moves = [e[2] for e in errs if e[1] == "account.move"]
@@ -2326,6 +2386,7 @@ class AccountingMigrator:
         self.migrate_partners(used_partners)
         self.migrate_products(used_products)
         self.migrate_journals()
+        self._ensure_bank_accounts_trusted()
 
         # Transaction & attachment phases
         self.migrate_moves()
