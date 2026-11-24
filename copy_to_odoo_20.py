@@ -153,6 +153,15 @@ class StateStore:
         ).fetchone()
         return row[0] if row else None
 
+    def get_src(self, model: str, dst_id: Optional[int]) -> Optional[int]:
+        if not dst_id:
+            return None
+        row = self.conn.execute(
+            "SELECT src_id FROM id_map WHERE model = ? AND dst_id = ?",
+            (model, int(dst_id)),
+        ).fetchone()
+        return row[0] if row else None
+
     def get_all_map(self, model: str) -> Dict[int, int]:
         rows = self.conn.execute(
             "SELECT src_id, dst_id FROM id_map WHERE model = ?", (model,)
@@ -846,7 +855,12 @@ class AccountingMigrator:
                     vals["deprecated"] = acc["deprecated"]
 
                 try:
-                    dst_id = self.dst.create("account.account", vals, context=dst_ctx)
+                    create_ctx = (
+                        {**dst_ctx, "chart_template_load": True}
+                        if acc.get("account_type") in ("asset_cash", "liability_credit_card")
+                        else dst_ctx
+                    )
+                    dst_id = self.dst.create("account.account", vals, context=create_ctx)
                     self.state.set_map("account.account", acc["id"], dst_id)
                     if code:
                         dst_by_code[code] = dst_id
@@ -1623,6 +1637,15 @@ class AccountingMigrator:
             src_ctx = self.src_company_ctx(src_cid)
             dst_ctx = self.dst_company_ctx(src_cid)
 
+            if not self.dry_run and self.dst.has_field("res.company", "account_journal_suspense_account_id"):
+                src_comp = self.src.read("res.company", [src_cid], ["account_journal_suspense_account_id"], context=src_ctx)
+                dst_comp = self.dst.read("res.company", [dst_cid], ["account_journal_suspense_account_id"], context=dst_ctx)
+                if src_comp and dst_comp:
+                    dst_susp = self.state.get_dst("account.account", m2o_id(src_comp[0].get("account_journal_suspense_account_id")))
+                    if dst_susp and m2o_id(dst_comp[0].get("account_journal_suspense_account_id")) != dst_susp:
+                        self.dst.write("res.company", [dst_cid], {"account_journal_suspense_account_id": dst_susp}, context=dst_ctx)
+                        log.info("Synced company %d account_journal_suspense_account_id -> %d", dst_cid, dst_susp)
+
             src_journals = self.src.search_read(
                 "account.journal",
                 [["company_id", "=", src_cid]],
@@ -1679,9 +1702,47 @@ class AccountingMigrator:
                             log.error("Failed creating journal [%s] %s: %s", j["code"], j["name"], exc)
                             continue
 
-                # Map payment method lines on the journal
+                # Sync journal accounts & map payment method lines on the journal
                 if dst_jid and not self.dry_run:
+                    self._sync_journal_accounts(j, dst_jid, dst_ctx)
                     self._map_payment_method_lines(j, dst_jid, src_ctx, dst_ctx)
+
+    def _sync_journal_accounts(self, src_j: dict, dst_jid: int, dst_ctx: dict):
+        """Align destination journal accounts (default, suspense, profit, loss, bank_account) with source."""
+        fields = [
+            "default_account_id",
+            "suspense_account_id",
+            "profit_account_id",
+            "loss_account_id",
+            "bank_account_id",
+        ]
+        dst_rows = self.dst.read("account.journal", [dst_jid], fields, context=dst_ctx)
+        if not dst_rows:
+            return
+        dst_j = dst_rows[0]
+
+        updates: Dict[str, Any] = {}
+        for acc_f in ("default_account_id", "suspense_account_id", "profit_account_id", "loss_account_id"):
+            dst_acc = self.state.get_dst("account.account", m2o_id(src_j.get(acc_f)))
+            if dst_acc and m2o_id(dst_j.get(acc_f)) != dst_acc:
+                updates[acc_f] = dst_acc
+
+        if updates:
+            self.dst.write("account.journal", [dst_jid], updates, context=dst_ctx)
+            log.info(
+                "Synced journal [%s] (%d) accounts: %s",
+                src_j.get("code"),
+                dst_jid,
+                ", ".join(f"{k}={v}" for k, v in updates.items()),
+            )
+
+        dst_bank_acc = self.state.get_dst("res.partner.bank", m2o_id(src_j.get("bank_account_id")))
+        if dst_bank_acc and m2o_id(dst_j.get("bank_account_id")) != dst_bank_acc:
+            try:
+                self.dst.write("account.journal", [dst_jid], {"bank_account_id": dst_bank_acc}, context=dst_ctx)
+                log.info("Synced journal [%s] (%d) bank_account_id=%d", src_j.get("code"), dst_jid, dst_bank_acc)
+            except Exception as exc:
+                log.warning("Could not sync bank_account_id on journal [%s] (%d): %s", src_j.get("code"), dst_jid, exc)
 
     def _map_payment_method_lines(self, src_j: dict, dst_jid: int, src_ctx: dict, dst_ctx: dict):
         src_pml_ids = (src_j.get("inbound_payment_method_line_ids") or []) + (
@@ -1882,7 +1943,7 @@ class AccountingMigrator:
             existing_mv = []
             if mv.get("name") and mv["name"] != "/":
                 move_vals["name"] = mv["name"]
-                existing_mv = self.dst.search_read(
+                candidates = self.dst.search_read(
                     "account.move",
                     [
                         ["name", "=", mv["name"]],
@@ -1890,9 +1951,12 @@ class AccountingMigrator:
                         ["company_id", "=", dst_cid],
                     ],
                     ["id", "state"],
-                    limit=1,
                     context=dst_ctx,
                 )
+                existing_mv = [
+                    c for c in candidates
+                    if self.state.get_src("account.move", c["id"]) in (None, src_mid)
+                ]
             if self.allow_legacy_import:
                 move_vals["is_legacy_import"] = True
 
@@ -2149,9 +2213,11 @@ class AccountingMigrator:
     def migrate_bank_statements(self):
         log.info("=== Phase 11: Bank Statements & Statement Lines ===")
         src_ml_fields = [
-            "id", "name", "sequence", "display_type", "account_id", "partner_id",
+            "id", "move_id", "name", "sequence", "display_type", "account_id", "partner_id",
             "currency_id", "amount_currency", "debit", "credit", "date_maturity",
-            "tax_ids", "tax_tag_ids", "analytic_distribution",
+            "product_id", "product_uom_id", "quantity", "price_unit", "discount",
+            "tax_ids", "tax_tag_ids", "tax_line_id", "tax_repartition_line_id",
+            "analytic_distribution", "reconciled",
         ]
         for src_cid in self.get_source_company_ids():
             dst_cid = self.state.get_dst("res.company", src_cid)
@@ -2159,16 +2225,6 @@ class AccountingMigrator:
                 continue
             src_ctx = self.src_company_ctx(src_cid)
             dst_ctx = self.dst_company_ctx(src_cid)
-
-            dst_journals = self.dst.search_read(
-                "account.journal",
-                [["company_id", "=", dst_cid]],
-                ["id", "default_account_id"],
-                context=dst_ctx,
-            )
-            dst_journal_default_acc = {
-                j["id"]: m2o_id(j.get("default_account_id")) for j in dst_journals
-            }
 
             # 11.1 Bank Statements
             stmts = self.src.search_read(
@@ -2217,11 +2273,37 @@ class AccountingMigrator:
                 if not pending:
                     continue
                 lines = self.src.read("account.bank.statement.line", pending, fields, context=src_ctx)
+                batch_src_mids = sorted({m2o_id(sl.get("move_id")) for sl in lines if m2o_id(sl.get("move_id"))})
+                src_moves_by_id: Dict[int, Dict[str, Any]] = {}
+                src_lines_by_move: Dict[int, List[Dict[str, Any]]] = {}
+                if batch_src_mids:
+                    for mv in self.src.read(
+                        "account.move",
+                        batch_src_mids,
+                        ["id", "name", "state", "narration"],
+                        context=src_ctx,
+                    ):
+                        src_moves_by_id[mv["id"]] = mv
+                    for ml in self.src.search_read(
+                        "account.move.line",
+                        [["move_id", "in", batch_src_mids]],
+                        src_ml_fields,
+                        order="move_id asc, id asc",
+                        context=src_ctx,
+                    ):
+                        mid = m2o_id(ml.get("move_id"))
+                        if mid:
+                            src_lines_by_move.setdefault(mid, []).append(ml)
+
                 for sl in lines:
                     src_slid = sl["id"]
+                    dst_slid: Optional[int] = None
                     try:
                         dst_jid = self.state.get_dst("account.journal", m2o_id(sl.get("journal_id")))
-                        vals = {
+                        src_mid = m2o_id(sl.get("move_id"))
+                        src_move = src_moves_by_id.get(src_mid) or {} if src_mid else {}
+                        src_ml = src_lines_by_move.get(src_mid, []) if src_mid else []
+                        vals: Dict[str, Any] = {
                             "date": sl["date"],
                             "payment_ref": sl.get("payment_ref") or "/",
                             "ref": sl.get("ref") or False,
@@ -2239,63 +2321,49 @@ class AccountingMigrator:
                             ) or False,
                             "transaction_type": sl.get("transaction_type") or False,
                         }
-                        dst_slid = self.dst.create("account.bank.statement.line", vals, context=dst_ctx)
+                        if src_ml:
+                            vals["line_ids"] = [[0, 0, self._build_move_line_vals(ml)] for ml in src_ml]
+                        if self.allow_legacy_import:
+                            vals["is_legacy_import"] = True
 
-                        # Sync counterpart lines (replace Odoo 20 default suspense line) & map move lines
-                        src_mid = m2o_id(sl.get("move_id"))
+                        st_extra: Dict[str, Any] = {"from_statement_view": True, "skip_invoice_sync": True}
+                        if self.allow_legacy_import:
+                            st_extra["contractor_legacy_import"] = True
+                        st_create_ctx = self.dst_company_ctx(src_cid, st_extra)
+
+                        dst_slid = self.dst.create("account.bank.statement.line", vals, context=st_create_ctx)
+
                         if src_mid:
                             dst_sl = self.dst.read(
                                 "account.bank.statement.line", [dst_slid], ["move_id"], context=dst_ctx
                             )[0]
                             dst_mid = m2o_id(dst_sl.get("move_id"))
                             if dst_mid:
-                                src_ml = self.src.search_read(
-                                    "account.move.line",
-                                    [["move_id", "=", src_mid]],
-                                    src_ml_fields,
-                                    order="id asc",
-                                    context=src_ctx,
-                                )
-                                dst_liq_acc = dst_journal_default_acc.get(dst_jid)
-                                if dst_liq_acc and src_ml:
-                                    dst_ml = self.dst.search_read(
-                                        "account.move.line",
-                                        [["move_id", "=", dst_mid]],
-                                        ["id", "account_id", "partner_id", "debit", "credit", "display_type", "name"],
-                                        order="id asc",
-                                        context=dst_ctx,
-                                    )
-                                    src_counterparts = [
-                                        l for l in src_ml
-                                        if (l.get("display_type") or "product") not in ("line_section", "line_subsection", "line_note")
-                                        and self.state.get_dst("account.account", m2o_id(l.get("account_id"))) != dst_liq_acc
-                                    ]
-                                    dst_non_liq = [
-                                        l for l in dst_ml
-                                        if m2o_id(l.get("account_id")) != dst_liq_acc
-                                    ]
-                                    needs_sync = len(src_counterparts) != len(dst_non_liq)
-                                    if not needs_sync:
-                                        for s_cp, d_cp in zip(src_counterparts, dst_non_liq):
-                                            if not self._move_line_matches(s_cp, d_cp, require_partner=False):
-                                                needs_sync = True
-                                                break
-                                    if needs_sync and src_counterparts:
-                                        st_extra = {"check_move_validity": False, "skip_invoice_sync": True}
-                                        if self.allow_legacy_import:
-                                            st_extra["contractor_legacy_import"] = True
-                                        st_mv_ctx = self.dst_company_ctx(src_cid, st_extra)
-                                        cmds = [[2, d_cp["id"], 0] for d_cp in dst_non_liq]
-                                        for s_cp in src_counterparts:
-                                            cmds.append([0, 0, self._build_move_line_vals(s_cp)])
-                                        self.dst.call("account.move", "button_draft", {"ids": [dst_mid]}, context=st_mv_ctx)
-                                        self.dst.write("account.move", [dst_mid], {"line_ids": cmds}, context=st_mv_ctx)
-                                        self.dst.call("account.move", "action_post", {"ids": [dst_mid]}, context=st_mv_ctx)
+                                move_upd: Dict[str, Any] = {}
+                                if src_move.get("name") and src_move["name"] != "/":
+                                    move_upd["name"] = src_move["name"]
+                                if src_move.get("narration"):
+                                    move_upd["narration"] = src_move["narration"]
+                                if move_upd:
+                                    self.dst.write("account.move", [dst_mid], move_upd, context=st_create_ctx)
+
+                                src_state = src_move.get("state", "posted")
+                                if src_state == "posted":
+                                    self.dst.call("account.move", "action_post", {"ids": [dst_mid]}, context=st_create_ctx)
+                                elif src_state == "cancel":
+                                    self.dst.call("account.move", "button_cancel", {"ids": [dst_mid]}, context=st_create_ctx)
+
                                 self.state.set_map("account.move", src_mid, dst_mid)
                                 self._map_move_lines(src_mid, dst_mid, src_ml, dst_ctx)
+
                         self.state.set_map("account.bank.statement.line", src_slid, dst_slid)
                         self.state.resolve_error("statements", "account.bank.statement.line", src_slid)
                     except Exception as exc:
+                        if dst_slid:
+                            try:
+                                self.dst.call("account.bank.statement.line", "unlink", {"ids": [dst_slid]}, context=dst_ctx)
+                            except Exception as cleanup_exc:
+                                log.warning("Could not clean up failed statement line %d: %s", dst_slid, cleanup_exc)
                         self.state.log_error("statements", "account.bank.statement.line", src_slid, str(exc))
                         log.error("Failed statement line %d: %s", src_slid, exc)
 
@@ -2593,6 +2661,8 @@ class AccountingMigrator:
             failed_moves = [e[2] for e in errs if e[1] == "account.move"]
             failed_pays = [e[2] for e in errs if e[1] == "account.payment"]
             failed_stmts = [e[2] for e in errs if e[1] in ("account.bank.statement", "account.bank.statement.line")]
+            if failed_pays or failed_stmts:
+                self.migrate_journals()
             if failed_moves:
                 self.migrate_moves(only_ids=failed_moves)
             if failed_pays:
@@ -2601,6 +2671,16 @@ class AccountingMigrator:
                 self.migrate_bank_statements()
             self.migrate_reconciliations()
             self.migrate_attachments()
+            self.migrate_chatter()
+            unresolved = self.state.get_unresolved_errors()
+            if unresolved:
+                log.warning(
+                    "Retry finished with %d unresolved errors. Inspect '%s' or re-run with --retry-errors.",
+                    len(unresolved),
+                    self.state.db_path,
+                )
+            else:
+                log.info("Retry completed cleanly with 0 errors!")
             return
 
         # Master data phases
