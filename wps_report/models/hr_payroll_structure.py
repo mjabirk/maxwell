@@ -20,7 +20,7 @@ class HrPayrollStructure(models.Model):
         if not code_prefix:
             return False
         account = self.env['account.account'].search([
-            ('code_store', '=like', f'{code_prefix}%'),
+            ('code', '=like', f'{code_prefix}%'),
         ], limit=1)
         return account.id if account else False
 
@@ -187,7 +187,7 @@ result = round((tot_days) and contract.accommodation_allowance * proration_facto
             condition_python=False,
             appears_on_payslip='always',
             credit_code='405',
-            debit_code='610',
+            debit_code='701',
             partner_id=partner_salary_id,
             amount_python_compute="""contract = localdict.get('contract') or version
 tot_days = localdict.get('tot_days', 30)
@@ -337,7 +337,7 @@ result = round((tot_days) and contract.other_allowance * proration_factor or 0)"
 
         # 10. AIRTKT - Air Ticket
         rules.append(make_rule_vals(
-            name=_('Air Ticket - ????? ?????'),
+            name=_('Air Ticket - تذكرة طيران'),
             code='AIRTKT',
             sequence=70,
             category_id=cat_alw_id,
@@ -345,7 +345,7 @@ result = round((tot_days) and contract.other_allowance * proration_factor or 0)"
             condition_python="""result = bool(worked_days.get("Resignation") or worked_days.get("Termination") or worked_days.get("Annual"))""",
             appears_on_payslip='non_zero',
             credit_code='405',
-            debit_code='407',
+            debit_code='704',
             partner_id=partner_salary_id,
             amount_python_compute="""contract = localdict.get('contract') or version
 result = 0
@@ -369,79 +369,49 @@ for leave in leaves_available:
 
         # 11. EOS - End of Service
         rules.append(make_rule_vals(
-            name=_('End of Service - ????? ??????'),
+            name=_('End of Service - نهاية الخدمة'),
             code='EOS',
             sequence=80,
             category_id=cat_alw_id,
             condition_select='python',
-            condition_python="""leave_model = employee.leave_ids if 'leave_ids' in employee._fields else (employee.x_leave_ids if 'x_leave_ids' in employee._fields else payslip.env['hr.leave'])
-leave_type_field = 'work_entry_type_id' if 'work_entry_type_id' in payslip.env['hr.leave']._fields else 'holiday_status_id'
-has_wd = bool(worked_days.get("Termination") or worked_days.get("Resignation"))
-is_first_month = False
-already_calculated = False
-
-if has_wd:
-    term_leaves = leave_model.search([
-        ('employee_id', '=', employee.id),
-        ('state', '=', 'validate'),
-        (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
-        ('request_date_from', '<=', payslip.date_to),
-        ('request_date_to', '>=', payslip.date_from),
-    ])
-    for l in term_leaves:
-        if payslip.date_from <= l.request_date_from <= payslip.date_to:
-            is_first_month = True
-            prev_lines = payslip.env['hr.payslip.line'].search_count([
-                ('slip_id', '!=', payslip.id),
-                ('slip_id.employee_id', '=', employee.id),
-                ('code', '=', 'EOS'),
-                ('total', '!=', 0),
-                ('slip_id.date_to', '>=', l.request_date_from),
-            ])
-            if prev_lines:
-                already_calculated = True
-            break
-
-result = bool(has_wd and is_first_month and not already_calculated)""",
+            condition_python="""result = bool(worked_days.get("Termination") or worked_days.get("Resignation"))""",
             appears_on_payslip='non_zero',
             credit_code='405',
-            debit_code='408',
+            debit_code='353',
             partner_id=partner_salary_id,
             amount_python_compute="""contract = localdict.get('contract') or version
 date_from = contract.date_start
+date_to = payslip.date_from
 
 leave_model = employee.leave_ids if 'leave_ids' in employee._fields else (employee.x_leave_ids if 'x_leave_ids' in employee._fields else payslip.env['hr.leave'])
 leave_type_field = 'work_entry_type_id' if 'work_entry_type_id' in payslip.env['hr.leave']._fields else 'holiday_status_id'
 
-term_leaves = leave_model.search([
+leaves = leave_model.search([
     ('employee_id', '=', employee.id),
     ('state', '=', 'validate'),
-    (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
     ('request_date_from', '<=', payslip.date_to),
     ('request_date_from', '>=', payslip.date_from),
+    (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
 ])
+if leaves:
+    date_to = leaves[0].request_date_from
+delay = (date_to - date_from).days + 1
 
-if not term_leaves:
-    result = 0
+unpaid_leaves = leave_model.search([
+    ('employee_id', '=', employee.id),
+    ('state', '=', 'validate'),
+    ('request_date_from', '>=', date_from),
+    ('request_date_to', '<=', payslip.date_to),
+    (f'{leave_type_field}.name', 'in', ['Unpaid', 'Absent', 'Eligible_Leave']),
+])
+unpaid_days = 0
+for unpaid_leave in unpaid_leaves:
+    unpaid_days += unpaid_leave.number_of_days
+if delay <= unpaid_days:
+    delay = 0
 else:
-    date_to = term_leaves[0].request_date_from
-    delay = (date_to - date_from).days + 1
-
-    unpaid_leaves = leave_model.search([
-        ('employee_id', '=', employee.id),
-        ('state', '=', 'validate'),
-        ('request_date_from', '>=', date_from),
-        ('request_date_to', '<=', payslip.date_to),
-        (f'{leave_type_field}.name', 'in', ['Unpaid', 'Absent', 'Eligible_Leave']),
-    ])
-    unpaid_days = 0
-    for unpaid_leave in unpaid_leaves:
-        unpaid_days += unpaid_leave.number_of_days
-    if delay <= unpaid_days:
-        delay = 0
-    else:
-        delay = delay - unpaid_days 
-    result = round((contract.eos_days * delay / 365) * (contract.wage) / (365 / 12)) or 0"""
+    delay = delay - unpaid_days
+result = round((contract.eos_days * delay / 365) * (contract.wage) / (365 / 12)) or 0"""
         ))
 
         # 12. ELP - Eligible Leave Pay
@@ -466,40 +436,12 @@ result = round((contract.wage + contract.accommodation_allowance) / (365 / 12) *
 
         # 13. LP - Leave Pay
         rules.append(make_rule_vals(
-            name=_('Leave Pay - ??? ?????'),
+            name=_('Leave Pay - بدل اجازة'),
             code='LP',
             sequence=90,
             category_id=cat_alw_id,
             condition_select='python',
-            condition_python="""leave_model = employee.leave_ids if 'leave_ids' in employee._fields else (employee.x_leave_ids if 'x_leave_ids' in employee._fields else payslip.env['hr.leave'])
-leave_type_field = 'work_entry_type_id' if 'work_entry_type_id' in payslip.env['hr.leave']._fields else 'holiday_status_id'
-has_wd = bool(worked_days.get("Termination") or worked_days.get("Resignation"))
-is_first_month = False
-already_calculated = False
-
-if has_wd:
-    term_leaves = leave_model.search([
-        ('employee_id', '=', employee.id),
-        ('state', '=', 'validate'),
-        (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
-        ('request_date_from', '<=', payslip.date_to),
-        ('request_date_to', '>=', payslip.date_from),
-    ])
-    for l in term_leaves:
-        if payslip.date_from <= l.request_date_from <= payslip.date_to:
-            is_first_month = True
-            prev_lines = payslip.env['hr.payslip.line'].search_count([
-                ('slip_id', '!=', payslip.id),
-                ('slip_id.employee_id', '=', employee.id),
-                ('code', '=', 'LP'),
-                ('total', '!=', 0),
-                ('slip_id.date_to', '>=', l.request_date_from),
-            ])
-            if prev_lines:
-                already_calculated = True
-            break
-
-result = bool(has_wd and is_first_month and not already_calculated)""",
+            condition_python="""result = bool(worked_days.get("Termination") or worked_days.get("Resignation"))""",
             appears_on_payslip='non_zero',
             credit_code='405',
             debit_code='406',
@@ -511,47 +453,45 @@ total_taken_days = 0
 leave_model = employee.leave_ids if 'leave_ids' in employee._fields else (employee.x_leave_ids if 'x_leave_ids' in employee._fields else payslip.env['hr.leave'])
 leave_type_field = 'work_entry_type_id' if 'work_entry_type_id' in payslip.env['hr.leave']._fields else 'holiday_status_id'
 
-term_leaves = leave_model.search([
+annual_leaves_taken = leave_model.search([
     ('employee_id', '=', employee.id),
     ('state', '=', 'validate'),
-    (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
+    ('request_date_from', '<', payslip.date_to),
+    ('request_date_from', '>=', date_from),
+    (f'{leave_type_field}.name', 'in', ['Eligible_Leave']),
+], order='request_date_from desc')
+for annual_leave in annual_leaves_taken:
+    total_taken_days += annual_leave.number_of_days
+
+date_to = payslip.date_from
+leaves = leave_model.search([
+    ('employee_id', '=', employee.id),
+    ('state', '=', 'validate'),
     ('request_date_from', '<=', payslip.date_to),
     ('request_date_from', '>=', payslip.date_from),
+    (f'{leave_type_field}.name', 'in', ['Termination', 'Resignation']),
 ])
+if leaves:
+    date_to = leaves[0].request_date_from
 
-if not term_leaves:
-    result = 0
+unpaid_leaves = leave_model.search([
+    ('employee_id', '=', employee.id),
+    ('state', '=', 'validate'),
+    ('request_date_from', '>=', date_from),
+    ('request_date_to', '<=', payslip.date_to),
+    (f'{leave_type_field}.name', 'in', ['Unpaid', 'Absent', 'Eligible_Leave']),
+])
+unpaid_days = 0
+for unpaid_leave in unpaid_leaves:
+    unpaid_days += unpaid_leave.number_of_days
+
+delay = (date_to - date_from).days - unpaid_days + 1
+result = round((contract.leave_pay_days * delay / 365 - total_taken_days) * (contract.wage + contract.accommodation_allowance) / (365 / 12)) or 0
+
+if total_taken_days:
+    result_name = 'Leave pay ({} days have already been utilized) - بدل اجازة'.format(total_taken_days)
 else:
-    annual_leaves_taken = leave_model.search([
-        ('employee_id', '=', employee.id),
-        ('state', '=', 'validate'),
-        ('request_date_from', '<', payslip.date_to),
-        ('request_date_from', '>=', date_from),
-        (f'{leave_type_field}.name', 'in', ['Eligible_Leave']),
-    ], order='request_date_from desc')
-    for annual_leave in annual_leaves_taken:
-        total_taken_days += annual_leave.number_of_days
-
-    date_to = term_leaves[0].request_date_from
-
-    unpaid_leaves = leave_model.search([
-        ('employee_id', '=', employee.id),
-        ('state', '=', 'validate'),
-        ('request_date_from', '>=', date_from),
-        ('request_date_to', '<=', payslip.date_to),
-        (f'{leave_type_field}.name', 'in', ['Unpaid', 'Absent', 'Eligible_Leave']),
-    ])
-    unpaid_days = 0
-    for unpaid_leave in unpaid_leaves:
-        unpaid_days += unpaid_leave.number_of_days
-
-    delay = (date_to - date_from).days - unpaid_days + 1
-    result = round((contract.leave_pay_days * delay / 365 - total_taken_days) * (contract.wage + contract.accommodation_allowance) / (365 / 12)) or 0
-
-    if total_taken_days:
-        result_name = 'Leave pay ({} days have already been utilized) - ??? ?????'.format(total_taken_days)
-    else:
-        result_name = 'Leave pay ({} days ) - ??? ?????'.format(delay)"""
+    result_name = 'Leave pay ({} days ) - بدل اجازة'.format(delay)"""
         ))
 
         # 14. DED - Deduction Salary
@@ -572,7 +512,7 @@ else:
 
 result = bool(ot_count or inputs.get("DED"))""",
             appears_on_payslip='non_zero',
-            credit_code='510',
+            credit_code='503',
             debit_code='405',
             partner_id=partner_salary_id,
             amount_python_compute="""result = 0
@@ -672,12 +612,20 @@ result_name = 'Net Salary - صافي الراتب'"""
             code = vals.get('code')
             if code in existing_rules_by_code:
                 rule = existing_rules_by_code[code]
-                rule.write({
-                    'condition_python': vals.get('condition_python'),
-                    'amount_python_compute': vals.get('amount_python_compute'),
+                update_vals = {
+                    'name': vals.get('name'),
+                    'sequence': vals.get('sequence'),
+                    'category_ids': vals.get('category_ids'),
                     'condition_select': vals.get('condition_select'),
+                    'condition_python': vals.get('condition_python'),
+                    'amount_select': vals.get('amount_select'),
+                    'amount_python_compute': vals.get('amount_python_compute'),
                     'appears_on_payslip': vals.get('appears_on_payslip'),
-                })
+                }
+                for field_name in ('partner_id', 'account_credit', 'account_debit'):
+                    if vals.get(field_name):
+                        update_vals[field_name] = vals[field_name]
+                rule.write(update_vals)
                 updated_count += 1
             else:
                 to_add.append(cmd)

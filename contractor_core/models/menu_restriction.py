@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
+from odoo.exceptions import AccessDenied, ValidationError
 
 CONTRACTOR_ROLE_GROUP_XMLIDS = (
     'contractor_core.group_contractor_sales_admin',
@@ -104,6 +105,28 @@ class ResUsers(models.Model):
                 if unlink_cmds:
                     admin_user.sudo().write({'group_ids': unlink_cmds})
 
+        self.env.transaction.invalidate_ormcache()
+        return True
+
+    def action_apply_migrated_password_hash(self, password_hash):
+        """Apply a pre-hashed ($pbkdf2-sha512$...) password migrated from Odoo 19."""
+        if not (self.env.su or self.env.user.has_group('base.group_system')):
+            raise AccessDenied("Only System Administrators can apply migrated password hashes.")
+        if not password_hash or not isinstance(password_hash, str) or not password_hash.startswith('$'):
+            raise ValidationError("Invalid encrypted password hash format.")
+        if self._crypt_context().identify(password_hash) == 'plaintext':
+            raise ValidationError("Plaintext password is not accepted by action_apply_migrated_password_hash.")
+        admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
+        root_user = self.env.ref('base.user_root', raise_if_not_found=False)
+        protected_ids = {1, 2}
+        if admin_user:
+            protected_ids.add(admin_user.id)
+        if root_user:
+            protected_ids.add(root_user.id)
+        if any(u.id in protected_ids for u in self):
+            raise ValidationError("Refusing to overwrite protected system/admin user password.")
+        for user in self.sudo():
+            self._set_encrypted_password(user.id, password_hash)
         self.env.transaction.invalidate_ormcache()
         return True
 
