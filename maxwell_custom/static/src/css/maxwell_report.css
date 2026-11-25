@@ -39,3 +39,54 @@
     border-bottom-width: 1px !important;
 }
 
+.maxwell-report-header,
+.maxwell-report-footer,
+.maxwell-report-wrapper {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.maxwell-report-header .maxwell-header-banner {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.maxwell-report-header img,
+.maxwell-report-header .maxwell-header-img {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 !important;
+}
+
+.maxwell-report-footer .maxwell-footer-banner {
+    width: 100%;
+    margin: 0;
+    padding: 2mm 0 0 0;
+    text-align: center;
+    font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif;
+    font-size: 11px;
+    line-height: 1.25;
+    color: #000000;
+}
+
+.maxwell-report-footer .maxwell-footer-banner p,
+.maxwell-report-footer .maxwell-footer-banner div {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.15 !important;
+}
+
+.maxwell-report-footer img,
+.maxwell-report-footer .maxwell-footer-img {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 !important;
+}
+

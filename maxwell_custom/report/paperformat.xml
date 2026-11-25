@@ -7,12 +7,12 @@
         <field name="page_height">0</field>
         <field name="page_width">0</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">10</field>
-        <field name="margin_bottom">6</field>
+        <field name="margin_top">35</field>
+        <field name="margin_bottom">26</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
         <field name="header_line" eval="False"/>
-        <field name="header_spacing">0</field>
+        <field name="header_spacing">31</field>
         <field name="dpi">96</field>
         <field name="css_margins" eval="False"/>
     </record>
@@ -40,4 +40,7 @@
     <record id="account.account_invoices_without_payment" model="ir.actions.report">
         <field name="paperformat_id" ref="maxwell_custom.paperformat_maxwell"/>
     </record>
+
+    <!-- Bind optional reports when optional modules (e.g. sale_pdf_quote_builder) are installed -->
+    <function model="ir.actions.report" name="_bind_maxwell_optional_paperformats"/>
 </odoo>

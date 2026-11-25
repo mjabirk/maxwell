@@ -5,17 +5,23 @@
     <!-- Used by Sales Order, Purchase Order, and Customer Invoice / Bill       -->
     <!-- ====================================================================== -->
     <template id="maxwell_unified_document_layout">
+        <t t-set="company" t-value="(doc_obj.company_id if doc_obj and 'company_id' in doc_obj._fields and doc_obj.company_id else res_company) or env.company"/>
+        <t t-set="company" t-value="company.with_context(lang=doc_obj.env.context.get('lang') or env.context.get('lang'))"/>
+
+        <!-- 1. REAL REPEATING PAGE HEADER (Document Layout Configuration: company.logo) -->
+        <div class="header maxwell-report-header">
+            <div class="maxwell-header-banner">
+                <img t-att-src="company._get_maxwell_header_logo_data_uri()"
+                     class="maxwell-header-img"
+                     alt="Maxwell Trading and Contracting WLL"/>
+            </div>
+        </div>
+
         <div class="article maxwell-report-wrapper"
              t-att-data-oe-model="doc_obj and doc_obj._name"
              t-att-data-oe-id="doc_obj and doc_obj.id"
+             t-att-data-oe-lang="doc_obj and doc_obj.env.context.get('lang')"
              style="font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; color: #000000; background-color: #ffffff; font-size: 13.5px; padding: 0; margin: 0;">
-
-            <!-- 1. TOP HEADER BANNER (Exact Maxwell English & Arabic Header + Divider) -->
-            <div style="width: 100%; margin-bottom: 10px;">
-                <img t-att-src="doc_obj._get_maxwell_banner_data_uri('header')"
-                     style="width: 100%; height: auto; display: block;"
-                     alt="Maxwell Trading and Contracting WLL"/>
-            </div>
 
             <!-- 2. BILL TO BOX (LEFT) & ROUNDED DOCUMENT TITLE BOX (RIGHT) - Pure DIV layout (zero extra table lines) -->
             <div style="display: table; width: 100%; table-layout: fixed; margin-bottom: 12px;">
@@ -203,7 +209,7 @@
                     </t>
 
                     <!-- Single continuous vertical filler row (NO horizontal lines inside products box) -->
-                    <t t-set="spacer_height" t-value="max(8, 250 - (visual_lines * 18))"/>
+                    <t t-set="spacer_height" t-value="max(8, 195 - (visual_lines * 18))"/>
                     <tr class="maxwell-items-bottom-row" t-attf-style="border: 0 none !important; border-style: none !important; height: #{spacer_height}px;">
                         <td style="border-top: 0 none !important; border-bottom: 1px solid #000000 !important; border-left: 1px solid #000000 !important; border-right: 1px solid #000000 !important; padding: 0;">&#160;</td>
                         <td style="border-top: 0 none !important; border-bottom: 1px solid #000000 !important; border-left: 1px solid #000000 !important; border-right: 1px solid #000000 !important; padding: 0;">&#160;</td>
@@ -242,61 +248,61 @@
                 </tbody>
             </table>
 
-            <!-- 6. SIGNATURES BOX (Prepared By & Received By - Pure DIV inner layout, zero extra lines) -->
-            <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-bottom: 8px; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 14px; color: #000000;">
-                <tbody style="border: 0 none !important; border-style: none !important;">
-                    <tr style="border: 0 none !important; border-style: none !important;">
-                        <!-- Left: Prepared By -->
-                        <td style="width: 50%; border: 1px solid #000000 !important; padding: 8px 10px; vertical-align: top;">
-                            <div style="font-weight: bold; text-decoration: underline; margin-bottom: 10px;">Prepared By</div>
-                            <div style="margin-bottom: 8px;">Signature:</div>
-                            <div>
-                                <span style="display: inline-block; width: 105px;">Designation</span>
-                                <span>: <span t-out="doc_obj.prepared_by_designation or 'Accountant'"/></span>
-                            </div>
-                            <div style="height: 68px;">&#160;</div>
-                            <div>
-                                <span style="display: inline-block; width: 105px;">Date</span>
-                                <span>:</span>
-                            </div>
-                        </td>
+            <!-- 6. SIGNATURES BOX & BANK TRANSFER DETAILS (Keep together on multi-page documents) -->
+            <div style="page-break-inside: avoid;">
+                <table class="o_ignore_layout_styling" style="width: 100%; border-collapse: collapse; border: 1px solid #000000; margin-bottom: 8px; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-size: 14px; color: #000000;">
+                    <tbody style="border: 0 none !important; border-style: none !important;">
+                        <tr style="border: 0 none !important; border-style: none !important;">
+                            <!-- Left: Prepared By -->
+                            <td style="width: 50%; border: 1px solid #000000 !important; padding: 8px 10px; vertical-align: top;">
+                                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 10px;">Prepared By</div>
+                                <div style="margin-bottom: 8px;">Signature:</div>
+                                <div>
+                                    <span style="display: inline-block; width: 105px;">Designation</span>
+                                    <span>: <span t-out="doc_obj.prepared_by_designation or 'Accountant'"/></span>
+                                </div>
+                                <div style="height: 68px;">&#160;</div>
+                                <div>
+                                    <span style="display: inline-block; width: 105px;">Date</span>
+                                    <span>:</span>
+                                </div>
+                            </td>
 
-                        <!-- Right: Received By -->
-                        <td style="width: 50%; border: 1px solid #000000 !important; padding: 8px 10px; vertical-align: top;">
-                            <div style="font-weight: bold; text-decoration: underline; margin-bottom: 10px;">Received By</div>
-                            <div style="margin-bottom: 8px;">
-                                <span style="display: inline-block; width: 118px;">Name &amp; Signature</span>
-                                <span>:</span>
-                            </div>
-                            <div>
-                                <span style="display: inline-block; width: 118px;">Designation</span>
-                                <span>:</span>
-                            </div>
-                            <div style="height: 68px;">&#160;</div>
-                            <div>
-                                <span style="display: inline-block; width: 118px;">Date</span>
-                                <span>:</span>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                            <!-- Right: Received By -->
+                            <td style="width: 50%; border: 1px solid #000000 !important; padding: 8px 10px; vertical-align: top;">
+                                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 10px;">Received By</div>
+                                <div style="margin-bottom: 8px;">
+                                    <span style="display: inline-block; width: 118px;">Name &amp; Signature</span>
+                                    <span>:</span>
+                                </div>
+                                <div>
+                                    <span style="display: inline-block; width: 118px;">Designation</span>
+                                    <span>:</span>
+                                </div>
+                                <div style="height: 68px;">&#160;</div>
+                                <div>
+                                    <span style="display: inline-block; width: 118px;">Date</span>
+                                    <span>:</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
-            <!-- 7. BANK TRANSFER DETAILS -->
-            <div style="text-align: center; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-style: italic; font-size: 13.5px; line-height: 1.4; margin-top: 4px; margin-bottom: 6px; color: #000000;">
-                <div>Account Details for the Payment’s Bank Transfer: -</div>
-                <div style="font-weight: bold;">Maxwell Trading &amp; Contracting WLL</div>
-                <div>Ac No.0252-040550-001, IBAN: QA22 QNBA 0000 0000 0252-040550-001</div>
-                <div>Swift Code: QNBAQAQA, Qatar National Bank – Al Wakrah Branch</div>
+                <!-- 7. BANK TRANSFER DETAILS -->
+                <div style="text-align: center; font-family: 'Liberation Serif', 'Nimbus Roman', 'Times New Roman', Times, serif; font-style: italic; font-size: 13.5px; line-height: 1.4; margin-top: 4px; margin-bottom: 4px; color: #000000;">
+                    <div>Account Details for the Payment’s Bank Transfer: -</div>
+                    <div style="font-weight: bold;">Maxwell Trading &amp; Contracting WLL</div>
+                    <div>Ac No.0252-040550-001, IBAN: QA22 QNBA 0000 0000 0252-040550-001</div>
+                    <div>Swift Code: QNBAQAQA, Qatar National Bank – Al Wakrah Branch</div>
+                </div>
             </div>
 
-            <!-- 8. BOTTOM FOOTER BANNER (Superior Quality Exceptional Service + C.R.No / Address) -->
-            <div style="width: 100%; margin-top: 4px;">
-                <img t-att-src="doc_obj._get_maxwell_banner_data_uri('footer')"
-                     style="width: 100%; height: auto; display: block;"
-                     alt="Maxwell Footer"/>
-            </div>
+        </div>
 
+        <!-- 8. REAL REPEATING PAGE FOOTER (Document Layout Configuration: company.report_footer) -->
+        <div class="footer maxwell-report-footer">
+            <div class="maxwell-footer-banner" t-out="company._get_maxwell_footer_html()"/>
         </div>
     </template>
 

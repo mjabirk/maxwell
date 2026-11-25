@@ -1790,19 +1790,42 @@ class AccountingMigrator:
             log.info("No non-admin migratable users found.")
             return
 
-        # Pre-migrate partners belonging to migratable users (excluding system partners 1..5)
+        # Load passwords & filter to only new / failed / pending-password users for incremental runs
+        expected_logins = {u["id"]: str(u.get("login") or "").strip() for u in migratable_users}
+        src_hashes = self._load_source_password_hashes(expected_logins)
+        failed_user_ids = {
+            sid for _, mod, sid, _ in self.state.get_unresolved_errors("users") if mod == "res.users"
+        }
+
+        pending_users: List[Dict[str, Any]] = []
+        for su in migratable_users:
+            suid = su["id"]
+            mapped_dst = self.state.get_dst("res.users", suid)
+            if not mapped_dst or suid in failed_user_ids:
+                pending_users.append(su)
+                continue
+            login = str(su.get("login") or "").strip()
+            cached_hash, applied_dst_id = self.state.get_user_password(suid, login)
+            if (src_hashes.get(suid) or cached_hash) and applied_dst_id != mapped_dst:
+                pending_users.append(su)
+
+        if not pending_users:
+            log.info("All %d non-admin users already migrated; 0 new users to sync.", len(migratable_users))
+            return
+
+        # Pre-migrate partners belonging to pending users (excluding system partners 1..5)
         user_partner_ids: Set[int] = {
             m2o_id(u.get("partner_id"))
-            for u in migratable_users
+            for u in pending_users
             if m2o_id(u.get("partner_id"))
         }
         if user_partner_ids:
             self.migrate_partners(user_partner_ids)
 
-        # Fetch user avatars directly with bin_size=False
+        # Fetch user avatars directly with bin_size=False only for pending users
         user_avatars: Dict[int, str] = {}
-        if self.src.has_field("res.users", "image_1920"):
-            for batch in chunked([u["id"] for u in migratable_users], ATTACHMENT_BATCH_SIZE):
+        if self.src.has_field("res.users", "image_1920") and not self.dry_run:
+            for batch in chunked([u["id"] for u in pending_users], ATTACHMENT_BATCH_SIZE):
                 rows = self.src.read(
                     "res.users",
                     batch,
@@ -1814,11 +1837,7 @@ class AccountingMigrator:
                     if img:
                         user_avatars[row["id"]] = img
 
-        # Load passwords & resolve groups + hidden menus
-        expected_logins = {u["id"]: str(u.get("login") or "").strip() for u in migratable_users}
-        src_hashes = self._load_source_password_hashes(expected_logins)
-
-        all_src_gids = {gid for u in migratable_users for gid in (u.get(group_field) or [])}
+        all_src_gids = {gid for u in pending_users for gid in (u.get(group_field) or [])}
         group_map, missing_xmlids = self._build_group_map(all_src_gids)
         if missing_xmlids:
             log.warning(
@@ -1827,7 +1846,7 @@ class AccountingMigrator:
             )
 
         hidden_menu_ids = {
-            mid for u in migratable_users for mid in (u.get("contractor_hidden_menu_ids") or [])
+            mid for u in pending_users for mid in (u.get("contractor_hidden_menu_ids") or [])
         }
         menu_map = self._build_menu_xmlid_map(hidden_menu_ids)
 
@@ -1867,7 +1886,7 @@ class AccountingMigrator:
         dst_has_notif = self.dst.has_field("res.users", "notification_type")
 
         pw_stats: Dict[str, int] = {}
-        for su in migratable_users:
+        for su in pending_users:
             suid = su["id"]
             login = str(su.get("login") or "").strip()
             login_lc = login.lower()
@@ -2771,6 +2790,8 @@ class AccountingMigrator:
         orig_c_start = primary_vals.get("contract_date_start")
         orig_c_end = primary_vals.get("contract_date_end")
 
+        active_ver_ctx = {**dst_ctx, "active_test": True, "sync_contract_dates": True}
+
         # Temporarily satisfy hr.employee.departure._check_departure_validity
         need_temp_dates = (
             orig_date_ver >= eff_dep_date
@@ -2782,7 +2803,7 @@ class AccountingMigrator:
                 "hr.version",
                 [dst_primary_vid],
                 {"date_version": prev_day, "contract_date_start": False, "contract_date_end": False},
-                context={**dst_ctx, "sync_contract_dates": True},
+                context=active_ver_ctx,
             )
 
         dep_vals = {
@@ -2792,7 +2813,9 @@ class AccountingMigrator:
             "departure_date": eff_dep_date,
             "departure_description": dep_desc,
         }
-        dst_dep_id = self.dst.create("hr.employee.departure", dep_vals, context=dst_ctx)
+        dst_dep_id = self.dst.create(
+            "hr.employee.departure", dep_vals, context={**dst_ctx, "active_test": True}
+        )
 
         if not emp.get("active", True) and eff_dep_date <= date.today().isoformat() and not has_linked_user:
             try:
@@ -2800,7 +2823,7 @@ class AccountingMigrator:
                     "hr.employee.departure",
                     "action_register",
                     {"ids": [dst_dep_id]},
-                    context={**dst_ctx, "skip_tool_clearance_check": True},
+                    context={**dst_ctx, "active_test": True, "skip_tool_clearance_check": True},
                 )
             except Exception as exc:
                 log.warning("Departure action_register skipped for emp dst=%d: %s", dst_emp_id, exc)
@@ -2815,7 +2838,7 @@ class AccountingMigrator:
                 "contract_date_end": orig_c_end or False,
                 "departure_id": dst_dep_id,
             },
-            context={**dst_ctx, "sync_contract_dates": True},
+            context=active_ver_ctx,
         )
 
     def migrate_employees_and_contracts(self):
@@ -2919,21 +2942,36 @@ class AccountingMigrator:
             try:
                 tvals = self._build_version_vals(tpl, None, dst_cid, def_cal, def_addr)
                 tvals["active"] = bool(tpl.get("active", True))
-                dst_tid = self.dst.create("hr.version", tvals, context={**self.dst_company_ctx(src_cid), "sync_contract_dates": True})
+                dst_tid = self.dst.create(
+                    "hr.version",
+                    tvals,
+                    context={**self.dst_company_ctx(src_cid), "active_test": True, "sync_contract_dates": True},
+                )
                 self.state.set_map("hr.version", tpl["id"], dst_tid)
             except Exception as exc:
                 self.state.log_error("contracts", "hr.version", tpl["id"], str(exc))
                 log.error("Failed contract template %d: %s", tpl["id"], exc)
 
-        # 2. Fetch employee pictures & binary documents with bin_size=False (bypassing ir.attachment search restrictions)
+        # Identify new or previously failed employees so incremental runs skip existing ones cleanly
+        failed_emp_ids = {
+            sid for _, mod, sid, _ in self.state.get_unresolved_errors("employees") if mod == "hr.employee"
+        }
+        pending_emp_ids: Set[int] = {
+            e["id"]
+            for e in src_emps
+            if (not self.only_company_id or (m2o_id(e.get("company_id")) or 1) == self.only_company_id)
+            and (not self.state.get_dst("hr.employee", e["id"]) or e["id"] in failed_emp_ids)
+        }
+
+        # 2. Fetch employee pictures & binary documents with bin_size=False ONLY for pending employees
         bin_fields_to_read = [
             "id", "image_1920", "id_card", "id_card_name",
             "driving_license", "driving_license_name", "has_work_permit",
             "sim_card", "sim_card_name", "internet_invoice", "internet_invoice_name",
         ]
         emp_binaries: Dict[int, Dict[str, Any]] = {}
-        if not self.dry_run:
-            for batch in chunked([e["id"] for e in src_emps], ATTACHMENT_BATCH_SIZE):
+        if not self.dry_run and pending_emp_ids:
+            for batch in chunked(sorted(pending_emp_ids), ATTACHMENT_BATCH_SIZE):
                 rows = self.src.read(
                     "hr.employee",
                     batch,
@@ -2943,11 +2981,13 @@ class AccountingMigrator:
                 for row in rows:
                     emp_binaries[row["id"]] = row
 
-            # Fallback for employees whose photo is stored on work_contact_id instead of hr.employee
+            # Fallback for pending employees whose photo is stored on work_contact_id instead of hr.employee
             wc_need_photo = sorted({
                 m2o_id(e.get("work_contact_id"))
                 for e in src_emps
-                if m2o_id(e.get("work_contact_id")) and not self._extract_b64((emp_binaries.get(e["id"]) or {}).get("image_1920"))
+                if e["id"] in pending_emp_ids
+                and m2o_id(e.get("work_contact_id"))
+                and not self._extract_b64((emp_binaries.get(e["id"]) or {}).get("image_1920"))
             })
             wc_photos: Dict[int, str] = {}
             for batch in chunked(wc_need_photo, ATTACHMENT_BATCH_SIZE):
@@ -2957,6 +2997,8 @@ class AccountingMigrator:
                         wc_photos[prow["id"]] = img
             for e in src_emps:
                 eid = e["id"]
+                if eid not in pending_emp_ids:
+                    continue
                 wc_id = m2o_id(e.get("work_contact_id"))
                 if wc_id and wc_id in wc_photos and not self._extract_b64((emp_binaries.get(eid) or {}).get("image_1920")):
                     emp_binaries.setdefault(eid, {})["image_1920"] = wc_photos[wc_id]
@@ -2979,7 +3021,7 @@ class AccountingMigrator:
         dst_has_ticket_amt = self.dst.has_field("hr.employee", "ticket_allowance_amount")
         dst_has_worker_cat = self.dst.has_field("hr.employee", "worker_category")
 
-        # 3. Create/update Employees and their Versions
+        # 3. Create/update pending Employees and sync any newly created Contract Versions
         for emp in src_emps:
             src_eid = emp["id"]
             src_cid = m2o_id(emp.get("company_id")) or 1
@@ -2987,11 +3029,50 @@ class AccountingMigrator:
                 continue
             dst_cid = self.state.get_dst("res.company", src_cid) or 1
             dst_ctx = self.dst_company_ctx(src_cid)
+            ver_write_ctx = {**dst_ctx, "active_test": True, "sync_contract_dates": True}
             def_cal, def_addr = company_defaults.get(dst_cid, (fallback_cal_ids[0] if fallback_cal_ids else None, None))
             if not def_cal:
                 def_cal = self.state.get_dst("resource.calendar", m2o_id(emp.get("resource_calendar_id")))
 
             emp_vers = versions_by_emp.get(src_eid, [])
+
+            # Fast incremental path: employee already migrated cleanly -> only check for new hr.version records
+            if src_eid not in pending_emp_ids:
+                dst_eid_existing = self.state.get_dst("hr.employee", src_eid)
+                unmapped_vers = [v for v in emp_vers if not self.state.get_dst("hr.version", v["id"])]
+                if not dst_eid_existing or not unmapped_vers:
+                    continue
+                if self.dry_run:
+                    log.info("[DRY-RUN] Existing employee '%s' (%d): %d new hr.version record(s)", emp.get("name"), src_eid, len(unmapped_vers))
+                    continue
+                dst_act_vers = self.dst.search_read(
+                    "hr.version",
+                    [["employee_id", "=", dst_eid_existing], ["active", "=", True]],
+                    ["id", "date_version", "contract_date_start", "contract_date_end"],
+                    context=ver_write_ctx,
+                )
+                used_dv = {str(dv.get("date_version")) for dv in dst_act_vers if dv.get("date_version")}
+                act_ivs = [(dv.get("contract_date_start") or None, dv.get("contract_date_end") or None) for dv in dst_act_vers]
+                for v in unmapped_vers:
+                    try:
+                        ver_vals = self._build_version_vals(v, dst_eid_existing, dst_cid, def_cal, def_addr, emp_fallback=emp)
+                        want_act = bool(v.get("active", True))
+                        if want_act:
+                            dv_s = str(ver_vals["date_version"])
+                            cs, ce = ver_vals.get("contract_date_start") or None, ver_vals.get("contract_date_end") or None
+                            if dv_s in used_dv or any(self._intervals_overlap(cs, ce, es, ee) for es, ee in act_ivs):
+                                want_act = False
+                        ver_vals["active"] = want_act
+                        if want_act:
+                            used_dv.add(str(ver_vals["date_version"]))
+                            act_ivs.append((ver_vals.get("contract_date_start") or None, ver_vals.get("contract_date_end") or None))
+                        dst_vid = self.dst.create("hr.version", ver_vals, context=ver_write_ctx)
+                        self.state.set_map("hr.version", v["id"], dst_vid)
+                        self.state.resolve_error("contracts", "hr.version", v["id"])
+                    except Exception as exc:
+                        self.state.log_error("contracts", "hr.version", v["id"], str(exc))
+                        log.error("Failed new contract version %d for employee %d: %s", v["id"], src_eid, exc)
+                continue
             active_vers = [v for v in emp_vers if v.get("active", True)]
             cur_vid = m2o_id(emp.get("version_id"))
             primary_ver = (
@@ -3191,14 +3272,14 @@ class AccountingMigrator:
                         "hr.version",
                         [dst_primary_vid],
                         pv_write,
-                        context={**dst_ctx, "sync_contract_dates": True},
+                        context=ver_write_ctx,
                     )
                     if primary_vals.get("job_title") and primary_vals.get("job_id"):
                         self.dst.write(
                             "hr.version",
                             [dst_primary_vid],
                             {"job_title": primary_vals["job_title"]},
-                            context={**dst_ctx, "sync_contract_dates": True},
+                            context=ver_write_ctx,
                         )
                     if primary_ver.get("id"):
                         self.state.set_map("hr.version", primary_ver["id"], dst_primary_vid)
@@ -3233,14 +3314,14 @@ class AccountingMigrator:
                     dst_extra_vid = self.dst.create(
                         "hr.version",
                         ver_vals,
-                        context={**dst_ctx, "sync_contract_dates": True},
+                        context=ver_write_ctx,
                     )
                     if ver_vals.get("job_title") and ver_vals.get("job_id"):
                         self.dst.write(
                             "hr.version",
                             [dst_extra_vid],
                             {"job_title": ver_vals["job_title"]},
-                            context={**dst_ctx, "sync_contract_dates": True},
+                            context=ver_write_ctx,
                         )
                     self.state.set_map("hr.version", v["id"], dst_extra_vid)
 
@@ -3262,9 +3343,11 @@ class AccountingMigrator:
                 self.state.log_error("employees", "hr.employee", src_eid, str(exc))
                 log.error("Failed migrating employee '%s' (%d): %s", emp.get("name"), src_eid, exc)
 
-        # 4. Second Pass: Employee managers, coaches, time-off/attendance managers & department managers
-        if not self.dry_run:
+        # 4. Second Pass: Employee managers, coaches, time-off/attendance managers & department managers (only for pending employees)
+        if not self.dry_run and pending_emp_ids:
             for emp in src_emps:
+                if emp["id"] not in pending_emp_ids:
+                    continue
                 dst_eid = self.state.get_dst("hr.employee", emp["id"])
                 if not dst_eid:
                     continue
@@ -3856,7 +3939,7 @@ class AccountingMigrator:
                 [],
                 [
                     "id", "employee_id", "name", "date_start", "date_end", "description",
-                    "line_type_id", "course_type", "external_url", "department_id", "duration", "color",
+                    "line_type_id", "course_type", "external_url", "duration",
                     "certificate_filename",
                 ],
                 order="id asc",
@@ -3905,9 +3988,7 @@ class AccountingMigrator:
                                 "line_type_id": self.state.get_dst("hr.resume.line.type", m2o_id(rl.get("line_type_id"))) or False,
                                 "course_type": rl.get("course_type") or "external",
                                 "external_url": rl.get("external_url") or False,
-                                "department_id": self.state.get_dst("hr.department", m2o_id(rl.get("department_id"))) or False,
                                 "duration": int(rl.get("duration") or 0),
-                                "color": int(rl.get("color") or 0),
                             }
                             cert_b64 = cert_by_id.get(src_rlid)
                             if cert_b64:
