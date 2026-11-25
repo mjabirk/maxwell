@@ -359,13 +359,22 @@ class OdooJSON2Client:
         self.call("res.company", "search", {"domain": [], "limit": 1})
         return version_info
 
+    LEGACY_TZ_ALIASES = {
+        "Asia/Calcutta": "Asia/Kolkata",
+        "Asia/Katmandu": "Asia/Kathmandu",
+        "Asia/Saigon": "Asia/Ho_Chi_Minh",
+        "Asia/Rangoon": "Asia/Yangon",
+        "Asia/Dacca": "Asia/Dhaka",
+        "Europe/Kiev": "Europe/Kyiv",
+    }
+
     def fields_get(self, model: str) -> Dict[str, Any]:
         if model not in self._fields_cache:
             try:
                 self._fields_cache[model] = self.call(
                     model,
                     "fields_get",
-                    {"attributes": ["type", "relation", "readonly", "store", "required"]},
+                    {"attributes": ["type", "relation", "readonly", "store", "required", "selection"]},
                 )
             except Exception:
                 self._fields_cache[model] = {}
@@ -377,6 +386,39 @@ class OdooJSON2Client:
     def filter_existing_fields(self, model: str, fields: List[str]) -> List[str]:
         meta = self.fields_get(model)
         return [f for f in fields if f in meta]
+
+    def sanitize_vals(self, model: str, vals: Dict[str, Any]) -> Dict[str, Any]:
+        """Filter unknown fields, validate selections, and sanitize nested x2many create/write dicts."""
+        meta = self.fields_get(model)
+        clean: Dict[str, Any] = {}
+        for k, v in vals.items():
+            fmeta = meta.get(k)
+            if not fmeta:
+                continue
+            ftype = fmeta.get("type")
+            if ftype in ("one2many", "many2many") and fmeta.get("relation") and isinstance(v, list):
+                rel_model = fmeta["relation"]
+                new_cmds = []
+                for cmd in v:
+                    if isinstance(cmd, (list, tuple)) and len(cmd) == 3 and cmd[0] in (0, 1) and isinstance(cmd[2], dict):
+                        new_cmds.append([cmd[0], cmd[1], self.sanitize_vals(rel_model, cmd[2])])
+                    else:
+                        new_cmds.append(cmd)
+                clean[k] = new_cmds
+                continue
+            if ftype == "selection" and isinstance(v, str) and fmeta.get("selection"):
+                allowed = {opt[0] for opt in fmeta["selection"]}
+                cand = self.LEGACY_TZ_ALIASES.get(v, v) if k == "tz" else v
+                if cand not in allowed:
+                    log.warning("Invalid selection value %r for %s.%s; normalizing.", v, model, k)
+                    if fmeta.get("required"):
+                        cand = "Asia/Qatar" if "Asia/Qatar" in allowed else fmeta["selection"][0][0]
+                    else:
+                        cand = False
+                clean[k] = cand
+                continue
+            clean[k] = v
+        return clean
 
     def search(
         self,
@@ -425,15 +467,13 @@ class OdooJSON2Client:
         return self.call(model, "read", {"ids": ids, "fields": valid_fields}, context=context)
 
     def create(self, model: str, vals: Dict[str, Any], context: Optional[dict] = None) -> int:
-        # Strip fields that do not exist on target Odoo 20 model
-        meta = self.fields_get(model)
-        clean_vals = {k: v for k, v in vals.items() if k in meta}
+        # Strip fields that do not exist on target Odoo 20 model (including nested x2many dicts)
+        clean_vals = self.sanitize_vals(model, vals)
         res = self.call(model, "create", {"vals_list": [clean_vals]}, context=context)
         return res[0] if isinstance(res, list) else int(res)
 
     def write(self, model: str, ids: List[int], vals: Dict[str, Any], context: Optional[dict] = None):
-        meta = self.fields_get(model)
-        clean_vals = {k: v for k, v in vals.items() if k in meta}
+        clean_vals = self.sanitize_vals(model, vals)
         if not clean_vals:
             return
         return self.call(model, "write", {"ids": ids, "vals": clean_vals}, context=context)
@@ -515,6 +555,8 @@ class AccountingMigrator:
         self._hr_struct_default_cache: Dict[int, Optional[int]] = {}
         self._hr_emp_type_cache: Dict[str, int] = {}
         self._src_contract_types_cache: Dict[int, str] = {}
+        self._wet_map: Dict[int, int] = {}
+        self._dst_state_country_cache: Optional[Dict[int, int]] = None
 
     @staticmethod
     def _extract_b64(val: Any) -> Optional[str]:
@@ -2045,8 +2087,109 @@ class AccountingMigrator:
             dst_et_id = self._hr_emp_type_cache.get("employee")
         return dst_et_id, fixed_term
 
+    def _migrate_work_entry_types(self) -> Tuple[Optional[int], Set[int]]:
+        """Map source hr.work.entry.type records to Odoo 20 equivalents without country conflicts."""
+        if not self.src.fields_get("hr.work.entry.type") or not self.dst.fields_get("hr.work.entry.type"):
+            return None, set()
+
+        src_wets = self.src.search_read(
+            "hr.work.entry.type",
+            [],
+            ["id", "name", "code", "is_leave", "country_id"],
+            context=self.src_ctx_all,
+        )
+        dst_wets = self.dst.search_read(
+            "hr.work.entry.type",
+            [],
+            ["id", "name", "code", "count_as", "country_id"],
+            context=self.dst_ctx_quiet,
+        )
+        dst_generic = [w for w in dst_wets if not m2o_id(w.get("country_id"))]
+        dst_pool = dst_generic or dst_wets
+
+        dst_by_code = {str(w["code"]).strip().upper(): w["id"] for w in dst_pool if w.get("code")}
+        dst_by_name = {str(w["name"]).strip().lower(): w["id"] for w in dst_pool if w.get("name")}
+        default_work = (
+            dst_by_code.get("002.00")
+            or next((w["id"] for w in dst_pool if w.get("count_as") == "working_time"), None)
+            or (dst_wets[0]["id"] if dst_wets else None)
+        )
+        default_absence = (
+            dst_by_code.get("LEAVE100")
+            or next((w["id"] for w in dst_pool if w.get("count_as") == "absence"), None)
+        )
+
+        # Match XMLIDs first
+        imd_src = self.src.search_read(
+            "ir.model.data",
+            [["model", "=", "hr.work.entry.type"]],
+            ["module", "name", "res_id"],
+            context=self.src_ctx_all,
+        )
+        src_xmlid_by_id = {r["res_id"]: f"{r['module']}.{r['name']}" for r in imd_src if r.get("res_id")}
+        imd_dst = self.dst.search_read(
+            "ir.model.data",
+            [["model", "=", "hr.work.entry.type"]],
+            ["module", "name", "res_id"],
+            context=self.dst_ctx_quiet,
+        )
+        dst_id_by_xmlid = {f"{r['module']}.{r['name']}": r["res_id"] for r in imd_dst if r.get("res_id")}
+        dst_country_by_id = {w["id"]: m2o_id(w.get("country_id")) for w in dst_wets}
+
+        src_break_ids: Set[int] = set()
+        for sw in src_wets:
+            sid = sw["id"]
+            scode = str(sw.get("code") or "").strip().upper()
+            sname = str(sw.get("name") or "").strip().lower()
+            if scode.startswith("BRK") or sname == "break":
+                src_break_ids.add(sid)
+                continue
+
+            existing_dst = self.state.get_dst("hr.work.entry.type", sid)
+            if existing_dst:
+                self._wet_map[sid] = existing_dst
+                continue
+
+            xmlid = src_xmlid_by_id.get(sid)
+            cand: Optional[int] = None
+            if xmlid and xmlid in dst_id_by_xmlid and not dst_country_by_id.get(dst_id_by_xmlid[xmlid]):
+                cand = dst_id_by_xmlid[xmlid]
+            if not cand and scode in dst_by_code:
+                cand = dst_by_code[scode]
+            if not cand and sname in dst_by_name:
+                cand = dst_by_name[sname]
+            if not cand:
+                if scode == "WORK100" or sname == "attendance":
+                    cand = default_work
+                elif scode == "WORK110" or "home" in sname:
+                    cand = dst_by_code.get("002.08") or default_work
+                elif scode == "OVERTIME" or "overtime" in sname:
+                    cand = dst_by_code.get("040.00") or default_work
+                elif scode == "OUT" or "out of contract" in sname:
+                    cand = dst_by_code.get("000.00") or default_work
+                elif scode == "LEAVE90" or "unpaid" in sname:
+                    cand = dst_by_code.get("158.00") or default_absence
+                elif scode == "LEAVE110" or "sick" in sname:
+                    cand = dst_by_code.get("013.00") or default_absence
+                elif sw.get("is_leave") or "leave" in scode or "time off" in sname or "annual" in sname:
+                    cand = default_absence
+                else:
+                    cand = default_work
+
+            if cand:
+                self._wet_map[sid] = cand
+                if not self.dry_run:
+                    self.state.set_map("hr.work.entry.type", sid, cand)
+
+        return default_work, src_break_ids
+
     def migrate_hr_master_data(self):
         log.info("=== Phase 5C: HR Master Data (Calendars, Locations, Departments, Jobs, Structures) ===")
+        first_src_cid = (self.get_source_company_ids() or [1])[0]
+        default_dst_cid = self.state.get_dst("res.company", first_src_cid) or 1
+
+        # 0. Work Entry Types (required by structure types & attendance rest periods)
+        default_work_wet_id, src_break_wet_ids = self._migrate_work_entry_types()
 
         # 1. Working Hours (resource.calendar + resource.calendar.attendance)
         if self.src.fields_get("resource.calendar") and self.dst.fields_get("resource.calendar"):
@@ -2054,7 +2197,7 @@ class AccountingMigrator:
                 "resource.calendar",
                 [],
                 [
-                    "id", "name", "hours_per_day", "full_time_required_hours", "tz",
+                    "id", "name", "hours_per_day", "full_time_required_hours",
                     "company_id", "active", "flexible_hours", "two_weeks_calendar", "attendance_ids",
                 ],
                 context=self.src_ctx_all,
@@ -2066,6 +2209,15 @@ class AccountingMigrator:
             for dc in dst_cals:
                 key = ((dc.get("name") or "").strip().lower(), m2o_id(dc.get("company_id")))
                 dst_cal_lookup.setdefault(key, dc["id"])
+
+            dst_wet_countries: Dict[int, Optional[int]] = {}
+            if self.dst.fields_get("hr.work.entry.type"):
+                for w in self.dst.search_read("hr.work.entry.type", [], ["id", "country_id"], context=self.dst_ctx_quiet):
+                    dst_wet_countries[w["id"]] = m2o_id(w.get("country_id"))
+            dst_comp_countries: Dict[int, Optional[int]] = {
+                dc["id"]: m2o_id(dc.get("country_id"))
+                for dc in self.dst.search_read("res.company", [], ["id", "country_id"], context=self.dst_ctx_quiet)
+            }
 
             for sc in src_cals:
                 if self.state.get_dst("resource.calendar", sc["id"]):
@@ -2080,42 +2232,68 @@ class AccountingMigrator:
                 if self.dry_run:
                     log.info("[DRY-RUN] Would create resource.calendar: %s", cname)
                     continue
-                att_cmds: List[Any] = [[5, 0, 0]]
-                if sc.get("attendance_ids"):
-                    att_rows = self.src.read(
-                        "resource.calendar.attendance",
-                        sc["attendance_ids"],
-                        ["name", "dayofweek", "day_period", "hour_from", "hour_to", "week_type", "display_type", "duration_days", "sequence"],
-                        context=self.src_ctx_all,
-                    )
-                    for ar in att_rows:
-                        avals: Dict[str, Any] = {
-                            "name": ar.get("name") or "Work",
-                            "dayofweek": ar.get("dayofweek") or "0",
-                            "day_period": ar.get("day_period") or "morning",
-                            "hour_from": ar.get("hour_from", 8.0),
-                            "hour_to": ar.get("hour_to", 12.0),
-                            "week_type": ar.get("week_type") or False,
-                            "display_type": ar.get("display_type") or False,
-                            "sequence": ar.get("sequence", 10),
-                        }
-                        if ar.get("duration_days") is not None:
-                            avals["duration_days"] = ar["duration_days"]
-                        att_cmds.append([0, 0, avals])
-                cvals = {
-                    "name": cname,
-                    "hours_per_day": sc.get("hours_per_day") or 8.0,
-                    "full_time_required_hours": sc.get("full_time_required_hours") or 40.0,
-                    "tz": sc.get("tz") or "Asia/Qatar",
-                    "company_id": dst_cid or False,
-                    "active": sc.get("active", True),
-                    "flexible_hours": sc.get("flexible_hours", False),
-                    "two_weeks_calendar": sc.get("two_weeks_calendar", False),
-                    "attendance_ids": att_cmds,
-                }
-                dst_id = self.dst.create("resource.calendar", cvals, context=self.dst_ctx_quiet)
-                self.state.set_map("resource.calendar", sc["id"], dst_id)
-                dst_cal_lookup[(cname.lower(), dst_cid)] = dst_id
+
+                try:
+                    cal_country_id = dst_comp_countries.get(dst_cid) if dst_cid else None
+                    cal_type = "undefined" if sc.get("flexible_hours") else "fixed"
+                    att_cmds: List[Any] = [[5, 0, 0]]
+                    if cal_type == "fixed" and sc.get("attendance_ids"):
+                        att_rows = self.src.read(
+                            "resource.calendar.attendance",
+                            sc["attendance_ids"],
+                            ["dayofweek", "day_period", "hour_from", "hour_to", "week_type", "display_type", "work_entry_type_id", "sequence"],
+                            context=self.src_ctx_all,
+                        )
+                        intervals_by_day: Dict[str, List[Tuple[float, float]]] = {}
+                        for ar in sorted(att_rows, key=lambda r: (str(r.get("dayofweek") or "0"), float(r.get("hour_from") or 0.0), r["id"])):
+                            if ar.get("day_period") == "lunch" or ar.get("display_type"):
+                                continue
+                            src_wet_id = m2o_id(ar.get("work_entry_type_id"))
+                            if src_wet_id in src_break_wet_ids:
+                                continue
+                            if sc.get("two_weeks_calendar") and ar.get("week_type") not in (False, None, "0"):
+                                continue
+                            h_from = float(ar.get("hour_from") or 0.0)
+                            h_to = float(ar.get("hour_to") or 0.0)
+                            if h_to <= h_from or (h_to - h_from) > 24.0:
+                                continue
+                            dow = str(ar.get("dayofweek") if ar.get("dayofweek") is not None else "0")
+                            existing_ivs = intervals_by_day.get(dow, [])
+                            if any(h_from < et and ef < h_to for ef, et in existing_ivs):
+                                continue
+                            intervals_by_day.setdefault(dow, []).append((h_from, h_to))
+
+                            avals: Dict[str, Any] = {
+                                "dayofweek": dow,
+                                "hour_from": h_from,
+                                "hour_to": h_to,
+                                "sequence": int(ar.get("sequence") or 10),
+                            }
+                            if src_wet_id:
+                                dst_wet_id = self._wet_map.get(src_wet_id) or self.state.get_dst("hr.work.entry.type", src_wet_id)
+                                if dst_wet_id:
+                                    wet_c = dst_wet_countries.get(dst_wet_id)
+                                    if wet_c is None or (dst_cid and wet_c == cal_country_id):
+                                        avals["work_entry_type_id"] = dst_wet_id
+                            att_cmds.append([0, 0, avals])
+
+                    cvals: Dict[str, Any] = {
+                        "name": cname,
+                        "calendar_type": cal_type,
+                        "hours_per_day": float(sc.get("hours_per_day") or 8.0),
+                        "full_time_required_hours": float(sc.get("full_time_required_hours") or 40.0),
+                        "company_id": dst_cid or False,
+                        "active": bool(sc.get("active", True)),
+                    }
+                    if cal_type == "fixed":
+                        cvals["attendance_ids"] = att_cmds
+                    dst_id = self.dst.create("resource.calendar", cvals, context=self.dst_ctx_quiet)
+                    self.state.set_map("resource.calendar", sc["id"], dst_id)
+                    self.state.resolve_error("hr_master", "resource.calendar", sc["id"])
+                    dst_cal_lookup[(cname.lower(), dst_cid)] = dst_id
+                except Exception as exc:
+                    self.state.log_error("hr_master", "resource.calendar", sc["id"], str(exc))
+                    log.error("Failed migrating resource.calendar '%s' (%d): %s", cname, sc["id"], exc)
 
         # 2. Work Locations
         if self.src.fields_get("hr.work.location") and self.dst.fields_get("hr.work.location"):
@@ -2132,22 +2310,27 @@ class AccountingMigrator:
                 if self.state.get_dst("hr.work.location", wl["id"]):
                     continue
                 src_cid = m2o_id(wl.get("company_id"))
-                dst_cid = self.state.get_dst("res.company", src_cid) or 1
+                dst_cid = self.state.get_dst("res.company", src_cid) or default_dst_cid
                 dom = [["name", "=", wl["name"]], ["company_id", "=", dst_cid]]
                 existing = self.dst.search("hr.work.location", dom, limit=1, context=self.dst_ctx_quiet)
                 if existing:
                     self.state.set_map("hr.work.location", wl["id"], existing[0])
                 elif not self.dry_run:
-                    vals = {
-                        "name": wl["name"],
-                        "address_id": self.state.get_dst("res.partner", m2o_id(wl.get("address_id"))) or False,
-                        "location_type": wl.get("location_type") or "office",
-                        "location_number": wl.get("location_number") or False,
-                        "company_id": dst_cid,
-                        "active": wl.get("active", True),
-                    }
-                    dst_id = self.dst.create("hr.work.location", vals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.work.location", wl["id"], dst_id)
+                    try:
+                        vals = {
+                            "name": wl["name"],
+                            "address_id": self.state.get_dst("res.partner", m2o_id(wl.get("address_id"))) or False,
+                            "location_type": wl.get("location_type") or "office",
+                            "location_number": wl.get("location_number") or False,
+                            "company_id": dst_cid,
+                            "active": wl.get("active", True),
+                        }
+                        dst_id = self.dst.create("hr.work.location", vals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.work.location", wl["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.work.location", wl["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.work.location", wl["id"], str(exc))
+                        log.error("Failed migrating hr.work.location '%s' (%d): %s", wl.get("name"), wl["id"], exc)
 
         # 3. Departments (Pass 1: parent hierarchy; Pass 2 after employees sets manager_id)
         if self.src.fields_get("hr.department") and self.dst.fields_get("hr.department"):
@@ -2170,16 +2353,21 @@ class AccountingMigrator:
                 if existing:
                     self.state.set_map("hr.department", d["id"], existing[0])
                 elif not self.dry_run:
-                    vals = {
-                        "name": d["name"],
-                        "parent_id": self.state.get_dst("hr.department", m2o_id(d.get("parent_id"))) or False,
-                        "company_id": dst_cid or False,
-                        "color": d.get("color", 0),
-                        "note": d.get("note") or False,
-                        "active": d.get("active", True),
-                    }
-                    dst_id = self.dst.create("hr.department", vals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.department", d["id"], dst_id)
+                    try:
+                        vals = {
+                            "name": d["name"],
+                            "parent_id": self.state.get_dst("hr.department", m2o_id(d.get("parent_id"))) or False,
+                            "company_id": dst_cid or False,
+                            "color": d.get("color", 0),
+                            "note": d.get("note") or False,
+                            "active": d.get("active", True),
+                        }
+                        dst_id = self.dst.create("hr.department", vals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.department", d["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.department", d["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.department", d["id"], str(exc))
+                        log.error("Failed migrating hr.department '%s' (%d): %s", d.get("name"), d["id"], exc)
 
         # 4. Job Positions
         if self.src.fields_get("hr.job") and self.dst.fields_get("hr.job"):
@@ -2194,11 +2382,9 @@ class AccountingMigrator:
                 if self.state.get_dst("hr.job", j["id"]):
                     continue
                 src_cid = m2o_id(j.get("company_id"))
-                dst_cid = self.state.get_dst("res.company", src_cid) if src_cid else False
+                dst_cid = (self.state.get_dst("res.company", src_cid) if src_cid else None) or default_dst_cid
                 dst_dept = self.state.get_dst("hr.department", m2o_id(j.get("department_id"))) or False
-                dom: List[Any] = [["name", "=", j["name"]]]
-                if dst_cid:
-                    dom.append(["company_id", "=", dst_cid])
+                dom: List[Any] = [["name", "=", j["name"]], ["company_id", "=", dst_cid]]
                 if dst_dept:
                     dom.append(["department_id", "=", dst_dept])
                 existing_list = self.dst.search("hr.job", dom, context=self.dst_ctx_quiet)
@@ -2206,18 +2392,23 @@ class AccountingMigrator:
                 if unmapped:
                     self.state.set_map("hr.job", j["id"], unmapped[0])
                 elif not self.dry_run:
-                    vals = {
-                        "name": j["name"],
-                        "department_id": dst_dept,
-                        "company_id": dst_cid or False,
-                        "no_of_recruitment": j.get("no_of_recruitment") or 1,
-                        "description": j.get("description") or False,
-                        "requirements": j.get("requirements") or False,
-                        "sequence": j.get("sequence", 10),
-                        "active": j.get("active", True),
-                    }
-                    dst_id = self.dst.create("hr.job", vals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.job", j["id"], dst_id)
+                    try:
+                        vals = {
+                            "name": j["name"],
+                            "department_id": dst_dept,
+                            "company_id": dst_cid,
+                            "no_of_recruitment": j.get("no_of_recruitment") or 1,
+                            "description": j.get("description") or False,
+                            "requirements": j.get("requirements") or False,
+                            "sequence": j.get("sequence", 10),
+                            "active": j.get("active", True),
+                        }
+                        dst_id = self.dst.create("hr.job", vals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.job", j["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.job", j["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.job", j["id"], str(exc))
+                        log.error("Failed migrating hr.job '%s' (%d): %s", j.get("name"), j["id"], exc)
 
         # 5. Employee Tags (hr.employee.category)
         if self.src.fields_get("hr.employee.category") and self.dst.fields_get("hr.employee.category"):
@@ -2228,12 +2419,17 @@ class AccountingMigrator:
                 if existing:
                     self.state.set_map("hr.employee.category", cat["id"], existing[0])
                 elif not self.dry_run:
-                    dst_id = self.dst.create(
-                        "hr.employee.category",
-                        {"name": cat["name"], "color": cat.get("color", 0)},
-                        context=self.dst_ctx_quiet,
-                    )
-                    self.state.set_map("hr.employee.category", cat["id"], dst_id)
+                    try:
+                        dst_id = self.dst.create(
+                            "hr.employee.category",
+                            {"name": cat["name"], "color": cat.get("color", 0)},
+                            context=self.dst_ctx_quiet,
+                        )
+                        self.state.set_map("hr.employee.category", cat["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.employee.category", cat["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.employee.category", cat["id"], str(exc))
+                        log.error("Failed migrating hr.employee.category '%s' (%d): %s", cat.get("name"), cat["id"], exc)
 
         # 6. Departure Reasons
         if self.src.fields_get("hr.departure.reason") and self.dst.fields_get("hr.departure.reason"):
@@ -2242,6 +2438,7 @@ class AccountingMigrator:
                 for r in self.dst.search_read("hr.departure.reason", [], ["id", "name"], context=self.dst_ctx_quiet)
                 if r.get("name")
             }
+            dst_has_reason_code = self.dst.has_field("hr.departure.reason", "reason_code")
             for dr in self.src.search_read("hr.departure.reason", [], ["id", "name", "sequence", "reason_code"], context=self.src_ctx_all):
                 if self.state.get_dst("hr.departure.reason", dr["id"]):
                     continue
@@ -2250,46 +2447,65 @@ class AccountingMigrator:
                 if match:
                     self.state.set_map("hr.departure.reason", dr["id"], match)
                 elif not self.dry_run and rname:
-                    rvals = {"name": rname, "sequence": dr.get("sequence", 10)}
-                    if dr.get("reason_code"):
-                        rvals["reason_code"] = dr["reason_code"]
-                    dst_id = self.dst.create("hr.departure.reason", rvals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.departure.reason", dr["id"], dst_id)
-                    dst_reasons[rname.lower()] = dst_id
+                    try:
+                        rvals: Dict[str, Any] = {"name": rname, "sequence": dr.get("sequence", 10)}
+                        if dst_has_reason_code and dr.get("reason_code"):
+                            rvals["reason_code"] = dr["reason_code"]
+                        dst_id = self.dst.create("hr.departure.reason", rvals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.departure.reason", dr["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.departure.reason", dr["id"])
+                        dst_reasons[rname.lower()] = dst_id
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.departure.reason", dr["id"], str(exc))
+                        log.error("Failed migrating hr.departure.reason '%s' (%d): %s", rname, dr["id"], exc)
 
-        # 7. WPS Sponsors
+        # 7. WPS Sponsors (partner_id, bank_account_id, employer_eid, payer_eid, payer_qid, additional_header)
         if self.src.fields_get("hr.wps.sponsor") and self.dst.fields_get("hr.wps.sponsor"):
-            for sp in self.src.search_read(
+            src_sponsors = self.src.search_read(
                 "hr.wps.sponsor",
                 [],
-                ["id", "name", "sponsor_id", "payer_eid", "payer_qid", "payer_bank_short_name", "payer_iban", "company_id"],
+                ["id", "partner_id", "bank_account_id", "employer_eid", "payer_eid", "payer_qid", "additional_header"],
                 context=self.src_ctx_all,
-            ):
+            )
+            sp_partners = {m2o_id(sp.get("partner_id")) for sp in src_sponsors if m2o_id(sp.get("partner_id"))}
+            if sp_partners:
+                self.migrate_partners(sp_partners)
+            for sp in src_sponsors:
                 if self.state.get_dst("hr.wps.sponsor", sp["id"]):
                     continue
-                dom = [["sponsor_id", "=", sp["sponsor_id"]]] if sp.get("sponsor_id") else [["name", "=", sp["name"]]]
+                dst_pid = self.state.get_dst("res.partner", m2o_id(sp.get("partner_id")))
+                if not dst_pid:
+                    continue
+                dom = [["employer_eid", "=", sp["employer_eid"]]] if sp.get("employer_eid") else [["partner_id", "=", dst_pid]]
                 existing = self.dst.search("hr.wps.sponsor", dom, limit=1, context=self.dst_ctx_quiet)
                 if existing:
                     self.state.set_map("hr.wps.sponsor", sp["id"], existing[0])
                 elif not self.dry_run:
-                    vals = {
-                        "name": sp.get("name") or False,
-                        "sponsor_id": sp.get("sponsor_id") or False,
-                        "payer_eid": sp.get("payer_eid") or False,
-                        "payer_qid": sp.get("payer_qid") or False,
-                        "payer_bank_short_name": sp.get("payer_bank_short_name") or False,
-                        "payer_iban": sp.get("payer_iban") or False,
-                        "company_id": self.state.get_dst("res.company", m2o_id(sp.get("company_id"))) or 1,
-                    }
-                    dst_id = self.dst.create("hr.wps.sponsor", vals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.wps.sponsor", sp["id"], dst_id)
+                    try:
+                        vals = {
+                            "partner_id": dst_pid,
+                            "bank_account_id": self.state.get_dst("res.partner.bank", m2o_id(sp.get("bank_account_id"))) or False,
+                            "employer_eid": sp.get("employer_eid") or False,
+                            "payer_eid": sp.get("payer_eid") or False,
+                            "payer_qid": sp.get("payer_qid") or False,
+                            "additional_header": sp.get("additional_header") or False,
+                        }
+                        dst_id = self.dst.create("hr.wps.sponsor", vals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.wps.sponsor", sp["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.wps.sponsor", sp["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.wps.sponsor", sp["id"], str(exc))
+                        log.error("Failed migrating hr.wps.sponsor (%d): %s", sp["id"], exc)
 
         # 8. Payroll Structure Types & Structures
         if self.src.fields_get("hr.payroll.structure.type") and self.dst.fields_get("hr.payroll.structure.type"):
             src_stypes = self.src.search_read(
                 "hr.payroll.structure.type",
                 [],
-                ["id", "name", "default_schedule_pay", "wage_type", "country_id", "default_resource_calendar_id", "default_struct_id", "active"],
+                [
+                    "id", "name", "default_schedule_pay", "wage_type", "country_id",
+                    "default_resource_calendar_id", "default_work_entry_type_id", "default_struct_id", "active",
+                ],
                 order="id asc",
                 context=self.src_ctx_all,
             )
@@ -2298,30 +2514,39 @@ class AccountingMigrator:
                     continue
                 existing = self.dst.search(
                     "hr.payroll.structure.type",
-                    [["name", "=", st["name"]], ["active", "in", [True, False]]],
+                    [["name", "=", st["name"]]],
                     limit=1,
                     context=self.dst_ctx_quiet,
                 )
                 if existing:
                     self.state.set_map("hr.payroll.structure.type", st["id"], existing[0])
                 elif not self.dry_run:
-                    vals: Dict[str, Any] = {
-                        "name": st["name"],
-                        "default_schedule_pay": st.get("default_schedule_pay") or "monthly",
-                        "wage_type": st.get("wage_type") or "monthly",
-                        "country_id": self.state.get_dst("res.country", m2o_id(st.get("country_id"))) or False,
-                        "default_resource_calendar_id": self.state.get_dst("resource.calendar", m2o_id(st.get("default_resource_calendar_id"))) or False,
-                        "active": st.get("active", True),
-                    }
-                    dst_id = self.dst.create("hr.payroll.structure.type", vals, context=self.dst_ctx_quiet)
-                    self.state.set_map("hr.payroll.structure.type", st["id"], dst_id)
+                    try:
+                        src_wet = m2o_id(st.get("default_work_entry_type_id"))
+                        dst_wet = (self._wet_map.get(src_wet) or self.state.get_dst("hr.work.entry.type", src_wet)) if src_wet else None
+                        vals: Dict[str, Any] = {
+                            "name": st["name"],
+                            "default_schedule_pay": st.get("default_schedule_pay") or "monthly",
+                            "wage_type": st.get("wage_type") or "monthly",
+                            "country_id": self.state.get_dst("res.country", m2o_id(st.get("country_id"))) or False,
+                            "default_resource_calendar_id": self.state.get_dst("resource.calendar", m2o_id(st.get("default_resource_calendar_id"))) or False,
+                            "active": st.get("active", True),
+                        }
+                        if dst_wet or default_work_wet_id:
+                            vals["default_work_entry_type_id"] = dst_wet or default_work_wet_id
+                        dst_id = self.dst.create("hr.payroll.structure.type", vals, context=self.dst_ctx_quiet)
+                        self.state.set_map("hr.payroll.structure.type", st["id"], dst_id)
+                        self.state.resolve_error("hr_master", "hr.payroll.structure.type", st["id"])
+                    except Exception as exc:
+                        self.state.log_error("hr_master", "hr.payroll.structure.type", st["id"], str(exc))
+                        log.error("Failed migrating hr.payroll.structure.type '%s' (%d): %s", st.get("name"), st["id"], exc)
 
             if self.src.fields_get("hr.payroll.structure") and self.dst.fields_get("hr.payroll.structure"):
                 dst_has_odoo20_flag = self.dst.has_field("hr.payroll.structure", "use_odoo20_salary_rules")
                 src_structs = self.src.search_read(
                     "hr.payroll.structure",
                     [],
-                    ["id", "name", "code", "type_id", "country_id", "schedule_pay", "active"],
+                    ["id", "name", "code", "type_id", "country_id", "active"],
                     order="id asc",
                     context=self.src_ctx_all,
                 )
@@ -2329,25 +2554,29 @@ class AccountingMigrator:
                     dst_type_id = self.state.get_dst("hr.payroll.structure.type", m2o_id(ps.get("type_id")))
                     if self.state.get_dst("hr.payroll.structure", ps["id"]):
                         continue
-                    dom = [["name", "=", ps["name"]], ["active", "in", [True, False]]]
+                    dom: List[Any] = [["name", "=", ps["name"]]]
                     if dst_type_id:
                         dom.append(["type_id", "=", dst_type_id])
                     existing = self.dst.search("hr.payroll.structure", dom, limit=1, context=self.dst_ctx_quiet)
                     if existing:
                         self.state.set_map("hr.payroll.structure", ps["id"], existing[0])
                     elif not self.dry_run and dst_type_id:
-                        vals = {
-                            "name": ps["name"],
-                            "code": ps.get("code") or False,
-                            "type_id": dst_type_id,
-                            "country_id": self.state.get_dst("res.country", m2o_id(ps.get("country_id"))) or False,
-                            "schedule_pay": ps.get("schedule_pay") or "monthly",
-                            "active": ps.get("active", True),
-                        }
-                        if dst_has_odoo20_flag:
-                            vals["use_odoo20_salary_rules"] = bool(ps.get("active", True))
-                        dst_id = self.dst.create("hr.payroll.structure", vals, context=self.dst_ctx_quiet)
-                        self.state.set_map("hr.payroll.structure", ps["id"], dst_id)
+                        try:
+                            vals = {
+                                "name": ps["name"],
+                                "code": ps.get("code") or False,
+                                "type_id": dst_type_id,
+                                "country_id": self.state.get_dst("res.country", m2o_id(ps.get("country_id"))) or False,
+                                "active": ps.get("active", True),
+                            }
+                            if dst_has_odoo20_flag:
+                                vals["use_odoo20_salary_rules"] = bool(ps.get("active", True))
+                            dst_id = self.dst.create("hr.payroll.structure", vals, context=self.dst_ctx_quiet)
+                            self.state.set_map("hr.payroll.structure", ps["id"], dst_id)
+                            self.state.resolve_error("hr_master", "hr.payroll.structure", ps["id"])
+                        except Exception as exc:
+                            self.state.log_error("hr_master", "hr.payroll.structure", ps["id"], str(exc))
+                            log.error("Failed migrating hr.payroll.structure '%s' (%d): %s", ps.get("name"), ps["id"], exc)
 
             # Link default_struct_id on hr.payroll.structure.type
             if not self.dry_run:
@@ -2407,6 +2636,26 @@ class AccountingMigrator:
         src_resp = m2o_id(v.get("hr_responsible_id")) or m2o_id(ef.get("hr_responsible_id"))
         dst_resp = (self.state.get_dst("res.users", src_resp) if src_resp else None) or 2
 
+        raw_sex = v.get("sex") or ef.get("sex")
+        sex_val = raw_sex if raw_sex in ("male", "female") else False
+
+        priv_country = self.state.get_dst(
+            "res.country", m2o_id(v.get("private_country_id")) or m2o_id(ef.get("private_country_id"))
+        ) or False
+        priv_state = self.state.get_dst(
+            "res.country.state", m2o_id(v.get("private_state_id")) or m2o_id(ef.get("private_state_id"))
+        ) or False
+        if priv_state:
+            if self._dst_state_country_cache is None:
+                self._dst_state_country_cache = {
+                    s["id"]: m2o_id(s.get("country_id"))
+                    for s in self.dst.search_read("res.country.state", [], ["id", "country_id"], context=self.dst_ctx_quiet)
+                    if m2o_id(s.get("country_id"))
+                }
+            state_cid = self._dst_state_country_cache.get(priv_state)
+            if priv_country and state_cid and state_cid != priv_country:
+                priv_state = False
+
         vals: Dict[str, Any] = {
             "name": v.get("name") or False,
             "date_version": date_ver,
@@ -2446,7 +2695,7 @@ class AccountingMigrator:
                 or ef.get("x_studio_passport_expiry")
                 or False
             ),
-            "sex": v.get("sex") or ef.get("sex") or False,
+            "sex": sex_val,
             "marital": v.get("marital") or ef.get("marital") or "single",
             "spouse_complete_name": v.get("spouse_complete_name") or ef.get("spouse_complete_name") or False,
             "spouse_birthdate": v.get("spouse_birthdate") or ef.get("spouse_birthdate") or False,
@@ -2455,8 +2704,8 @@ class AccountingMigrator:
             "private_street2": v.get("private_street2") or ef.get("private_street2") or False,
             "private_city": v.get("private_city") or ef.get("private_city") or False,
             "private_zip": v.get("private_zip") or ef.get("private_zip") or False,
-            "private_country_id": self.state.get_dst("res.country", m2o_id(v.get("private_country_id")) or m2o_id(ef.get("private_country_id"))) or False,
-            "private_state_id": self.state.get_dst("res.country.state", m2o_id(v.get("private_state_id")) or m2o_id(ef.get("private_state_id"))) or False,
+            "private_country_id": priv_country,
+            "private_state_id": priv_state,
             "distance_home_work": int(v.get("distance_home_work") or 0),
             "distance_home_work_unit": v.get("distance_home_work_unit") or "kilometers",
             "km_home_work": int(v.get("km_home_work") or 0),
@@ -2473,8 +2722,6 @@ class AccountingMigrator:
             tpl_id = self.state.get_dst("hr.version", m2o_id(v.get("contract_template_id")))
             if tpl_id:
                 vals["contract_template_id"] = tpl_id
-        if dst_stype and dst_stype in self._hr_struct_default_cache and self._hr_struct_default_cache[dst_stype]:
-            vals["structure_id"] = self._hr_struct_default_cache[dst_stype]
         return vals
 
     @staticmethod
