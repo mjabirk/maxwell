@@ -3,6 +3,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -524,6 +525,8 @@ class AccountingMigrator:
         default_user_password: str = "",
         skip_users_hr: bool = False,
         only_users_hr: bool = False,
+        skip_employee_documents: bool = False,
+        only_employee_documents: bool = False,
     ):
         self.src = src
         self.dst = dst
@@ -539,6 +542,8 @@ class AccountingMigrator:
         self.default_user_password = default_user_password or ""
         self.skip_users_hr = skip_users_hr
         self.only_users_hr = only_users_hr
+        self.skip_employee_documents = skip_employee_documents
+        self.only_employee_documents = only_employee_documents
 
         self.src_ctx_all = {"active_test": False}
         self.dst_ctx_quiet = {
@@ -2921,7 +2926,11 @@ class AccountingMigrator:
                 log.error("Failed contract template %d: %s", tpl["id"], exc)
 
         # 2. Fetch employee pictures & binary documents with bin_size=False (bypassing ir.attachment search restrictions)
-        bin_fields_to_read = ["id", "image_1920", "id_card", "id_card_name", "driving_license", "driving_license_name", "has_work_permit"]
+        bin_fields_to_read = [
+            "id", "image_1920", "id_card", "id_card_name",
+            "driving_license", "driving_license_name", "has_work_permit",
+            "sim_card", "sim_card_name", "internet_invoice", "internet_invoice_name",
+        ]
         emp_binaries: Dict[int, Dict[str, Any]] = {}
         if not self.dry_run:
             for batch in chunked([e["id"] for e in src_emps], ATTACHMENT_BATCH_SIZE):
@@ -3104,8 +3113,14 @@ class AccountingMigrator:
 
                 if emp_photo:
                     emp_vals["image_1920"] = emp_photo
-                for bf in ("id_card", "id_card_name", "driving_license", "driving_license_name", "has_work_permit"):
-                    bval = self._extract_b64(ebin.get(bf)) if bf in ("id_card", "driving_license", "has_work_permit") else ebin.get(bf)
+                for bf in (
+                    "id_card", "id_card_name",
+                    "driving_license", "driving_license_name",
+                    "has_work_permit",
+                    "sim_card", "sim_card_name",
+                    "internet_invoice", "internet_invoice_name",
+                ):
+                    bval = self._extract_b64(ebin.get(bf)) if bf in ("id_card", "driving_license", "has_work_permit", "sim_card", "internet_invoice") else ebin.get(bf)
                     if bval:
                         emp_vals[bf] = bval
 
@@ -3288,6 +3303,642 @@ class AccountingMigrator:
                             log.warning("Could not set manager_id on department dst=%d: %s", dst_did, exc)
 
         log.info("Employees & contracts phase finished for %d source employees.", len(src_emps))
+
+    # -------------------------------------------------------------------------
+    # STEP 5E: EMPLOYEE ATTACHMENTS, DOCUMENTS APP & RESUME CERTIFICATES
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def _doc_name_tokens(text: Any) -> Set[str]:
+        if not text:
+            return set()
+        return {tok for tok in re.findall(r"[a-z0-9]+", str(text).lower()) if len(tok) >= 2}
+
+    def _resolve_employee_doc_target(
+        self,
+        doc: Dict[str, Any],
+        emp_map: Dict[int, int],
+        ver_to_emp: Dict[int, int],
+        folder_to_emp: Dict[int, int],
+        wc_to_emp: Dict[int, int],
+        hr_folder_ids: Set[int],
+        emp_multi_tokens: List[Tuple[int, Set[str]]],
+        emp_unique_tokens: Dict[str, int],
+    ) -> Optional[int]:
+        res_model = doc.get("res_model")
+        res_id = doc.get("res_id")
+        if res_model == "hr.employee" and res_id and res_id in emp_map:
+            return int(res_id)
+        if res_model == "hr.version" and res_id and res_id in ver_to_emp:
+            return ver_to_emp[int(res_id)]
+        fid = m2o_id(doc.get("folder_id"))
+        if fid and fid in folder_to_emp:
+            return folder_to_emp[fid]
+        pid = m2o_id(doc.get("partner_id"))
+        if pid and pid in wc_to_emp:
+            return wc_to_emp[pid]
+        if fid in hr_folder_ids and (not pid or pid <= 5):
+            dtoks = self._doc_name_tokens(doc.get("name"))
+            if dtoks:
+                multi_hits = [eid for eid, toks in emp_multi_tokens if toks.issubset(dtoks)]
+                if len(multi_hits) == 1:
+                    return multi_hits[0]
+                dtoks_norm = set(dtoks)
+                for t in dtoks:
+                    if len(t) >= 6 and t.endswith("e"):
+                        dtoks_norm.add(t[:-1])
+                uniq_hits = {emp_unique_tokens[t] for t in dtoks_norm if t in emp_unique_tokens}
+                if len(uniq_hits) == 1:
+                    return next(iter(uniq_hits))
+        return None
+
+    def _build_employee_doc_context(self) -> Dict[str, Any]:
+        """Resolve source<->dest employee maps & lookup indexes for employee documents."""
+        src_emps = self.src.search_read(
+            "hr.employee",
+            [],
+            [
+                "id", "name", "active", "barcode", "company_id", "work_contact_id",
+                "hr_employee_folder_id", "hr_employee_contract_folder_id",
+                "message_main_attachment_id",
+            ],
+            order="id asc",
+            context=self.src_ctx_all,
+        )
+        dst_emps = self.dst.search_read(
+            "hr.employee",
+            [],
+            ["id", "name", "active", "barcode", "company_id", "work_contact_id"],
+            order="id asc",
+            context=self.dst_ctx_quiet,
+        )
+        emp_map: Dict[int, int] = {}
+        used_dst_eids: Set[int] = set()
+        for se in src_emps:
+            mapped = self.state.get_dst("hr.employee", se["id"])
+            if mapped:
+                emp_map[se["id"]] = mapped
+                used_dst_eids.add(mapped)
+
+        for se in src_emps:
+            if se["id"] in emp_map:
+                continue
+            src_cid = m2o_id(se.get("company_id")) or 1
+            if self.only_company_id and src_cid != self.only_company_id:
+                continue
+            dst_cid = self.state.get_dst("res.company", src_cid) or 1
+            cand: Optional[int] = None
+            if se.get("barcode"):
+                cand = next(
+                    (
+                        de["id"]
+                        for de in dst_emps
+                        if de.get("barcode") == se["barcode"] and de["id"] not in used_dst_eids
+                    ),
+                    None,
+                )
+            if not cand:
+                cand = next(
+                    (
+                        de["id"]
+                        for de in dst_emps
+                        if de.get("name") == se.get("name")
+                        and m2o_id(de.get("company_id")) == dst_cid
+                        and bool(de.get("active", True)) == bool(se.get("active", True))
+                        and de["id"] not in used_dst_eids
+                    ),
+                    None,
+                )
+            if cand:
+                emp_map[se["id"]] = cand
+                used_dst_eids.add(cand)
+                if not self.dry_run:
+                    self.state.set_map("hr.employee", se["id"], cand)
+
+        wc_to_emp: Dict[int, int] = {}
+        folder_to_emp: Dict[int, int] = {}
+        dst_emp_wc: Dict[int, Optional[int]] = {de["id"]: m2o_id(de.get("work_contact_id")) for de in dst_emps}
+        dst_emp_cid: Dict[int, int] = {de["id"]: (m2o_id(de.get("company_id")) or 1) for de in dst_emps}
+        src_emp_by_id: Dict[int, Dict[str, Any]] = {se["id"]: se for se in src_emps}
+
+        # Prefer active employees first for work_contact_id lookup
+        for se in sorted(src_emps, key=lambda r: (0 if r.get("active", True) else 1, r["id"])):
+            eid = se["id"]
+            if eid not in emp_map:
+                continue
+            wcid = m2o_id(se.get("work_contact_id"))
+            if wcid and wcid > 5 and wcid not in wc_to_emp:
+                wc_to_emp[wcid] = eid
+            for ff in ("hr_employee_folder_id", "hr_employee_contract_folder_id"):
+                fid = m2o_id(se.get(ff))
+                if fid and fid not in folder_to_emp:
+                    folder_to_emp[fid] = eid
+
+        ver_to_emp: Dict[int, int] = {}
+        if self.src.fields_get("hr.version"):
+            for vr in self.src.search_read(
+                "hr.version", [["employee_id", "!=", False]], ["id", "employee_id"], context=self.src_ctx_all
+            ):
+                eid = m2o_id(vr.get("employee_id"))
+                if eid and eid in emp_map:
+                    ver_to_emp[vr["id"]] = eid
+
+        return {
+            "src_emps": src_emps,
+            "src_emp_by_id": src_emp_by_id,
+            "emp_map": emp_map,
+            "wc_to_emp": wc_to_emp,
+            "folder_to_emp": folder_to_emp,
+            "ver_to_emp": ver_to_emp,
+            "dst_emp_wc": dst_emp_wc,
+            "dst_emp_cid": dst_emp_cid,
+        }
+
+    def migrate_employee_documents_and_attachments(self):
+        if self.skip_employee_documents:
+            return
+        log.info("=== Phase 5E: Employee Attachments, Documents & Resume Certificates ===")
+        if not self.src.fields_get("hr.employee") or not self.dst.fields_get("hr.employee"):
+            return
+
+        ctx_data = self._build_employee_doc_context()
+        emp_map: Dict[int, int] = ctx_data["emp_map"]
+        src_emp_by_id: Dict[int, Dict[str, Any]] = ctx_data["src_emp_by_id"]
+        wc_to_emp: Dict[int, int] = ctx_data["wc_to_emp"]
+        folder_to_emp: Dict[int, int] = ctx_data["folder_to_emp"]
+        ver_to_emp: Dict[int, int] = ctx_data["ver_to_emp"]
+        dst_emp_wc: Dict[int, Optional[int]] = ctx_data["dst_emp_wc"]
+        dst_emp_cid: Dict[int, int] = ctx_data["dst_emp_cid"]
+
+        if not emp_map:
+            log.info("No mapped employees found on destination for attachment/document sync.")
+            return
+
+        # Pre-index existing destination hr.employee attachments to deduplicate reliably
+        existing_sigs: Dict[int, Set[Tuple[str, str]]] = {}
+        dst_att_rows = self.dst.search_read(
+            "ir.attachment",
+            [["res_model", "=", "hr.employee"], ["res_field", "=", False]],
+            ["id", "res_id", "name", "checksum", "file_size", "url"],
+            context=self.dst_ctx_quiet,
+        )
+        for da in dst_att_rows:
+            deid = da.get("res_id")
+            if not deid:
+                continue
+            dname = str(da.get("name") or "").strip().lower()
+            sigs = existing_sigs.setdefault(deid, set())
+            if da.get("checksum"):
+                sigs.add((dname, str(da["checksum"])))
+            if da.get("file_size") is not None:
+                sigs.add((dname, f"size:{da['file_size']}"))
+            if da.get("url"):
+                sigs.add((dname, f"url:{da['url']}"))
+
+        def is_dup_att(dst_eid: int, name: str, checksum: Optional[str], file_size: Optional[int], url: Optional[str]) -> bool:
+            sigs = existing_sigs.get(dst_eid)
+            if not sigs:
+                return False
+            kname = str(name or "").strip().lower()
+            if checksum and (kname, str(checksum)) in sigs:
+                return True
+            if file_size is not None and (kname, f"size:{file_size}") in sigs:
+                return True
+            if url and (kname, f"url:{url}") in sigs:
+                return True
+            return False
+
+        def record_att_sig(dst_eid: int, name: str, checksum: Optional[str], file_size: Optional[int], url: Optional[str]):
+            sigs = existing_sigs.setdefault(dst_eid, set())
+            kname = str(name or "").strip().lower()
+            if checksum:
+                sigs.add((kname, str(checksum)))
+            if file_size is not None:
+                sigs.add((kname, f"size:{file_size}"))
+            if url:
+                sigs.add((kname, f"url:{url}"))
+
+        src_bin_field = "datas" if self.src.has_field("ir.attachment", "datas") else "raw"
+        dst_bin_field = "raw" if self.dst.has_field("ir.attachment", "raw") else "datas"
+        att_create_ctx = {**self.dst_ctx_quiet, "image_no_postprocess": True}
+
+        # ---------------------------------------------------------------------
+        # 1. Direct ir.attachment on hr.employee & hr.version
+        # ---------------------------------------------------------------------
+        pending_emp_atts: List[Tuple[Dict[str, Any], int]] = []
+        for src_model, src_res_ids in (("hr.employee", sorted(emp_map.keys())), ("hr.version", sorted(ver_to_emp.keys()))):
+            if not src_res_ids:
+                continue
+            for res_batch in chunked(src_res_ids, 200):
+                att_ids = self.src.search(
+                    "ir.attachment",
+                    [
+                        ["res_model", "=", src_model],
+                        ["res_id", "in", res_batch],
+                        ["res_field", "=", False],
+                    ],
+                    order="id asc",
+                    context=self.src_ctx_all,
+                )
+                for meta_batch in chunked(att_ids, BATCH_SIZE):
+                    metas = self.src.read(
+                        "ir.attachment",
+                        meta_batch,
+                        ["id", "name", "type", "url", "description", "res_model", "res_id", "company_id", "checksum", "file_size"],
+                        context=self.src_ctx_all,
+                    )
+                    for a in metas:
+                        src_aid = a["id"]
+                        if self.state.get_dst("ir.attachment", src_aid):
+                            continue
+                        src_eid = a["res_id"] if src_model == "hr.employee" else ver_to_emp.get(a["res_id"])
+                        dst_eid = emp_map.get(src_eid) if src_eid else None
+                        if not dst_eid:
+                            continue
+                        aname = a.get("name") or f"attachment_{src_aid}"
+                        if is_dup_att(dst_eid, aname, a.get("checksum"), a.get("file_size"), a.get("url")):
+                            continue
+                        pending_emp_atts.append((a, dst_eid))
+
+        att_copied = 0
+        if self.dry_run:
+            log.info("[DRY-RUN] Direct employee/version ir.attachment to copy: %d", len(pending_emp_atts))
+        else:
+            for batch in chunked(pending_emp_atts, ATTACHMENT_BATCH_SIZE):
+                bin_by_id: Dict[int, Any] = {}
+                bin_ids = [a["id"] for a, _ in batch if a.get("type", "binary") != "url"]
+                if bin_ids:
+                    for brow in self.src.read(
+                        "ir.attachment",
+                        bin_ids,
+                        ["id", src_bin_field],
+                        context={**self.src_ctx_all, "bin_size": False},
+                    ):
+                        bin_by_id[brow["id"]] = brow.get(src_bin_field)
+                for a, dst_eid in batch:
+                    src_aid = a["id"]
+                    try:
+                        src_cid = m2o_id(a.get("company_id"))
+                        aname = a.get("name") or f"attachment_{src_aid}"
+                        vals: Dict[str, Any] = {
+                            "name": aname,
+                            "type": a.get("type") or "binary",
+                            "res_model": "hr.employee",
+                            "res_id": dst_eid,
+                            "description": a.get("description") or False,
+                            "company_id": self.state.get_dst("res.company", src_cid) if src_cid else dst_emp_cid.get(dst_eid, False),
+                        }
+                        if vals["type"] == "url":
+                            vals["url"] = a.get("url") or False
+                        else:
+                            bval = self._extract_b64(bin_by_id.get(src_aid))
+                            if not bval:
+                                continue
+                            vals[dst_bin_field] = bval
+                        dst_aid = self.dst.create("ir.attachment", vals, context=att_create_ctx)
+                        self.state.set_map("ir.attachment", src_aid, dst_aid)
+                        self.state.resolve_error("employee_documents", "ir.attachment", src_aid)
+                        record_att_sig(dst_eid, aname, a.get("checksum"), a.get("file_size"), a.get("url"))
+                        att_copied += 1
+                    except Exception as exc:
+                        self.state.log_error("employee_documents", "ir.attachment", src_aid, str(exc))
+                        log.error("Failed employee attachment '%s' (%d): %s", a.get("name"), src_aid, exc)
+            log.info("Direct employee/version ir.attachment migrated: %d", att_copied)
+
+            # Sync message_main_attachment_id onto destination hr.employee
+            for se in ctx_data["src_emps"]:
+                dst_eid = emp_map.get(se["id"])
+                src_main = m2o_id(se.get("message_main_attachment_id"))
+                dst_main = self.state.get_dst("ir.attachment", src_main) if src_main else None
+                if dst_eid and dst_main:
+                    try:
+                        self.dst.write("hr.employee", [dst_eid], {"message_main_attachment_id": dst_main}, context=self.dst_ctx_quiet)
+                    except Exception:
+                        pass
+
+        # ---------------------------------------------------------------------
+        # 2. Employee Documents from Odoo 19 Documents App (documents.document)
+        # ---------------------------------------------------------------------
+        if self.src.fields_get("documents.document"):
+            src_folders = self.src.search_read(
+                "documents.document",
+                [["type", "=", "folder"]],
+                ["id", "name", "folder_id"],
+                context=self.src_ctx_all,
+            )
+            folder_by_id = {f["id"]: f for f in src_folders}
+
+            def get_folder_chain(fid: Optional[int]) -> List[str]:
+                names: List[str] = []
+                seen: Set[int] = set()
+                cur = fid
+                while cur and cur not in seen and cur in folder_by_id:
+                    seen.add(cur)
+                    row = folder_by_id[cur]
+                    if row.get("name"):
+                        names.append(str(row["name"]))
+                    cur = m2o_id(row.get("folder_id"))
+                return list(reversed(names))
+
+            hr_folder_ids: Set[int] = set()
+            folder_paths: Dict[int, str] = {}
+            for fid in folder_by_id:
+                chain = get_folder_chain(fid)
+                folder_paths[fid] = " / ".join(chain)
+                if any(
+                    word in {"hr", "human resources", "employee", "employees", "contracts", "recruitment", "payroll"}
+                    or any(w in seg.lower() for w in ("hr", "employee", "contract"))
+                    for seg in chain
+                    for word in [seg.strip().lower()]
+                ):
+                    hr_folder_ids.add(fid)
+
+            # Build conservative employee name matchers for HR-folder files missing partner_id
+            emp_multi_tokens: List[Tuple[int, Set[str]]] = []
+            token_to_emp_ids: Dict[str, Set[int]] = {}
+            for eid, se in src_emp_by_id.items():
+                if eid not in emp_map:
+                    continue
+                etoks = {t for t in self._doc_name_tokens(se.get("name")) if len(t) >= 3}
+                if len(etoks) >= 2:
+                    emp_multi_tokens.append((eid, etoks))
+                for t in etoks:
+                    if len(t) >= 5:
+                        token_to_emp_ids.setdefault(t, set()).add(eid)
+            emp_unique_tokens = {t: next(iter(eids)) for t, eids in token_to_emp_ids.items() if len(eids) == 1}
+
+            src_docs = self.src.search_read(
+                "documents.document",
+                [["type", "!=", "folder"]],
+                [
+                    "id", "name", "type", "url", "description", "partner_id",
+                    "folder_id", "res_model", "res_id", "attachment_id",
+                    "company_id", "checksum", "file_size", "active",
+                ],
+                order="id asc",
+                context=self.src_ctx_all,
+            )
+
+            dst_has_documents_app = bool(self.dst.fields_get("documents.document"))
+            pending_emp_docs: List[Tuple[Dict[str, Any], int, str]] = []
+            for d in src_docs:
+                src_eid = self._resolve_employee_doc_target(
+                    d,
+                    emp_map=emp_map,
+                    ver_to_emp=ver_to_emp,
+                    folder_to_emp=folder_to_emp,
+                    wc_to_emp=wc_to_emp,
+                    hr_folder_ids=hr_folder_ids,
+                    emp_multi_tokens=emp_multi_tokens,
+                    emp_unique_tokens=emp_unique_tokens,
+                )
+                if not src_eid or src_eid not in emp_map:
+                    continue
+                dst_eid = emp_map[src_eid]
+                dname = d.get("name") or f"document_{d['id']}"
+                if self.state.get_dst("documents.document", d["id"]) and not dst_has_documents_app:
+                    continue
+                if is_dup_att(dst_eid, dname, d.get("checksum"), d.get("file_size"), d.get("url")) and not dst_has_documents_app:
+                    continue
+                fpath = folder_paths.get(m2o_id(d.get("folder_id")) or 0, "")
+                pending_emp_docs.append((d, dst_eid, fpath))
+
+            if self.dry_run:
+                log.info("[DRY-RUN] Employee documents.document to copy: %d", len(pending_emp_docs))
+            else:
+                dst_hr_folder_id: Optional[int] = None
+                if dst_has_documents_app and pending_emp_docs:
+                    existing_hr_f = self.dst.search(
+                        "documents.document",
+                        [["type", "=", "folder"], ["name", "=", "HR"]],
+                        limit=1,
+                        context=self.dst_ctx_quiet,
+                    )
+                    if existing_hr_f:
+                        dst_hr_folder_id = existing_hr_f[0]
+                    else:
+                        dst_hr_folder_id = self.dst.create(
+                            "documents.document",
+                            {"name": "HR", "type": "folder"},
+                            context=self.dst_ctx_quiet,
+                        )
+
+                docs_copied = 0
+                for batch in chunked(pending_emp_docs, ATTACHMENT_BATCH_SIZE):
+                    bin_by_doc_id: Dict[int, Any] = {}
+                    doc_bin_ids = [d["id"] for d, _, _ in batch if d.get("type", "binary") != "url"]
+                    if doc_bin_ids:
+                        for drow in self.src.read(
+                            "documents.document",
+                            doc_bin_ids,
+                            ["id", "datas"],
+                            context={**self.src_ctx_all, "bin_size": False},
+                        ):
+                            bin_by_doc_id[drow["id"]] = drow.get("datas")
+
+                    # Fallback to underlying ir.attachment if documents.document.datas is empty
+                    fallback_att_map = {
+                        d["id"]: m2o_id(d.get("attachment_id"))
+                        for d, _, _ in batch
+                        if not self._extract_b64(bin_by_doc_id.get(d["id"])) and m2o_id(d.get("attachment_id"))
+                    }
+                    if fallback_att_map:
+                        for arow in self.src.read(
+                            "ir.attachment",
+                            sorted(set(fallback_att_map.values())),
+                            ["id", src_bin_field],
+                            context={**self.src_ctx_all, "bin_size": False},
+                        ):
+                            for did, aid in fallback_att_map.items():
+                                if aid == arow["id"]:
+                                    bin_by_doc_id[did] = arow.get(src_bin_field)
+
+                    for d, dst_eid, fpath in batch:
+                        src_did = d["id"]
+                        try:
+                            dname = d.get("name") or f"document_{src_did}"
+                            src_cid = m2o_id(d.get("company_id"))
+                            dst_cid = self.state.get_dst("res.company", src_cid) if src_cid else dst_emp_cid.get(dst_eid, False)
+                            bval = self._extract_b64(bin_by_doc_id.get(src_did))
+                            is_url = d.get("type") == "url"
+                            if not is_url and not bval:
+                                continue
+
+                            dst_created_id: Optional[int] = None
+                            if not is_dup_att(dst_eid, dname, d.get("checksum"), d.get("file_size"), d.get("url")):
+                                desc_parts = [p for p in (f"Documents Folder: {fpath}" if fpath else "", d.get("description") or "") if p]
+                                att_vals: Dict[str, Any] = {
+                                    "name": dname,
+                                    "type": "url" if is_url else "binary",
+                                    "res_model": "hr.employee",
+                                    "res_id": dst_eid,
+                                    "description": "\n".join(desc_parts) or False,
+                                    "company_id": dst_cid or False,
+                                }
+                                if is_url:
+                                    att_vals["url"] = d.get("url") or False
+                                else:
+                                    att_vals[dst_bin_field] = bval
+                                dst_created_id = self.dst.create("ir.attachment", att_vals, context=att_create_ctx)
+                                record_att_sig(dst_eid, dname, d.get("checksum"), d.get("file_size"), d.get("url"))
+
+                            if dst_has_documents_app and not self.state.get_dst("documents.document", src_did):
+                                doc_vals: Dict[str, Any] = {
+                                    "name": dname,
+                                    "type": "url" if is_url else "binary",
+                                    "folder_id": dst_hr_folder_id or False,
+                                    "partner_id": dst_emp_wc.get(dst_eid) or False,
+                                    "res_model": "hr.employee",
+                                    "res_id": dst_eid,
+                                    "company_id": dst_cid or False,
+                                    "active": bool(d.get("active", True)),
+                                }
+                                if is_url:
+                                    doc_vals["url"] = d.get("url") or False
+                                else:
+                                    doc_vals["datas"] = bval
+                                dst_doc_id = self.dst.create("documents.document", doc_vals, context=self.dst_ctx_quiet)
+                                self.state.set_map("documents.document", src_did, dst_doc_id)
+                            elif dst_created_id:
+                                self.state.set_map("documents.document", src_did, dst_created_id)
+
+                            self.state.resolve_error("employee_documents", "documents.document", src_did)
+                            docs_copied += 1
+                        except Exception as exc:
+                            self.state.log_error("employee_documents", "documents.document", src_did, str(exc))
+                            log.error("Failed employee document '%s' (%d): %s", d.get("name"), src_did, exc)
+                log.info("Employee documents.document migrated onto hr.employee: %d", docs_copied)
+
+        # ---------------------------------------------------------------------
+        # 3. Employee Resume Lines & Certificate Files (hr.resume.line)
+        # ---------------------------------------------------------------------
+        if self.src.fields_get("hr.resume.line") and self.dst.fields_get("hr.resume.line"):
+            if self.src.fields_get("hr.resume.line.type") and self.dst.fields_get("hr.resume.line.type"):
+                dst_rtypes = {
+                    rt["name"].strip().lower(): rt["id"]
+                    for rt in self.dst.search_read("hr.resume.line.type", [], ["id", "name"], context=self.dst_ctx_quiet)
+                    if rt.get("name")
+                }
+                for srt in self.src.search_read(
+                    "hr.resume.line.type", [], ["id", "name", "sequence", "is_course"], context=self.src_ctx_all
+                ):
+                    if self.state.get_dst("hr.resume.line.type", srt["id"]):
+                        continue
+                    rname = (srt.get("name") or "").strip()
+                    match = dst_rtypes.get(rname.lower())
+                    if match:
+                        self.state.set_map("hr.resume.line.type", srt["id"], match)
+                    elif not self.dry_run and rname:
+                        try:
+                            dst_rtid = self.dst.create(
+                                "hr.resume.line.type",
+                                {
+                                    "name": rname,
+                                    "sequence": srt.get("sequence", 10),
+                                    "is_course": bool(srt.get("is_course", False)),
+                                },
+                                context=self.dst_ctx_quiet,
+                            )
+                            self.state.set_map("hr.resume.line.type", srt["id"], dst_rtid)
+                            dst_rtypes[rname.lower()] = dst_rtid
+                        except Exception as exc:
+                            log.warning("Could not create hr.resume.line.type '%s': %s", rname, exc)
+
+            existing_resumes: Set[Tuple[int, str, str]] = set()
+            for drl in self.dst.search_read(
+                "hr.resume.line", [], ["id", "employee_id", "name", "date_start"], context=self.dst_ctx_quiet
+            ):
+                deid = m2o_id(drl.get("employee_id"))
+                if deid:
+                    existing_resumes.add((deid, str(drl.get("name") or "").strip().lower(), str(drl.get("date_start") or "")))
+
+            src_rlines = self.src.search_read(
+                "hr.resume.line",
+                [],
+                [
+                    "id", "employee_id", "name", "date_start", "date_end", "description",
+                    "line_type_id", "course_type", "external_url", "department_id", "duration", "color",
+                    "certificate_filename",
+                ],
+                order="id asc",
+                context=self.src_ctx_all,
+            )
+            pending_rlines: List[Tuple[Dict[str, Any], int]] = []
+            for rl in src_rlines:
+                if self.state.get_dst("hr.resume.line", rl["id"]):
+                    continue
+                src_eid = m2o_id(rl.get("employee_id"))
+                dst_eid = emp_map.get(src_eid) if src_eid else None
+                if not dst_eid:
+                    continue
+                dstart = str(rl.get("date_start") or "2020-01-01")
+                rkey = (dst_eid, str(rl.get("name") or "").strip().lower(), dstart)
+                if rkey in existing_resumes:
+                    continue
+                pending_rlines.append((rl, dst_eid))
+
+            if self.dry_run:
+                log.info("[DRY-RUN] Employee hr.resume.line records to copy: %d", len(pending_rlines))
+            else:
+                resumes_copied = 0
+                for batch in chunked(pending_rlines, ATTACHMENT_BATCH_SIZE):
+                    cert_by_id: Dict[int, Any] = {}
+                    for rrow in self.src.read(
+                        "hr.resume.line",
+                        [rl["id"] for rl, _ in batch],
+                        ["id", "certificate_file"],
+                        context={**self.src_ctx_all, "bin_size": False},
+                    ):
+                        cert = self._extract_b64(rrow.get("certificate_file"))
+                        if cert:
+                            cert_by_id[rrow["id"]] = cert
+
+                    for rl, dst_eid in batch:
+                        src_rlid = rl["id"]
+                        try:
+                            dstart = rl.get("date_start") or "2020-01-01"
+                            rvals: Dict[str, Any] = {
+                                "employee_id": dst_eid,
+                                "name": rl.get("name") or "Resume Entry",
+                                "date_start": dstart,
+                                "date_end": rl.get("date_end") or False,
+                                "description": rl.get("description") or False,
+                                "line_type_id": self.state.get_dst("hr.resume.line.type", m2o_id(rl.get("line_type_id"))) or False,
+                                "course_type": rl.get("course_type") or "external",
+                                "external_url": rl.get("external_url") or False,
+                                "department_id": self.state.get_dst("hr.department", m2o_id(rl.get("department_id"))) or False,
+                                "duration": int(rl.get("duration") or 0),
+                                "color": int(rl.get("color") or 0),
+                            }
+                            cert_b64 = cert_by_id.get(src_rlid)
+                            if cert_b64:
+                                rvals["certificate_file"] = cert_b64
+                            dst_rlid = self.dst.create("hr.resume.line", rvals, context=self.dst_ctx_quiet)
+                            self.state.set_map("hr.resume.line", src_rlid, dst_rlid)
+                            existing_resumes.add((dst_eid, str(rvals["name"]).strip().lower(), str(dstart)))
+
+                            if cert_b64:
+                                cname = rl.get("certificate_filename") or f"{rvals['name']}.pdf"
+                                if not is_dup_att(dst_eid, cname, None, None, None):
+                                    self.dst.create(
+                                        "ir.attachment",
+                                        {
+                                            "name": cname,
+                                            "type": "binary",
+                                            "res_model": "hr.employee",
+                                            "res_id": dst_eid,
+                                            "company_id": dst_emp_cid.get(dst_eid, False),
+                                            dst_bin_field: cert_b64,
+                                        },
+                                        context=att_create_ctx,
+                                    )
+                                    record_att_sig(dst_eid, cname, None, None, None)
+
+                            self.state.resolve_error("employee_documents", "hr.resume.line", src_rlid)
+                            resumes_copied += 1
+                        except Exception as exc:
+                            self.state.log_error("employee_documents", "hr.resume.line", src_rlid, str(exc))
+                            log.error("Failed hr.resume.line '%s' (%d): %s", rl.get("name"), src_rlid, exc)
+                log.info("Employee hr.resume.line migrated: %d", resumes_copied)
 
     # -------------------------------------------------------------------------
     # STEP 6: PARTNERS & PARTNER BANKS (Referenced in Accounting)
@@ -4543,7 +5194,6 @@ class AccountingMigrator:
             "account.bank.statement.line",
             "account.journal",
             "res.partner",
-            "hr.employee",
         ]
 
         for model in target_models:
@@ -4687,24 +5337,29 @@ class AccountingMigrator:
             failed_pays = [e[2] for e in errs if e[1] == "account.payment"]
             failed_stmts = [e[2] for e in errs if e[1] in ("account.bank.statement", "account.bank.statement.line")]
             failed_users_hr = [e for e in errs if e[0] in ("users", "hr_master", "employees", "contracts")]
-            if not self.skip_users_hr and (failed_users_hr or self.only_users_hr):
-                self.migrate_users()
-                self.migrate_hr_master_data()
-                self.migrate_employees_and_contracts()
-            if not self.only_users_hr:
-                if failed_pays or failed_stmts:
-                    self.migrate_journals()
-                if failed_moves:
-                    self.migrate_moves(only_ids=failed_moves)
-                if failed_pays:
-                    self.migrate_payments(only_ids=failed_pays)
-                if failed_stmts:
-                    self.migrate_bank_statements()
-                self.migrate_reconciliations()
-                self.migrate_attachments()
-                self.migrate_chatter()
+            failed_emp_docs = [e for e in errs if e[0] == "employee_documents"]
+            if self.only_employee_documents:
+                self.migrate_companies()
+                self.migrate_employee_documents_and_attachments()
             else:
-                self.migrate_attachments(only_models=["hr.employee"])
+                if not self.skip_users_hr and (failed_users_hr or self.only_users_hr):
+                    self.migrate_users()
+                    self.migrate_hr_master_data()
+                    self.migrate_employees_and_contracts()
+                if not self.skip_employee_documents and (failed_emp_docs or self.only_users_hr):
+                    self.migrate_employee_documents_and_attachments()
+                if not self.only_users_hr:
+                    if failed_pays or failed_stmts:
+                        self.migrate_journals()
+                    if failed_moves:
+                        self.migrate_moves(only_ids=failed_moves)
+                    if failed_pays:
+                        self.migrate_payments(only_ids=failed_pays)
+                    if failed_stmts:
+                        self.migrate_bank_statements()
+                    self.migrate_reconciliations()
+                    self.migrate_attachments()
+                    self.migrate_chatter()
             unresolved = self.state.get_unresolved_errors()
             if unresolved:
                 log.warning(
@@ -4718,6 +5373,21 @@ class AccountingMigrator:
 
         # Master data phases
         self.migrate_companies()
+
+        if self.only_employee_documents:
+            self.migrate_employee_documents_and_attachments()
+            unresolved = self.state.get_unresolved_errors()
+            doc_errs = [e for e in unresolved if e[0] == "employee_documents"]
+            if doc_errs:
+                log.warning(
+                    "Employee documents migration finished with %d unresolved error(s). Inspect '%s'.",
+                    len(doc_errs),
+                    self.state.db_path,
+                )
+            else:
+                log.info("Employee documents migration completed cleanly with 0 errors!")
+            return
+
         self.migrate_geo_and_tags()
         self.migrate_analytics()
 
@@ -4725,9 +5395,9 @@ class AccountingMigrator:
             self.migrate_users()
             self.migrate_hr_master_data()
             self.migrate_employees_and_contracts()
-            self.migrate_attachments(only_models=["hr.employee"])
+            self.migrate_employee_documents_and_attachments()
             unresolved = self.state.get_unresolved_errors()
-            hr_errs = [e for e in unresolved if e[0] in ("users", "hr_master", "employees", "contracts", "partners", "attachments")]
+            hr_errs = [e for e in unresolved if e[0] in ("users", "hr_master", "employees", "contracts", "partners", "employee_documents", "attachments")]
             if hr_errs:
                 log.warning(
                     "Users & HR migration finished with %d unresolved error(s). Inspect '%s'.",
@@ -4745,6 +5415,7 @@ class AccountingMigrator:
             self.migrate_users()
             self.migrate_hr_master_data()
             self.migrate_employees_and_contracts()
+        self.migrate_employee_documents_and_attachments()
 
         used_partners, used_products = self.collect_used_partner_and_product_ids()
         self.migrate_partners(used_partners)
@@ -4792,6 +5463,16 @@ def main():
         "--skip-users-hr",
         action="store_true",
         help="Skip Users and HR/Employees/Contracts migration during full run.",
+    )
+    parser.add_argument(
+        "--only-employee-documents",
+        action="store_true",
+        help="Copy only employee attachments (ir.attachment), Documents app files (documents.document), and resume/certification lines (hr.resume.line) onto migrated Odoo 20 employees.",
+    )
+    parser.add_argument(
+        "--skip-employee-documents",
+        action="store_true",
+        help="Skip employee attachments, Documents app files, and resume/certification lines migration.",
     )
     parser.add_argument(
         "--passwords-file",
@@ -4856,6 +5537,8 @@ def main():
         default_user_password=args.default_password or dst_cfg.get("default_user_password", ""),
         skip_users_hr=args.skip_users_hr,
         only_users_hr=args.only_users_hr,
+        skip_employee_documents=args.skip_employee_documents,
+        only_employee_documents=args.only_employee_documents,
     )
     migrator.run(retry_errors=args.retry_errors)
 
